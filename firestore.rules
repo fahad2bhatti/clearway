@@ -8,90 +8,23 @@ service cloud.firestore {
     return signedIn() && request.auth.uid == uid;
   }
 
-  function validStars(stars) {
-    return stars is map
-      && stars.size() <= 80
-      && stars.keys().hasOnly(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80'])
-      && stars.get('1', 0) in [0, 1, 2, 3] &&
-        stars.get('2', 0) in [0, 1, 2, 3] &&
-        stars.get('3', 0) in [0, 1, 2, 3] &&
-        stars.get('4', 0) in [0, 1, 2, 3] &&
-        stars.get('5', 0) in [0, 1, 2, 3] &&
-        stars.get('6', 0) in [0, 1, 2, 3] &&
-        stars.get('7', 0) in [0, 1, 2, 3] &&
-        stars.get('8', 0) in [0, 1, 2, 3] &&
-        stars.get('9', 0) in [0, 1, 2, 3] &&
-        stars.get('10', 0) in [0, 1, 2, 3] &&
-        stars.get('11', 0) in [0, 1, 2, 3] &&
-        stars.get('12', 0) in [0, 1, 2, 3] &&
-        stars.get('13', 0) in [0, 1, 2, 3] &&
-        stars.get('14', 0) in [0, 1, 2, 3] &&
-        stars.get('15', 0) in [0, 1, 2, 3] &&
-        stars.get('16', 0) in [0, 1, 2, 3] &&
-        stars.get('17', 0) in [0, 1, 2, 3] &&
-        stars.get('18', 0) in [0, 1, 2, 3] &&
-        stars.get('19', 0) in [0, 1, 2, 3] &&
-        stars.get('20', 0) in [0, 1, 2, 3] &&
-        stars.get('21', 0) in [0, 1, 2, 3] &&
-        stars.get('22', 0) in [0, 1, 2, 3] &&
-        stars.get('23', 0) in [0, 1, 2, 3] &&
-        stars.get('24', 0) in [0, 1, 2, 3] &&
-        stars.get('25', 0) in [0, 1, 2, 3] &&
-        stars.get('26', 0) in [0, 1, 2, 3] &&
-        stars.get('27', 0) in [0, 1, 2, 3] &&
-        stars.get('28', 0) in [0, 1, 2, 3] &&
-        stars.get('29', 0) in [0, 1, 2, 3] &&
-        stars.get('30', 0) in [0, 1, 2, 3] &&
-        stars.get('31', 0) in [0, 1, 2, 3] &&
-        stars.get('32', 0) in [0, 1, 2, 3] &&
-        stars.get('33', 0) in [0, 1, 2, 3] &&
-        stars.get('34', 0) in [0, 1, 2, 3] &&
-        stars.get('35', 0) in [0, 1, 2, 3] &&
-        stars.get('36', 0) in [0, 1, 2, 3] &&
-        stars.get('37', 0) in [0, 1, 2, 3] &&
-        stars.get('38', 0) in [0, 1, 2, 3] &&
-        stars.get('39', 0) in [0, 1, 2, 3] &&
-        stars.get('40', 0) in [0, 1, 2, 3] &&
-        stars.get('41', 0) in [0, 1, 2, 3] &&
-        stars.get('42', 0) in [0, 1, 2, 3] &&
-        stars.get('43', 0) in [0, 1, 2, 3] &&
-        stars.get('44', 0) in [0, 1, 2, 3] &&
-        stars.get('45', 0) in [0, 1, 2, 3] &&
-        stars.get('46', 0) in [0, 1, 2, 3] &&
-        stars.get('47', 0) in [0, 1, 2, 3] &&
-        stars.get('48', 0) in [0, 1, 2, 3] &&
-        stars.get('49', 0) in [0, 1, 2, 3] &&
-        stars.get('50', 0) in [0, 1, 2, 3] &&
-        stars.get('51', 0) in [0, 1, 2, 3] &&
-        stars.get('52', 0) in [0, 1, 2, 3] &&
-        stars.get('53', 0) in [0, 1, 2, 3] &&
-        stars.get('54', 0) in [0, 1, 2, 3] &&
-        stars.get('55', 0) in [0, 1, 2, 3] &&
-        stars.get('56', 0) in [0, 1, 2, 3] &&
-        stars.get('57', 0) in [0, 1, 2, 3] &&
-        stars.get('58', 0) in [0, 1, 2, 3] &&
-        stars.get('59', 0) in [0, 1, 2, 3] &&
-        stars.get('60', 0) in [0, 1, 2, 3] &&
-        stars.get('61', 0) in [0, 1, 2, 3] &&
-        stars.get('62', 0) in [0, 1, 2, 3] &&
-        stars.get('63', 0) in [0, 1, 2, 3] &&
-        stars.get('64', 0) in [0, 1, 2, 3] &&
-        stars.get('65', 0) in [0, 1, 2, 3] &&
-        stars.get('66', 0) in [0, 1, 2, 3] &&
-        stars.get('67', 0) in [0, 1, 2, 3] &&
-        stars.get('68', 0) in [0, 1, 2, 3] &&
-        stars.get('69', 0) in [0, 1, 2, 3] &&
-        stars.get('70', 0) in [0, 1, 2, 3] &&
-        stars.get('71', 0) in [0, 1, 2, 3] &&
-        stars.get('72', 0) in [0, 1, 2, 3] &&
-        stars.get('73', 0) in [0, 1, 2, 3] &&
-        stars.get('74', 0) in [0, 1, 2, 3] &&
-        stars.get('75', 0) in [0, 1, 2, 3] &&
-        stars.get('76', 0) in [0, 1, 2, 3] &&
-        stars.get('77', 0) in [0, 1, 2, 3] &&
-        stars.get('78', 0) in [0, 1, 2, 3] &&
-        stars.get('79', 0) in [0, 1, 2, 3] &&
-        stars.get('80', 0) in [0, 1, 2, 3];
+  function maxLevel() {
+    return 1000;
+  }
+
+  function validProgress(data) {
+    return data.keys().hasOnly([
+        'highestLevel', 'starsCode', 'schemaVersion', 'updatedAt'
+      ])
+      && data.highestLevel is int
+      && data.highestLevel >= 1
+      && data.highestLevel <= maxLevel()
+      && data.starsCode is string
+      && data.starsCode.size() <= maxLevel()
+      && data.starsCode.matches('[0-3]*')
+      && data.schemaVersion == 2
+      && data.updatedAt is timestamp
+      && data.updatedAt == request.time;
   }
 
   match /users/{uid} {
@@ -100,16 +33,15 @@ service cloud.firestore {
 
     match /progress/{progressId} {
       allow get, list: if owns(uid);
-      allow create, update: if owns(uid)
+      allow create: if owns(uid)
         && progressId == 'state'
-        && request.resource.data.keys().hasOnly(['highestLevel', 'stars', 'schemaVersion', 'updatedAt'])
-        && request.resource.data.highestLevel is int
-        && request.resource.data.highestLevel >= 1
-        && request.resource.data.highestLevel <= 80
-        && request.resource.data.schemaVersion == 1
-        && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedAt == request.time
-        && validStars(request.resource.data.stars);
+        && validProgress(request.resource.data);
+      allow update: if owns(uid)
+        && progressId == 'state'
+        && validProgress(request.resource.data)
+        && request.resource.data.highestLevel >= resource.data.highestLevel
+        && request.resource.data.starsCode.size()
+          >= resource.data.get('starsCode', '').size();
       allow delete: if false;
     }
 
@@ -146,7 +78,9 @@ service cloud.firestore {
 
   match /reports/{reportId} {
     allow create: if signedIn()
-      && request.resource.data.keys().hasOnly(['uid', 'type', 'text', 'appVersion', 'device'])
+      && request.resource.data.keys().hasOnly([
+        'uid', 'type', 'text', 'appVersion', 'device'
+      ])
       && request.resource.data.uid == request.auth.uid
       && request.resource.data.type is string
       && request.resource.data.type.size() <= 40

@@ -6,16 +6,19 @@ import 'package:clearway/game/engine/move_validator.dart';
 
 void main() {
   group('Clearway level catalog', () {
-    test('ships 80 deterministic levels', () {
-      expect(LevelCatalog.levels, hasLength(80));
+    test('ships the configured number of deterministic levels', () {
       expect(
-        LevelCatalog.levels.map((level) => level.number),
-        List<int>.generate(80, (i) => i + 1),
+        List<int>.generate(
+          LevelCatalog.totalLevels,
+          (i) => i + 1,
+        ).map((number) => LevelCatalog.getLevel(number).number),
+        List<int>.generate(LevelCatalog.totalLevels, (i) => i + 1),
       );
     });
 
     test('every shipped board is solvable', () {
-      for (final level in LevelCatalog.levels) {
+      for (var number = 1; number <= LevelCatalog.totalLevels; number++) {
+        final level = LevelCatalog.getLevel(number);
         expect(
           LevelSolver.isSolvable(level),
           isTrue,
@@ -25,7 +28,8 @@ void main() {
     });
 
     test('solver returns a complete legal removal order for each board', () {
-      for (final level in LevelCatalog.levels) {
+      for (var number = 1; number <= LevelCatalog.totalLevels; number++) {
+        final level = LevelCatalog.getLevel(number);
         final solution = LevelSolver.solve(level);
         expect(
           solution,
@@ -48,7 +52,7 @@ void main() {
     });
 
     test('level two starts with one safe vehicle and one blocked truck', () {
-      final level = LevelCatalog.levels[1];
+      final level = LevelCatalog.getLevel(2);
       final truck = level.vehicles.first;
       final result = MoveValidator.check(level, level.vehicles, truck);
 
@@ -61,7 +65,7 @@ void main() {
     });
 
     test('an escaped vehicle does not block the next move', () {
-      final level = LevelCatalog.levels[1];
+      final level = LevelCatalog.getLevel(2);
       final truck = level.vehicles.first;
       final remaining = level.vehicles.where(
         (vehicle) => vehicle != level.vehicles[1],

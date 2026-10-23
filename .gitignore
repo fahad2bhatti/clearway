@@ -60,3 +60,6 @@ key.properties
 *service-account*.json
 google-services.json
 GoogleService-Info.plist
+
+# Kotlin compiler session files
+android/.kotlin/

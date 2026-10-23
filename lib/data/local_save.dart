@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../game/data/level_catalog.dart';
+
 /// Offline-first progress matching the original browser game's local save.
 final class LocalSave extends ChangeNotifier {
   static const _storageKey = 'clearway-save-v1';
@@ -89,7 +91,7 @@ final class LocalSave extends ChangeNotifier {
     completedDailies.clear();
   }
 
-  Future<void> save() async {
+  Future<void> save({bool notify = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final current = prefs.getString(_storageKey);
     if (current != null) {
@@ -123,7 +125,7 @@ final class LocalSave extends ChangeNotifier {
         'activeBoard': activeBoard,
       }),
     );
-    notifyListeners();
+    if (notify) notifyListeners();
   }
 
   Future<void> mergeCloudProgress(
@@ -132,9 +134,9 @@ final class LocalSave extends ChangeNotifier {
   ) async {
     final mergedLevel = highestLevel > level ? highestLevel : level;
     var changed = mergedLevel != level;
-    level = mergedLevel.clamp(1, 80);
+    level = mergedLevel.clamp(1, LevelCatalog.totalLevels);
     for (final entry in cloudStars.entries) {
-      if (entry.key < 1 || entry.key > 80) continue;
+      if (entry.key < 1 || entry.key > LevelCatalog.totalLevels) continue;
       final bounded = entry.value.clamp(0, 3);
       final current = stars[entry.key] ?? 0;
       if (bounded > current) {

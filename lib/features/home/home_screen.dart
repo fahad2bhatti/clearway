@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_identity.dart';
 import '../../core/clearway_strings.dart';
+import '../../core/daily_clock.dart';
 import '../../data/local_save.dart';
 import '../../game/data/level_catalog.dart';
 import '../../services/cloud_progress_sync.dart';
@@ -226,8 +227,26 @@ class HomeScreen extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: onDaily,
                         icon: const Icon(Icons.calendar_month_rounded),
-                        label: Text(
-                          '${strings.rushHour}  •  ${strings.dailyWithStreak(save.streak)}',
+                        label: StreamBuilder<int>(
+                          stream: Stream<int>.periodic(
+                            const Duration(minutes: 1),
+                            (minute) => minute,
+                          ),
+                          builder: (context, snapshot) => Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${strings.rushHour}  •  ${strings.dailyWithStreak(save.streak)}',
+                              ),
+                              Text(
+                                strings.newPuzzleIn(
+                                  DailyClock.countdownLabel(),
+                                ),
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -526,7 +545,8 @@ class HomeScreen extends StatelessWidget {
 
   static void showCalendar(BuildContext context, LocalSave save) {
     final strings = ClearwayStrings(save.language);
-    var month = DateTime(DateTime.now().year, DateTime.now().month);
+    final currentUtc = DailyClock.utcNow();
+    var month = DateTime.utc(currentUtc.year, currentUtc.month);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -534,8 +554,9 @@ class HomeScreen extends StatelessWidget {
       showDragHandle: true,
       builder: (context) => StatefulBuilder(
         builder: (context, update) {
-          final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-          final leading = DateTime(month.year, month.month, 1).weekday - 1;
+          final daysInMonth = DateTime.utc(month.year, month.month + 1, 0).day;
+          final leading = DateTime.utc(month.year, month.month, 1).weekday - 1;
+          final currentMonth = DailyClock.utcNow();
           final completed = [
             for (var day = 1; day <= daysInMonth; day++)
               if (save.completedDailies.contains(
@@ -553,7 +574,8 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => update(
-                          () => month = DateTime(month.year, month.month - 1),
+                          () =>
+                              month = DateTime.utc(month.year, month.month - 1),
                         ),
                         icon: const Icon(Icons.chevron_left_rounded),
                       ),
@@ -569,11 +591,11 @@ class HomeScreen extends StatelessWidget {
                       ),
                       IconButton(
                         onPressed:
-                            month.year == DateTime.now().year &&
-                                month.month == DateTime.now().month
+                            month.year == currentMonth.year &&
+                                month.month == currentMonth.month
                             ? null
                             : () => update(
-                                () => month = DateTime(
+                                () => month = DateTime.utc(
                                   month.year,
                                   month.month + 1,
                                 ),

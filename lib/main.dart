@@ -3,15 +3,19 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/app_identity.dart';
+import 'core/daily_clock.dart';
 import 'features/home/home_screen.dart';
+import 'game/data/level_catalog.dart';
 import 'game/game_screen.dart';
 import 'data/local_save.dart';
 import 'firebase_options.dart';
 import 'services/cloud_progress_sync.dart';
+import 'services/progress_sync_debouncer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,16 +45,27 @@ class ClearwayApp extends StatefulWidget {
   State<ClearwayApp> createState() => _ClearwayAppState();
 }
 
-class _ClearwayAppState extends State<ClearwayApp> {
+class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
   final _save = LocalSave();
   final _cloud = CloudProgressSync();
+  late final _progressSync = ProgressSyncDebouncer(
+    operation: (force) => force ? _cloud.retry(_save) : _cloud.sync(_save),
+  );
   var _playing = false;
   var _level = 1;
   var _daily = false;
+  String? _dailyDayKey;
+  int? _dailyServerSeed;
 
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) {
+      LevelCatalog.onSlowGeneration = (number, elapsed) {
+        debugPrint('Level $number generated in ${elapsed.inMilliseconds} ms.');
+      };
+    }
+    WidgetsBinding.instance.addObserver(this);
     _save.addListener(_onSaveChanged);
     _cloud.addListener(_refresh);
     unawaited(_initializeServices());
@@ -61,12 +76,16 @@ class _ClearwayAppState extends State<ClearwayApp> {
     final activeBoard = _save.activeBoard;
     if (activeBoard != null) {
       final isDaily = activeBoard['daily'] == true;
-      if (isDaily && activeBoard['dayKey'] != _todayKey()) {
+      if (isDaily && activeBoard['dayKey'] != DailyClock.dayKey()) {
         _save.activeBoard = null;
         await _save.save();
       } else {
         _level = (activeBoard['level'] as num?)?.toInt() ?? _save.level;
         _daily = isDaily;
+        _dailyDayKey = isDaily ? activeBoard['dayKey'] as String? : null;
+        _dailyServerSeed = isDaily
+            ? (activeBoard['dailySeed'] as num?)?.toInt()
+            : null;
         _playing = true;
       }
     }
@@ -76,20 +95,62 @@ class _ClearwayAppState extends State<ClearwayApp> {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       await _cloud.initialize();
-      await _cloud.sync(_save);
+      final synced = await _cloud.sync(_save, force: true);
+      if (synced != null) _progressSync.markSynced(synced);
+      final dailyKey = _dailyDayKey;
+      if (_daily && dailyKey != null) {
+        unawaited(_refreshDailySeed(dailyKey));
+      }
     } catch (_) {
       // Keep the whole game playable when Firebase is unavailable or offline.
     }
   }
 
-  String _todayKey() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  Future<void> _startDaily() async {
+    final dayKey = DailyClock.dayKey();
+    final cachedSeed = await _cloud.readDailySeed(dayKey, cacheOnly: true);
+    if (!mounted) return;
+    setState(() {
+      _level = _save.level;
+      _daily = true;
+      _dailyDayKey = dayKey;
+      _dailyServerSeed = cachedSeed;
+      _playing = true;
+    });
+    unawaited(_refreshDailySeed(dayKey));
+  }
+
+  Future<void> _refreshDailySeed(String dayKey) async {
+    final seed = await _cloud.readDailySeed(dayKey);
+    if (!mounted ||
+        seed == null ||
+        !_playing ||
+        !_daily ||
+        _dailyDayKey != dayKey ||
+        _dailyServerSeed == seed) {
+      return;
+    }
+    setState(() => _dailyServerSeed = seed);
   }
 
   void _onSaveChanged() {
     _refresh();
-    if (_cloud.isReady) unawaited(_cloud.sync(_save));
+    _progressSync.request(ProgressSyncSignature.fromSave(_save));
+  }
+
+  Future<void> _retryCloudSync() async {
+    _progressSync.request(ProgressSyncSignature.fromSave(_save));
+    await _progressSync.flush(force: true);
+  }
+
+  void _onLevelWon() => unawaited(_progressSync.flush());
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      unawaited(_progressSync.flush());
+    }
   }
 
   void _refresh() {
@@ -98,6 +159,8 @@ class _ClearwayAppState extends State<ClearwayApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _progressSync.dispose();
     _save.removeListener(_onSaveChanged);
     _cloud.removeListener(_refresh);
     _save.dispose();
@@ -152,11 +215,16 @@ class _ClearwayAppState extends State<ClearwayApp> {
         ? GameScreen(
             startingLevel: _level,
             daily: _daily,
+            dailyDayKey: _dailyDayKey,
+            dailyServerSeed: _dailyServerSeed,
             save: _save,
+            onLevelWon: _onLevelWon,
             onHome: (level) => setState(() {
               _level = level;
               _playing = false;
               _daily = false;
+              _dailyDayKey = null;
+              _dailyServerSeed = null;
             }),
             onLevelChanged: (level) => setState(() => _level = level),
           )
@@ -164,17 +232,15 @@ class _ClearwayAppState extends State<ClearwayApp> {
             currentLevel: _save.level,
             save: _save,
             cloudStatus: _cloud.status,
-            onSyncNow: () => unawaited(_cloud.retry(_save)),
+            onSyncNow: () => unawaited(_retryCloudSync()),
             onPlay: (level) => setState(() {
               _level = level;
               _playing = true;
               _daily = false;
+              _dailyDayKey = null;
+              _dailyServerSeed = null;
             }),
-            onDaily: () => setState(() {
-              _level = _save.level;
-              _daily = true;
-              _playing = true;
-            }),
+            onDaily: () => unawaited(_startDaily()),
           ),
   );
 }

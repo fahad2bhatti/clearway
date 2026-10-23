@@ -38,6 +38,8 @@ final class ClearwayStrings {
   String get chooseYard => _ur ? 'صحن منتخب کریں' : 'Choose a yard';
   String get rushHour => _ur ? 'رش آور' : 'RUSH HOUR';
   String get daily => _ur ? 'روزانہ' : 'DAILY';
+  String newPuzzleIn(String countdown) =>
+      _ur ? 'نیا چیلنج $countdown میں' : 'New puzzle in $countdown';
   String get firstDepartureTip => _ur
       ? 'اس سواری کو چھوئیں جس کا راستہ صاف ہے۔'
       : 'Tap the truck whose road ahead is already clear.';

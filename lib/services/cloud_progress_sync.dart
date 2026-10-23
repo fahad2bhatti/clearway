@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../data/local_save.dart';
+import '../data/progress_codec.dart';
+import 'progress_sync_debouncer.dart';
 
 enum CloudSyncStatus { notConfigured, offline, syncing, synced, failed }
 
@@ -17,12 +19,39 @@ final class CloudProgressSync extends ChangeNotifier {
   bool _ready = false;
   bool _emulatorConfigured = false;
   bool _syncAgain = false;
+  bool _syncAgainForce = false;
+  ProgressSyncSignature? _lastSyncedSignature;
+  final Map<String, int> _dailySeedCache = {};
 
   bool get isReady => _ready;
 
-  Future<void> retry(LocalSave local) async {
+  ProgressSyncSignature? get lastSyncedSignature => _lastSyncedSignature;
+
+  /// Cache-only mode is used before starting a daily so play never waits on
+  /// the network. A later online fetch can replace the local fallback seed.
+  Future<int?> readDailySeed(String dayKey, {bool cacheOnly = false}) async {
+    if (!_ready || _firestore == null) return null;
+    final cached = _dailySeedCache[dayKey];
+    if (cacheOnly && cached != null) return cached;
+    try {
+      final source = cacheOnly ? Source.cache : Source.serverAndCache;
+      final snapshot = await _firestore!
+          .collection('dailyChallenges')
+          .doc(dayKey)
+          .get(GetOptions(source: source))
+          .timeout(const Duration(milliseconds: 1500));
+      final seed = (snapshot.data()?['seed'] as num?)?.toInt();
+      if (seed == null || seed < 0 || seed > 0xffffffff) return null;
+      _dailySeedCache[dayKey] = seed;
+      return seed;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ProgressSyncSignature?> retry(LocalSave local) async {
     await initialize();
-    await sync(local);
+    return sync(local, force: true);
   }
 
   static const _useEmulators = bool.fromEnvironment(
@@ -58,18 +87,27 @@ final class CloudProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sync(LocalSave local) async {
-    if (!_ready) return;
+  Future<ProgressSyncSignature?> sync(
+    LocalSave local, {
+    bool force = false,
+  }) async {
+    if (!_ready) return null;
     if (_busy) {
       _syncAgain = true;
-      return;
+      _syncAgainForce = _syncAgainForce || force;
+      return null;
+    }
+    final requestedSignature = ProgressSyncSignature.fromSave(local);
+    if (!force && requestedSignature == _lastSyncedSignature) {
+      status = CloudSyncStatus.synced;
+      return requestedSignature;
     }
     final uid = _auth?.currentUser?.uid;
     if (uid == null) {
       _ready = false;
       status = CloudSyncStatus.offline;
       notifyListeners();
-      return;
+      return null;
     }
     _busy = true;
     status = CloudSyncStatus.syncing;
@@ -82,23 +120,45 @@ final class CloudProgressSync extends ChangeNotifier {
           .doc('state');
       final snapshot = await ref.get();
       final remote = snapshot.data();
+      final remoteLevel = (remote?['highestLevel'] as num?)?.toInt() ?? 1;
+      final oldStars = (remote?['stars'] as Map<String, dynamic>? ?? {}).map(
+        (key, value) => MapEntry(int.parse(key), (value as num).toInt()),
+      );
+      final remoteStarsCode = remote?['starsCode'] as String?;
+      final remoteStars = remoteStarsCode == null
+          ? oldStars
+          : ProgressCodec.decode(remoteStarsCode);
+      final remoteSignature = ProgressSyncSignature.fromProgress(
+        remoteLevel,
+        remoteStars,
+      );
       if (remote != null) {
-        final remoteLevel = (remote['highestLevel'] as num?)?.toInt() ?? 1;
-        final remoteStars = (remote['stars'] as Map<String, dynamic>? ?? {})
-            .map(
-              (key, value) => MapEntry(int.parse(key), (value as num).toInt()),
-            );
         await local.mergeCloudProgress(remoteLevel, remoteStars);
       }
-      await ref.set({
-        'highestLevel': local.level,
-        'stars': {
-          for (final entry in local.stars.entries) '${entry.key}': entry.value,
-        },
-        'schemaVersion': 1,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      final mergedSignature = ProgressSyncSignature.fromSave(local);
+      final localStarsCode = ProgressCodec.encode(
+        local.stars,
+        throughLevel: local.level,
+      );
+      final remoteIsAhead =
+          remote != null &&
+          (local.level < remoteLevel ||
+              (remoteStarsCode != null &&
+                  localStarsCode.length < remoteStarsCode.length));
+      final needsFormatMigration = remote != null && remoteStarsCode == null;
+      if (!snapshot.exists ||
+          needsFormatMigration ||
+          (!remoteIsAhead && mergedSignature != remoteSignature)) {
+        await ref.set({
+          'highestLevel': local.level,
+          'starsCode': localStarsCode,
+          'schemaVersion': 2,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      _lastSyncedSignature = mergedSignature;
       status = CloudSyncStatus.synced;
+      return mergedSignature;
     } on FirebaseException catch (error) {
       status =
           error.code == 'unavailable' || error.code == 'network-request-failed'
@@ -110,9 +170,12 @@ final class CloudProgressSync extends ChangeNotifier {
       _busy = false;
       notifyListeners();
       if (_syncAgain) {
+        final forceAgain = _syncAgainForce;
         _syncAgain = false;
-        await sync(local);
+        _syncAgainForce = false;
+        await sync(local, force: forceAgain);
       }
     }
+    return null;
   }
 }

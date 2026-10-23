@@ -1,15 +1,20 @@
 import 'dart:math';
 
+import '../../core/daily_clock.dart';
 import '../engine/game_level.dart';
 import '../engine/grid_point.dart';
 import '../engine/level_solver.dart';
 import '../engine/move_validator.dart';
 import '../engine/vehicle.dart';
 
-/// Deterministic 80-yard catalog with a gradual size and difficulty ramp.
+/// Deterministic yard catalog with a gradual size and difficulty ramp.
 /// Generated boards are checked by the same pure-Dart solver used in play.
 abstract final class LevelCatalog {
   static const totalLevels = 80;
+  static final Map<int, GameLevel> _levelCache = {};
+
+  /// Optional hook used by the Flutter app to report slow generation in debug.
+  static void Function(int levelNumber, Duration elapsed)? onSlowGeneration;
   static const chapters = [
     'Lahore',
     'Karachi',
@@ -19,10 +24,6 @@ abstract final class LevelCatalog {
     'Faisalabad',
   ];
 
-  static final List<GameLevel> levels = List.unmodifiable(
-    List.generate(totalLevels, (index) => getLevel(index + 1)),
-  );
-
   static String chapterFor(int number) =>
       chapters[((number - 1) ~/ 10) % chapters.length];
 
@@ -30,6 +31,20 @@ abstract final class LevelCatalog {
     if (number < 1 || number > totalLevels) {
       throw RangeError.range(number, 1, totalLevels, 'number');
     }
+    final cached = _levelCache[number];
+    if (cached != null) return cached;
+
+    final timer = Stopwatch()..start();
+    final level = _buildLevel(number);
+    timer.stop();
+    _levelCache[number] = level;
+    if (timer.elapsed > const Duration(milliseconds: 50)) {
+      onSlowGeneration?.call(number, timer.elapsed);
+    }
+    return level;
+  }
+
+  static GameLevel _buildLevel(int number) {
     if (number == 1) return _handOne();
     if (number == 2) return _handTwo();
     if (number == 3) return _handThree();
@@ -61,13 +76,43 @@ abstract final class LevelCatalog {
     );
   }
 
-  static GameLevel daily(DateTime date) {
-    final key = date.year * 10000 + date.month * 100 + date.day;
-    var level = _generate(900000 + key, key * 17 + 3, daily: true);
-    if (!LevelSolver.isSolvable(level)) {
-      level = _generate(900000 + key, key * 17 + 104729, daily: true);
+  static GameLevel daily(String dayKey, {int? serverSeed}) {
+    final seed = serverSeed ?? DailyClock.seedFor(dayKey);
+    for (var attempt = 0; attempt < 8; attempt++) {
+      final candidateSeed = attempt == 0
+          ? seed
+          : (seed ^ (0x9e3779b9 * attempt)) & 0xffffffff;
+      final candidate = _generate(
+        900000 + candidateSeed,
+        candidateSeed,
+        daily: true,
+      );
+      if (LevelSolver.isSolvable(candidate)) return candidate;
     }
-    return level;
+
+    // A final verified, seed-independent board keeps daily play available even
+    // if all deterministic generator attempts fail for an unusual seed.
+    final fallback = GameLevel(
+      number: 900000 + seed,
+      title: 'Daily rush',
+      width: 6,
+      height: 6,
+      vehicles: [
+        _makeVehicle(
+          'vehicle-1',
+          TravelDirection.right,
+          2,
+          5,
+          2,
+          VehicleType.truck,
+        ),
+      ],
+      chapter: 'Rush Hour',
+    );
+    if (!LevelSolver.isSolvable(fallback)) {
+      throw StateError('Daily fallback puzzle must be solvable.');
+    }
+    return fallback;
   }
 
   static GameLevel _generate(int id, int seed, {bool daily = false}) {
@@ -102,7 +147,8 @@ abstract final class LevelCatalog {
       for (var r = 0; r < n; r++)
         for (var c = 0; c < n; c++)
           if (!crossingBusCells.contains(GridPoint(r, c))) GridPoint(r, c),
-    ]..shuffle(rand);
+    ];
+    _shuffle(empty, rand);
     var cursor = 0;
     for (var i = 0; i < obstacleCount && cursor < empty.length; i++) {
       cones.add(empty[cursor++]);
@@ -288,7 +334,8 @@ abstract final class LevelCatalog {
     final heads = [
       for (var r = 0; r < size; r++)
         for (var c = 0; c < size; c++) GridPoint(r, c),
-    ]..shuffle(rand);
+    ];
+    _shuffle(heads, rand);
     for (final head in heads) {
       final cells = [
         for (var i = 0; i < length; i++)
@@ -373,6 +420,15 @@ abstract final class LevelCatalog {
   static int _maxVehicleLength(int level, int gridSize) => level <= 10
       ? min(3, gridSize - 1)
       : min(gridSize - 1, 4 + (level - 11) ~/ 8);
+
+  static void _shuffle<T>(List<T> values, Random random) {
+    for (var i = values.length - 1; i > 0; i--) {
+      final swapIndex = random.nextInt(i + 1);
+      final value = values[i];
+      values[i] = values[swapIndex];
+      values[swapIndex] = value;
+    }
+  }
 
   static TravelDirection _perpendicular(
     TravelDirection direction,

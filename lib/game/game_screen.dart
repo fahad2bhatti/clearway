@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../app/theme_pack.dart';
 import '../core/clearway_strings.dart';
+import '../core/daily_clock.dart';
 import '../data/local_save.dart';
 import 'components/yard_game.dart';
 import 'data/level_catalog.dart';
@@ -22,22 +23,28 @@ class GameScreen extends StatefulWidget {
     required this.startingLevel,
     required this.onHome,
     required this.onLevelChanged,
+    required this.onLevelWon,
     required this.save,
     this.daily = false,
+    this.dailyDayKey,
+    this.dailyServerSeed,
   });
 
   final int startingLevel;
   final ValueChanged<int> onHome;
   final ValueChanged<int> onLevelChanged;
+  final VoidCallback onLevelWon;
   final LocalSave save;
   final bool daily;
+  final String? dailyDayKey;
+  final int? dailyServerSeed;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
-  static const _levelLayoutVersion = 3;
+  static const _levelLayoutVersion = 4;
   final _themePack = ThemePack.truckArt;
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
   late int _levelIndex;
@@ -50,6 +57,7 @@ class _GameScreenState extends State<GameScreen> {
   var _mistakes = 0;
   var _phase = GamePhase.ready;
   var _assistEnabled = false;
+  var _dailyTouched = false;
 
   @override
   void initState() {
@@ -60,10 +68,23 @@ class _GameScreenState extends State<GameScreen> {
     _loadLevel(restore: true);
   }
 
+  @override
+  void didUpdateWidget(covariant GameScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.daily &&
+        (oldWidget.dailyDayKey != widget.dailyDayKey ||
+            oldWidget.dailyServerSeed != widget.dailyServerSeed) &&
+        !_dailyTouched &&
+        _phase == GamePhase.ready) {
+      setState(() => _loadLevel(restore: false));
+    }
+  }
+
   void _loadLevel({bool restore = false}) {
+    _dailyTouched = false;
     _level = widget.daily
-        ? LevelCatalog.daily(DateTime.now())
-        : LevelCatalog.levels[_levelIndex];
+        ? LevelCatalog.daily(_dailyDayKey, serverSeed: widget.dailyServerSeed)
+        : LevelCatalog.getLevel(_levelIndex + 1);
     _remaining = _level.vehicles.map((vehicle) => vehicle.copy()).toList();
     _undoSnapshot = null;
     _undoUsed = false;
@@ -103,7 +124,7 @@ class _GameScreenState extends State<GameScreen> {
         saved['daily'] != widget.daily) {
       return;
     }
-    if (widget.daily && saved['dayKey'] != _todayKey()) return;
+    if (widget.daily && saved['dayKey'] != _dailyDayKey) return;
     final vehiclesById = {
       for (final vehicle in _level.vehicles) vehicle.id: vehicle,
     };
@@ -119,14 +140,14 @@ class _GameScreenState extends State<GameScreen> {
     _undoUsed = saved['undoUsed'] == true;
     _lives = ((saved['lives'] as num?)?.toInt() ?? 3).clamp(0, 3);
     _mistakes = ((saved['mistakes'] as num?)?.toInt() ?? 0).clamp(0, 1000);
+    _dailyTouched =
+        widget.daily &&
+        (_remaining.length != _level.vehicles.length || _mistakes > 0);
     _assistEnabled = saved['assistEnabled'] == true;
     if (_lives == 0) _phase = GamePhase.lost;
   }
 
-  String _todayKey() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-  }
+  String get _dailyDayKey => widget.dailyDayKey ?? DailyClock.dayKey();
 
   String? get _tutorialVehicleId {
     if (widget.daily || _level.number > 3) return null;
@@ -138,7 +159,9 @@ class _GameScreenState extends State<GameScreen> {
       'layoutVersion': _levelLayoutVersion,
       'level': _level.number,
       'daily': widget.daily,
-      if (widget.daily) 'dayKey': _todayKey(),
+      if (widget.daily) 'dayKey': _dailyDayKey,
+      if (widget.daily && widget.dailyServerSeed != null)
+        'dailySeed': widget.dailyServerSeed,
       'remaining': _remaining.map((vehicle) => vehicle.id).toList(),
       'undoSnapshot':
           _undoSnapshot?.map((vehicle) => vehicle.id).toList() ?? [],
@@ -147,7 +170,7 @@ class _GameScreenState extends State<GameScreen> {
       'mistakes': _mistakes,
       'assistEnabled': _assistEnabled,
     };
-    unawaited(widget.save.save());
+    unawaited(widget.save.save(notify: false));
   }
 
   void _clearActiveBoard() {
@@ -159,6 +182,7 @@ class _GameScreenState extends State<GameScreen> {
         !_remaining.any((item) => item.id == vehicle.id)) {
       return;
     }
+    if (widget.daily) _dailyTouched = true;
     final result = MoveValidator.check(_level, _remaining, vehicle);
     if (result.canEscape) {
       if (widget.save.sound) SystemSound.play(SystemSoundType.click);
@@ -235,6 +259,7 @@ class _GameScreenState extends State<GameScreen> {
           .showSnackBar(SnackBar(content: Text(strings.outOfHintsShort)));
       return;
     }
+    if (widget.daily) _dailyTouched = true;
     final safe = MoveValidator.safeVehicles(_level, _remaining);
     if (safe.isEmpty) return;
     widget.save.hints--;
@@ -247,6 +272,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _toggleAssist(bool value) {
+    if (widget.daily) _dailyTouched = true;
     final safeIds = MoveValidator.safeVehicles(
       _level,
       _remaining,
@@ -286,14 +312,20 @@ class _GameScreenState extends State<GameScreen> {
         ? 2
         : 1;
     final isLast = widget.daily || _levelIndex == LevelCatalog.totalLevels - 1;
+    if (!isLast) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        scheduleMicrotask(() {
+          if (mounted) LevelCatalog.getLevel(_level.number + 1);
+        });
+      });
+    }
     if (widget.daily) {
-      final now = DateTime.now();
-      final key =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final key = _dailyDayKey;
       if (widget.save.completedDailies.add(key)) {
-        final yesterday = now.subtract(const Duration(days: 1));
-        final yesterdayKey =
-            '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+        final yesterday = DateTime.parse('${key}T00:00:00Z')
+            .subtract(const Duration(days: 1));
+        final yesterdayKey = DailyClock.dayKey(clock: () => yesterday);
         widget.save.streak = widget.save.lastDaily == yesterdayKey
             ? widget.save.streak + 1
             : 1;
@@ -310,7 +342,9 @@ class _GameScreenState extends State<GameScreen> {
       if (unlocked > widget.save.level) widget.save.level = unlocked;
     }
     _clearActiveBoard();
-    widget.save.save();
+    await widget.save.save();
+    widget.onLevelWon();
+    if (!mounted) return;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,

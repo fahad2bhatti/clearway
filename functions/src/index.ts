@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import {
@@ -12,12 +10,13 @@ import {
 import { logger } from 'firebase-functions/logger';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { dailySeed } from './daily.js';
 
 initializeApp();
 
 const db = getFirestore();
-const region = 'us-central1';
-const appCheckRequired = process.env.FUNCTIONS_EMULATOR !== 'true';
+const region = process.env.FUNCTIONS_REGION ?? 'asia-south1';
+const appCheckRequired = process.env.ENFORCE_APP_CHECK === 'true';
 const callableOptions = {
   region,
   maxInstances: 10,
@@ -166,25 +165,27 @@ export const deleteAccount = onCall(callableOptions, async (request) => {
 export const generateDailyChallenge = onSchedule(
   { schedule: '0 0 * * *', timeZone: 'Etc/UTC', region, maxInstances: 1 },
   async () => {
-    const date = new Date();
-    date.setUTCDate(date.getUTCDate() + 1);
-    const dayKey = date.toISOString().slice(0, 10);
-    const digest = createHash('sha256').update(`clearway:${dayKey}`).digest();
-    const seed = digest.readUInt32BE(0);
-    const ref = db.collection('dailyChallenges').doc(dayKey);
-    try {
-      await ref.create({
-        seed,
-        gridSize: 6,
-        difficulty: 'daily',
-        schemaVersion: 1,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      logger.info('daily_challenge_generated', { dayKey, seed });
-    } catch (error) {
-      const code = (error as { code?: number | string }).code;
-      if (code === 6 || code === 'already-exists') return;
-      throw error;
+    const today = new Date();
+    for (const offset of [0, 1]) {
+      const date = new Date(today);
+      date.setUTCDate(date.getUTCDate() + offset);
+      const dayKey = date.toISOString().slice(0, 10);
+      const seed = dailySeed(dayKey);
+      const ref = db.collection('dailyChallenges').doc(dayKey);
+      try {
+        await ref.create({
+          seed,
+          gridSize: 6,
+          difficulty: 'daily',
+          schemaVersion: 1,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        logger.info('daily_challenge_generated', { dayKey, seed });
+      } catch (error) {
+        const code = (error as { code?: number | string }).code;
+        if (code === 6 || code === 'already-exists') continue;
+        throw error;
+      }
     }
   },
 );

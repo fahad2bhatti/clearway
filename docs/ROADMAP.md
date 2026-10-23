@@ -1,6 +1,6 @@
 # Clearway Project Roadmap
 
-Last updated: 2026-10-23  
+Last updated: 2026-10-24
 Project: Flutter + Flame, Android first; iOS planned  
 Application ID: `com.fahadapps.clearway`
 
@@ -16,7 +16,7 @@ features in the Clearway build brief. It is updated as work is completed.
   rules, convoy group moves, solver-backed safe moves.
 - ✅ Truck-art-inspired Flame board rendering, vehicle exit/bump feedback,
   obstacle art, haptic and system-sound feedback controls.
-- ✅ Deterministic 80-level catalog with chapter labels, boss markers and
+- 🟡 Deterministic, lazily loaded 80-level catalog with chapter labels, boss markers and
   mechanics introduced at levels 10, 25 and 40.
 - ✅ Difficulty ramp: levels 1–10 stay small with at most four short vehicles;
   later 10-level chapters grow from 7×7 to 19×19 by two cells per side, while
@@ -27,7 +27,10 @@ features in the Clearway build brief. It is updated as work is completed.
   so the player must choose the safe order. Bus paths grow each chapter and the
   crossing orientation alternates.
   Separate truck/rickshaw convoys unlock from level 50.
-- ✅ Date-seeded daily puzzle generation and solver verification.
+- 🟡 UTC SHA-256-seeded daily puzzles now use the same client/server seed
+  formula, can read the shared Firestore seed without waiting on it, and have
+  365-day solvability coverage written; the Flutter test runner still needs a
+  local run outside this workspace.
 - ✅ Local save for level unlocks, stars, coins, hints, undos, streaks and
   settings using SharedPreferences.
 - ✅ Home screen, level picker, daily entry, local practice-reward shop and
@@ -57,22 +60,25 @@ features in the Clearway build brief. It is updated as work is completed.
   startup initializes Firebase without blocking offline play.
 - ✅ Anonymous sign-in and local-first cloud progress merge are implemented;
   only highest level and best stars sync from the client. Home has a sync badge
-  and manual retry button.
+  and manual retry button. Progress now uses a compact positional `starsCode`
+  format, reads legacy stars maps for migration, and writes only schema v2.
 - ✅ Firestore rules, indexes file and Auth/Firestore emulator ports are added.
 - 🟡 User setup: enable Anonymous Auth and create the Firestore database in the
   Firebase Console, then deploy rules/indexes.
 - ⛔ FlutterFire CLI refresh could not reach Firebase/Google APIs in this
   workspace. Android options were generated from the local config; rerun
   `flutterfire configure` after network/auth is available.
-- 🟡 Firestore rules emulator tests and collection-group indexes are written; they still need npm install and
-  an emulator run. CI remains.
+- 🟡 Firestore rules now validate compact progress documents and prevent
+  progress shrinkage. Rules tests are written, but need npm install and an
+  emulator run; CI remains.
 - ⬜ App Check on supported production clients.
 - ✅ Crashlytics dependency and Flutter fatal-error handlers are wired.
 - ⬜ Remote Config, Analytics and server-time daily rewards.
 - 🟡 Cloud Functions v2 scaffold: idempotent daily reward ledger, account
-  deletion/export, server-side daily seed schedule, rate limits and App Check
-  enforcement are written. Client calls, npm install/build, emulator tests and
-  deployment remain.
+  deletion/export, server-side daily seed schedule, rate limits and configurable
+  region/App Check settings are written. App Check defaults off until client
+  integration. Client calls, npm install/build, emulator tests and deployment
+  remain.
 - ⬜ Server-side score replay and leaderboard submission.
 - ⬜ Google Play/App Store purchase verification and refund/revoke handlers;
   these need store API setup and credentials in Secret Manager.
@@ -81,8 +87,9 @@ features in the Clearway build brief. It is updated as work is completed.
 
 ### Firebase setup commands
 
-1. In Firebase Console, enable **Authentication → Anonymous** and create a
-   **Cloud Firestore** database.
+1. In Firebase Console, enable **Authentication → Anonymous** and create the
+   **Cloud Firestore** database in `asia-south1` (Mumbai), matching the default
+   `FUNCTIONS_REGION`. Firestore's location cannot be changed later.
 2. Reauthenticate the Firebase CLI if needed: `firebase login --reauth`.
 3. From the project root deploy the rules and indexes:
    `firebase deploy --only firestore:rules,firestore:indexes`.
@@ -159,6 +166,27 @@ the app and reviews it.
 - ⬜ Android signing, release AAB, Play internal/closed testing and store assets.
 - ⬜ iOS macOS CI/signing/TestFlight workflow and device testing.
 - ⬜ Performance, crash-free, accessibility and low-end device QA.
+
+## Pack 2 implementation status (2026-10-24)
+
+- ✅ Compact `ProgressCodec`, legacy-map reads, v2-only writes, `starsCode`
+  Firestore rules and rules tests are in the source tree.
+- ✅ Daily puzzle keys now use UTC; client and server share the SHA-256 seed
+  formula. Daily seed fetch is cache-first for entry and has a 1.5 second
+  timeout for the background server lookup.
+- ✅ Levels are generated on demand and cached; the next level is queued after
+  the win frame. `bin/level_generation_report.dart` measured levels 1, 10, 20,
+  40, 60 and 80 at 7.8, 12.4, 30.8, 125.4, 178.3 and 496.9 ms respectively
+  in this workspace.
+- ✅ Functions use `FUNCTIONS_REGION` (default `asia-south1`) and enable App
+  Check only when `ENFORCE_APP_CHECK=true`; see `functions/.env.example`.
+- ✅ `dart format .` and `flutter analyze` pass. A direct pure-Dart smoke run
+  verified the codec, all catalog levels and 365 daily puzzles.
+- ⛔ `flutter test --reporter expanded` cannot start test isolates because this
+  workspace denies the test runner's `127.0.0.1` socket. Functions tests also
+  remain unrun: npm dependencies are absent, offline install is `ENOTCACHED`,
+  and `npm run test:daily` reports `tsc: not found`. Run the local commands in
+  the Pack 2 report before treating the pack as fully verified.
 
 ## Working rules
 
