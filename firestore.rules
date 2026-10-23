@@ -1,95 +1,97 @@
 rules_version = '2';
 service cloud.firestore {
-  function signedIn() {
-    return request.auth != null;
-  }
-
-  function owns(uid) {
-    return signedIn() && request.auth.uid == uid;
-  }
-
-  function maxLevel() {
-    return 1000;
-  }
-
-  function validProgress(data) {
-    return data.keys().hasOnly([
-        'highestLevel', 'starsCode', 'schemaVersion', 'updatedAt'
-      ])
-      && data.highestLevel is int
-      && data.highestLevel >= 1
-      && data.highestLevel <= maxLevel()
-      && data.starsCode is string
-      && data.starsCode.size() <= maxLevel()
-      && data.starsCode.matches('[0-3]*')
-      && data.schemaVersion == 2
-      && data.updatedAt is timestamp
-      && data.updatedAt == request.time;
-  }
-
-  match /users/{uid} {
-    allow get: if owns(uid);
-    allow list, create, update, delete: if false;
-
-    match /progress/{progressId} {
-      allow get, list: if owns(uid);
-      allow create: if owns(uid)
-        && progressId == 'state'
-        && validProgress(request.resource.data);
-      allow update: if owns(uid)
-        && progressId == 'state'
-        && validProgress(request.resource.data)
-        && request.resource.data.highestLevel >= resource.data.highestLevel
-        && request.resource.data.starsCode.size()
-          >= resource.data.get('starsCode', '').size();
-      allow delete: if false;
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
     }
 
-    match /ledger/{entryId} {
-      allow get, list: if owns(uid);
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function maxLevel() {
+      return 1000;
+    }
+
+    function validProgress(data) {
+      return data.keys().hasOnly([
+          'highestLevel', 'starsCode', 'schemaVersion', 'updatedAt'
+        ])
+        && data.highestLevel is int
+        && data.highestLevel >= 1
+        && data.highestLevel <= maxLevel()
+        && data.starsCode is string
+        && data.starsCode.size() <= maxLevel()
+        && data.starsCode.matches('[0-3]*')
+        && data.schemaVersion == 2
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    match /users/{uid} {
+      allow get: if owns(uid);
+      allow list, create, update, delete: if false;
+
+      match /progress/{progressId} {
+        allow get, list: if owns(uid);
+        allow create: if owns(uid)
+          && progressId == 'state'
+          && validProgress(request.resource.data);
+        allow update: if owns(uid)
+          && progressId == 'state'
+          && validProgress(request.resource.data)
+          && request.resource.data.highestLevel >= resource.data.highestLevel
+          && request.resource.data.starsCode.size()
+            >= resource.data.get('starsCode', '').size();
+        allow delete: if false;
+      }
+
+      match /ledger/{entryId} {
+        allow get, list: if owns(uid);
+        allow write: if false;
+      }
+
+      match /purchases/{transactionId} {
+        allow get, list: if owns(uid);
+        allow write: if false;
+      }
+
+      match /daily/{dateId} {
+        allow get, list: if owns(uid);
+        allow write: if false;
+      }
+    }
+
+    match /dailyChallenges/{dateId} {
+      allow get, list: if signedIn();
       allow write: if false;
     }
 
-    match /purchases/{transactionId} {
-      allow get, list: if owns(uid);
+    match /leaderboards/{weekId}/entries/{uid} {
+      allow get, list: if signedIn();
       allow write: if false;
     }
 
-    match /daily/{dateId} {
-      allow get, list: if owns(uid);
+    match /config/public {
+      allow get: if signedIn();
       allow write: if false;
     }
-  }
 
-  match /dailyChallenges/{dateId} {
-    allow get, list: if signedIn();
-    allow write: if false;
-  }
-
-  match /leaderboards/{weekId}/entries/{uid} {
-    allow get, list: if signedIn();
-    allow write: if false;
-  }
-
-  match /config/public {
-    allow get: if signedIn();
-    allow write: if false;
-  }
-
-  match /reports/{reportId} {
-    allow create: if signedIn()
-      && request.resource.data.keys().hasOnly([
-        'uid', 'type', 'text', 'appVersion', 'device'
-      ])
-      && request.resource.data.uid == request.auth.uid
-      && request.resource.data.type is string
-      && request.resource.data.type.size() <= 40
-      && request.resource.data.text is string
-      && request.resource.data.text.size() <= 2000
-      && request.resource.data.appVersion is string
-      && request.resource.data.appVersion.size() <= 40
-      && request.resource.data.device is string
-      && request.resource.data.device.size() <= 120;
-    allow read, update, delete: if false;
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'type', 'text', 'appVersion', 'device'
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.type is string
+        && request.resource.data.type.size() <= 40
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.appVersion is string
+        && request.resource.data.appVersion.size() <= 40
+        && request.resource.data.device is string
+        && request.resource.data.device.size() <= 120;
+      allow read, update, delete: if false;
+    }
   }
 }

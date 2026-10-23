@@ -5,9 +5,9 @@ import {
   getFirestore,
   Timestamp,
   type DocumentData,
-  type Query,
+  type QuerySnapshot,
 } from 'firebase-admin/firestore';
-import { logger } from 'firebase-functions/logger';
+import * as logger from 'firebase-functions/logger';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { dailySeed } from './daily.js';
@@ -129,8 +129,8 @@ export const exportMyData = onCall(callableOptions, async (request) => {
     userRef.collection('purchases').limit(100).get(),
     userRef.collection('daily').limit(400).get(),
   ]);
-  const serialize = (query: Query<DocumentData>) =>
-    query.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const serialize = (snapshot: QuerySnapshot<DocumentData>) =>
+    snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
   logger.info('user_data_exported', { uid });
   return {
