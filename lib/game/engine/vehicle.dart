@@ -18,6 +18,9 @@ enum VehicleType { truck, rickshaw, bus }
 
 /// A vehicle is a connected set of occupied cells with a front and direction.
 /// The engine knows only this generic model; the theme decides how it looks.
+///
+/// Two vehicles that share a [convoyId] are a convoy pair: tapping one moves
+/// both, and both paths must be clear at that moment.
 final class Vehicle {
   Vehicle({
     required this.id,
@@ -25,6 +28,7 @@ final class Vehicle {
     required this.direction,
     required List<GridPoint> cells,
     required this.head,
+    this.convoyId,
   }) : cells = List.unmodifiable(cells) {
     if (this.cells.length < 2 || this.cells.first != head) {
       throw ArgumentError(
@@ -54,11 +58,15 @@ final class Vehicle {
   final List<GridPoint> cells;
   final GridPoint head;
 
+  /// Null for a normal vehicle; shared by exactly two vehicles in a convoy.
+  final String? convoyId;
+
   Vehicle copy() => Vehicle(
     id: id,
     type: type,
     direction: direction,
     cells: cells,
     head: head,
+    convoyId: convoyId,
   );
 }
