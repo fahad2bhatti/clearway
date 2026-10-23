@@ -18,6 +18,8 @@ final class GameLevel {
     required List<Vehicle> vehicles,
     List<GridPoint> cones = const [],
     List<OneWayGate> gates = const [],
+    this.chapter = 'Lahore',
+    this.boss = false,
   }) : vehicles = List.unmodifiable(vehicles),
        cones = List.unmodifiable(cones),
        gates = List.unmodifiable(gates) {
@@ -69,6 +71,8 @@ final class GameLevel {
   final List<Vehicle> vehicles;
   final List<GridPoint> cones;
   final List<OneWayGate> gates;
+  final String chapter;
+  final bool boss;
 
   bool contains(GridPoint cell) => _inside(cell);
 

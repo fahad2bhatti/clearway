@@ -5,16 +5,16 @@ import 'package:clearway/game/engine/level_solver.dart';
 import 'package:clearway/game/engine/move_validator.dart';
 
 void main() {
-  group('PhoolRasta level catalog', () {
-    test('ships ten deterministic hand-built levels', () {
-      expect(LevelCatalog.levels, hasLength(10));
+  group('Clearway level catalog', () {
+    test('ships 80 deterministic levels', () {
+      expect(LevelCatalog.levels, hasLength(80));
       expect(
         LevelCatalog.levels.map((level) => level.number),
-        List<int>.generate(10, (i) => i + 1),
+        List<int>.generate(80, (i) => i + 1),
       );
     });
 
-    test('every phase-one board is solvable', () {
+    test('every shipped board is solvable', () {
       for (final level in LevelCatalog.levels) {
         expect(
           LevelSolver.isSolvable(level),
@@ -32,16 +32,16 @@ void main() {
           isNotNull,
           reason: 'Level ${level.number} has no solution.',
         );
-        expect(solution, hasLength(level.vehicles.length));
+        expect(solution!.length, lessThanOrEqualTo(level.vehicles.length));
 
         final remaining = List.of(level.vehicles);
-        for (final id in solution!) {
+        for (final id in solution) {
           final vehicle = remaining.singleWhere((vehicle) => vehicle.id == id);
-          expect(
-            MoveValidator.check(level, remaining, vehicle).canEscape,
-            isTrue,
+          final move = MoveValidator.check(level, remaining, vehicle);
+          expect(move.canEscape, isTrue);
+          remaining.removeWhere(
+            (vehicle) => move.groupIds.contains(vehicle.id),
           );
-          remaining.remove(vehicle);
         }
         expect(remaining, isEmpty);
       }
@@ -49,26 +49,22 @@ void main() {
 
     test('level two starts with one safe vehicle and one blocked truck', () {
       final level = LevelCatalog.levels[1];
-      final truck = level.vehicles.singleWhere(
-        (vehicle) => vehicle.id == 'sunehri',
-      );
+      final truck = level.vehicles.first;
       final result = MoveValidator.check(level, level.vehicles, truck);
 
       expect(result.canEscape, isFalse);
-      expect(result.blockerId, 'neeli');
+      expect(result.blockerId, level.vehicles[1].id);
       expect(
         MoveValidator.safeVehicles(level, level.vehicles).map((v) => v.id),
-        contains('neeli'),
+        contains(level.vehicles[1].id),
       );
     });
 
     test('an escaped vehicle does not block the next move', () {
       final level = LevelCatalog.levels[1];
-      final truck = level.vehicles.singleWhere(
-        (vehicle) => vehicle.id == 'sunehri',
-      );
+      final truck = level.vehicles.first;
       final remaining = level.vehicles.where(
-        (vehicle) => vehicle.id != 'neeli',
+        (vehicle) => vehicle != level.vehicles[1],
       );
 
       expect(MoveValidator.check(level, remaining, truck).canEscape, isTrue);

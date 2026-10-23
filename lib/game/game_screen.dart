@@ -1,8 +1,13 @@
 import 'package:flame/game.dart';
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/theme_pack.dart';
+import '../core/clearway_strings.dart';
+import '../data/local_save.dart';
 import 'components/yard_game.dart';
 import 'data/level_catalog.dart';
 import 'engine/game_level.dart';
@@ -17,18 +22,24 @@ class GameScreen extends StatefulWidget {
     required this.startingLevel,
     required this.onHome,
     required this.onLevelChanged,
+    required this.save,
+    this.daily = false,
   });
 
   final int startingLevel;
   final ValueChanged<int> onHome;
   final ValueChanged<int> onLevelChanged;
+  final LocalSave save;
+  final bool daily;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
+  static const _levelLayoutVersion = 3;
   final _themePack = ThemePack.truckArt;
+  ClearwayStrings get strings => ClearwayStrings(widget.save.language);
   late int _levelIndex;
   late GameLevel _level;
   late YardGame _yardGame;
@@ -44,13 +55,15 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     _levelIndex = (widget.startingLevel - 1)
-        .clamp(0, LevelCatalog.levels.length - 1)
+        .clamp(0, LevelCatalog.totalLevels - 1)
         .toInt();
-    _loadLevel();
+    _loadLevel(restore: true);
   }
 
-  void _loadLevel() {
-    _level = LevelCatalog.levels[_levelIndex];
+  void _loadLevel({bool restore = false}) {
+    _level = widget.daily
+        ? LevelCatalog.daily(DateTime.now())
+        : LevelCatalog.levels[_levelIndex];
     _remaining = _level.vehicles.map((vehicle) => vehicle.copy()).toList();
     _undoSnapshot = null;
     _undoUsed = false;
@@ -58,14 +71,87 @@ class _GameScreenState extends State<GameScreen> {
     _mistakes = 0;
     _phase = GamePhase.ready;
     _assistEnabled = false;
+    if (restore) _restoreActiveBoard();
     _yardGame =
         YardGame(
             level: _level,
             onVehicleTap: _onVehicleTap,
             themePack: _themePack,
+            colorblindMode: widget.save.colorblind,
           )
           ..vehicles = _remaining
-          ..suggestedVehicleId = null;
+          ..suggestedVehicleId = _tutorialVehicleId;
+    _persistActiveBoard();
+    if (_remaining.isEmpty || _lives <= 0) {
+      if (_remaining.isEmpty) _phase = GamePhase.won;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_remaining.isEmpty) {
+          _showWinDialog();
+        } else {
+          _showLoseDialog();
+        }
+      });
+    }
+  }
+
+  void _restoreActiveBoard() {
+    final saved = widget.save.activeBoard;
+    if (saved == null ||
+        saved['layoutVersion'] != _levelLayoutVersion ||
+        saved['level'] != _level.number ||
+        saved['daily'] != widget.daily) {
+      return;
+    }
+    if (widget.daily && saved['dayKey'] != _todayKey()) return;
+    final vehiclesById = {
+      for (final vehicle in _level.vehicles) vehicle.id: vehicle,
+    };
+    final remainingIds = (saved['remaining'] as List<dynamic>? ?? [])
+        .cast<String>();
+    if (remainingIds.any((id) => !vehiclesById.containsKey(id))) return;
+    _remaining = [for (final id in remainingIds) vehiclesById[id]!];
+    final undoIds = (saved['undoSnapshot'] as List<dynamic>? ?? [])
+        .cast<String>();
+    if (undoIds.isNotEmpty && undoIds.every(vehiclesById.containsKey)) {
+      _undoSnapshot = [for (final id in undoIds) vehiclesById[id]!];
+    }
+    _undoUsed = saved['undoUsed'] == true;
+    _lives = ((saved['lives'] as num?)?.toInt() ?? 3).clamp(0, 3);
+    _mistakes = ((saved['mistakes'] as num?)?.toInt() ?? 0).clamp(0, 1000);
+    _assistEnabled = saved['assistEnabled'] == true;
+    if (_lives == 0) _phase = GamePhase.lost;
+  }
+
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  String? get _tutorialVehicleId {
+    if (widget.daily || _level.number > 3) return null;
+    return MoveValidator.safeVehicles(_level, _remaining).firstOrNull?.id;
+  }
+
+  void _persistActiveBoard() {
+    widget.save.activeBoard = {
+      'layoutVersion': _levelLayoutVersion,
+      'level': _level.number,
+      'daily': widget.daily,
+      if (widget.daily) 'dayKey': _todayKey(),
+      'remaining': _remaining.map((vehicle) => vehicle.id).toList(),
+      'undoSnapshot':
+          _undoSnapshot?.map((vehicle) => vehicle.id).toList() ?? [],
+      'undoUsed': _undoUsed,
+      'lives': _lives,
+      'mistakes': _mistakes,
+      'assistEnabled': _assistEnabled,
+    };
+    unawaited(widget.save.save());
+  }
+
+  void _clearActiveBoard() {
+    widget.save.activeBoard = null;
   }
 
   void _onVehicleTap(Vehicle vehicle) {
@@ -75,17 +161,22 @@ class _GameScreenState extends State<GameScreen> {
     }
     final result = MoveValidator.check(_level, _remaining, vehicle);
     if (result.canEscape) {
-      HapticFeedback.selectionClick();
+      if (widget.save.sound) SystemSound.play(SystemSoundType.click);
+      if (widget.save.haptics) HapticFeedback.selectionClick();
       setState(() {
         _phase = GamePhase.animating;
         _undoSnapshot = List.of(_remaining);
-        _remaining.removeWhere((item) => item.id == vehicle.id);
+        for (final id in result.groupIds) {
+          final member = _remaining.where((item) => item.id == id).firstOrNull;
+          if (member != null) _yardGame.showExit(member);
+        }
+        _remaining.removeWhere((item) => result.groupIds.contains(item.id));
         _yardGame
-          ..showExit(vehicle)
           ..vehicles = List.of(_remaining)
           ..suggestedVehicleId = null
           ..assistedVehicleIds = const {};
       });
+      _persistActiveBoard();
       Future<void>.delayed(const Duration(milliseconds: 250), () {
         if (!mounted) return;
         if (_remaining.isEmpty) {
@@ -98,18 +189,29 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    HapticFeedback.lightImpact();
+    if (widget.save.haptics) HapticFeedback.lightImpact();
+    if (widget.save.sound) SystemSound.play(SystemSoundType.alert);
     setState(() {
       _mistakes++;
       _lives--;
       _phase = GamePhase.animating;
-      _yardGame.showBlocked(vehicle.id, result.blockerId ?? '');
+      _yardGame.showBlocked(
+        vehicle.id,
+        result.blockerId ?? '',
+        cell: result.blockerCell,
+      );
     });
+    _persistActiveBoard();
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('Blocked by another vehicle'),
+        SnackBar(
+          content: Text(switch (result.blockKind) {
+            BlockKind.cone => strings.coneBlocked,
+            BlockKind.oneWayGate => strings.gateBlocked,
+            BlockKind.convoyPartner => strings.convoyBlocked,
+            _ => strings.blockedByVehicle,
+          }),
           duration: Duration(milliseconds: 900),
           behavior: SnackBarBehavior.floating,
           width: 280,
@@ -128,12 +230,20 @@ class _GameScreenState extends State<GameScreen> {
 
   void _useHint() {
     if (_phase != GamePhase.ready) return;
+    if (widget.save.hints <= 0) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(strings.outOfHintsShort)));
+      return;
+    }
     final safe = MoveValidator.safeVehicles(_level, _remaining);
     if (safe.isEmpty) return;
+    widget.save.hints--;
+    widget.save.save();
     setState(() {
       _yardGame.suggestedVehicleId = safe.first.id;
       _yardGame.assistedVehicleIds = const {};
     });
+    _persistActiveBoard();
   }
 
   void _toggleAssist(bool value) {
@@ -146,10 +256,17 @@ class _GameScreenState extends State<GameScreen> {
       _yardGame.assistedVehicleIds = value ? safeIds : const {};
       if (value) _yardGame.suggestedVehicleId = null;
     });
+    _persistActiveBoard();
   }
 
   void _undo() {
     if (_phase != GamePhase.ready || _undoUsed || _undoSnapshot == null) return;
+    if (widget.save.undos <= 0) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(strings.outOfUndosShort)));
+      return;
+    }
+    widget.save.undos--;
     setState(() {
       _remaining = List.of(_undoSnapshot!);
       _undoSnapshot = null;
@@ -159,6 +276,7 @@ class _GameScreenState extends State<GameScreen> {
         ..suggestedVehicleId = null
         ..assistedVehicleIds = const {};
     });
+    _persistActiveBoard();
   }
 
   Future<void> _showWinDialog() async {
@@ -167,19 +285,46 @@ class _GameScreenState extends State<GameScreen> {
         : _mistakes == 1
         ? 2
         : 1;
-    final isLast = _levelIndex == LevelCatalog.levels.length - 1;
+    final isLast = widget.daily || _levelIndex == LevelCatalog.totalLevels - 1;
+    if (widget.daily) {
+      final now = DateTime.now();
+      final key =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      if (widget.save.completedDailies.add(key)) {
+        final yesterday = now.subtract(const Duration(days: 1));
+        final yesterdayKey =
+            '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+        widget.save.streak = widget.save.lastDaily == yesterdayKey
+            ? widget.save.streak + 1
+            : 1;
+        widget.save.lastDaily = key;
+        widget.save.coins += 20;
+      }
+    } else {
+      final previousStars = widget.save.stars[_level.number] ?? 0;
+      widget.save.stars[_level.number] = previousStars > stars
+          ? previousStars
+          : stars;
+      widget.save.coins += previousStars == 0 ? 15 : 5;
+      final unlocked = (_level.number + 1).clamp(1, LevelCatalog.totalLevels);
+      if (unlocked > widget.save.level) widget.save.level = unlocked;
+    }
+    _clearActiveBoard();
+    widget.save.save();
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => _ResultDialog(
         won: true,
-        title: 'Way clear!',
-        message: 'You guided every vehicle out of the yard.',
+        title: strings.wayClear,
+        message: strings.allVehiclesOut,
         stars: stars,
-        primaryLabel: isLast ? 'Back to yard' : 'Next level',
+        primaryLabel: isLast ? strings.backToYard : strings.nextLevel,
         onPrimary: () {
           Navigator.pop(context);
           if (isLast) {
+            _clearActiveBoard();
+            widget.save.save();
             widget.onHome(_level.number);
           } else {
             setState(() {
@@ -189,9 +334,11 @@ class _GameScreenState extends State<GameScreen> {
             widget.onLevelChanged(_level.number);
           }
         },
-        secondaryLabel: 'Replay',
+        secondaryLabel: strings.replay,
         onSecondary: () {
           Navigator.pop(context);
+          _clearActiveBoard();
+          widget.save.save();
           setState(_loadLevel);
         },
       ),
@@ -204,16 +351,20 @@ class _GameScreenState extends State<GameScreen> {
       barrierDismissible: false,
       builder: (context) => _ResultDialog(
         won: false,
-        title: 'Traffic jam!',
-        message: 'Take a breath and try a different order.',
-        primaryLabel: 'Try again',
+        title: strings.trafficJam,
+        message: strings.retryMessage,
+        primaryLabel: strings.tryAgain,
         onPrimary: () {
           Navigator.pop(context);
+          _clearActiveBoard();
+          widget.save.save();
           setState(_loadLevel);
         },
-        secondaryLabel: 'Home',
+        secondaryLabel: strings.home,
         onSecondary: () {
           Navigator.pop(context);
+          _clearActiveBoard();
+          widget.save.save();
           widget.onHome(_level.number);
         },
       ),
@@ -226,35 +377,38 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xff25343a),
-        title: const Text(
-          'Take a break',
-          style: TextStyle(color: Color(0xfffff3d8)),
+        title: Text(
+          strings.takeABreak,
+          style: const TextStyle(color: Color(0xfffff3d8)),
         ),
-        content: const Text(
-          'Your place in the yard is right here.',
-          style: TextStyle(color: Color(0xffc6d2ca)),
+        content: Text(
+          strings.pauseMessage,
+          style: const TextStyle(color: Color(0xffc6d2ca)),
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              _persistActiveBoard();
               setState(() => _phase = GamePhase.ready);
             },
-            child: const Text('Keep playing'),
+            child: Text(strings.keepPlaying),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               setState(_loadLevel);
             },
-            child: const Text('Restart level'),
+            child: Text(strings.restartLevel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              _clearActiveBoard();
+              widget.save.save();
               widget.onHome(_level.number);
             },
-            child: const Text('Home'),
+            child: Text(strings.home),
           ),
         ],
       ),
@@ -264,6 +418,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final safeCount = MoveValidator.safeVehicles(_level, _remaining).length;
+    final tutorialTip = _tutorialTip;
     return Scaffold(
       backgroundColor: _themePack.asphalt,
       body: SafeArea(
@@ -271,7 +426,35 @@ class _GameScreenState extends State<GameScreen> {
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
           child: Column(
             children: [
-              _TopBar(level: _level, lives: _lives, onPause: _showPauseDialog),
+              _TopBar(
+                level: _level,
+                lives: _lives,
+                onPause: _showPauseDialog,
+                daily: widget.daily,
+                coins: widget.save.coins,
+                strings: strings,
+              ),
+              if (tutorialTip != null) ...[
+                const SizedBox(height: 9),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xff38554f),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Text(
+                    tutorialTip,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xfffff3d8),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               Expanded(
                 child: Center(
@@ -279,7 +462,14 @@ class _GameScreenState extends State<GameScreen> {
                     aspectRatio: 1,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),
-                      child: GameWidget<YardGame>(game: _yardGame),
+                      child: InteractiveViewer(
+                        panEnabled: _level.width >= 9,
+                        scaleEnabled: _level.width >= 9,
+                        minScale: 1,
+                        maxScale: 2.2,
+                        boundaryMargin: const EdgeInsets.all(48),
+                        child: GameWidget<YardGame>(game: _yardGame),
+                      ),
                     ),
                   ),
                 ),
@@ -287,17 +477,20 @@ class _GameScreenState extends State<GameScreen> {
               const SizedBox(height: 18),
               _ActionBar(
                 onHint: _useHint,
+                hintCount: widget.save.hints,
                 onUndo: _undo,
+                undoCount: widget.save.undos,
                 undoEnabled: !_undoUsed && _undoSnapshot != null,
                 assistEnabled: _assistEnabled,
                 safeCount: safeCount,
                 onAssistChanged: _toggleAssist,
+                strings: strings,
               ),
               const SizedBox(height: 8),
               Text(
                 _remaining.isEmpty
                     ? _themePack.emptyYardMessage
-                    : '${_remaining.length} ${_themePack.vehicleNoun}${_remaining.length == 1 ? '' : 's'} still in the yard',
+                    : strings.vehiclesRemaining(_remaining.length),
                 style: const TextStyle(
                   color: Color(0xff91a49e),
                   fontSize: 12,
@@ -310,6 +503,19 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
+
+  String? get _tutorialTip {
+    if (widget.daily) return null;
+    return switch (_level.number) {
+      1 => strings.firstDepartureTip,
+      2 => strings.blockedVehicleTip,
+      3 => strings.orderTip,
+      10 => strings.coneTip,
+      25 => strings.gateTip,
+      40 => strings.convoyTip,
+      _ => null,
+    };
+  }
 }
 
 class _TopBar extends StatelessWidget {
@@ -317,11 +523,17 @@ class _TopBar extends StatelessWidget {
     required this.level,
     required this.lives,
     required this.onPause,
+    required this.daily,
+    required this.coins,
+    required this.strings,
   });
 
   final GameLevel level;
   final int lives;
   final VoidCallback onPause;
+  final bool daily;
+  final int coins;
+  final ClearwayStrings strings;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -340,7 +552,9 @@ class _TopBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'LEVEL ${level.number.toString().padLeft(2, '0')}',
+              daily
+                  ? '${strings.rushHour}  •  ${strings.dailyLabel}'
+                  : '${strings.levelNumber(level.number)}${level.boss ? '  •  ${strings.bossYard}' : ''}',
               style: const TextStyle(
                 color: Color(0xffffb347),
                 fontWeight: FontWeight.w800,
@@ -349,7 +563,7 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             Text(
-              level.title,
+              strings.levelTitle(level.title),
               style: const TextStyle(
                 color: Color(0xfffff3d8),
                 fontWeight: FontWeight.w700,
@@ -376,6 +590,15 @@ class _TopBar extends StatelessWidget {
           ),
         ),
       ),
+      const SizedBox(width: 8),
+      Text(
+        '🪙$coins',
+        style: const TextStyle(
+          color: Color(0xfffff3d8),
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
     ],
   );
 }
@@ -383,19 +606,25 @@ class _TopBar extends StatelessWidget {
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.onHint,
+    required this.hintCount,
     required this.onUndo,
+    required this.undoCount,
     required this.undoEnabled,
     required this.assistEnabled,
     required this.safeCount,
     required this.onAssistChanged,
+    required this.strings,
   });
 
   final VoidCallback onHint;
+  final int hintCount;
   final VoidCallback onUndo;
+  final int undoCount;
   final bool undoEnabled;
   final bool assistEnabled;
   final int safeCount;
   final ValueChanged<bool> onAssistChanged;
+  final ClearwayStrings strings;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -403,7 +632,7 @@ class _ActionBar extends StatelessWidget {
       Expanded(
         child: _ActionButton(
           icon: Icons.lightbulb_rounded,
-          label: 'Hint',
+          label: strings.hintCount(hintCount),
           onTap: onHint,
         ),
       ),
@@ -411,7 +640,7 @@ class _ActionBar extends StatelessWidget {
       Expanded(
         child: _ActionButton(
           icon: Icons.undo_rounded,
-          label: 'Undo',
+          label: strings.undoCount(undoCount),
           enabled: undoEnabled,
           onTap: onUndo,
         ),
@@ -420,7 +649,7 @@ class _ActionBar extends StatelessWidget {
       Expanded(
         child: _ActionButton(
           icon: assistEnabled ? Icons.grid_on_rounded : Icons.grid_4x4_rounded,
-          label: assistEnabled ? 'Assist on' : 'Grid assist',
+          label: assistEnabled ? strings.assistOn : strings.gridAssist,
           onTap: () => onAssistChanged(!assistEnabled),
           selected: assistEnabled,
         ),

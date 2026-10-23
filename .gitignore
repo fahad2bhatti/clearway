@@ -32,6 +32,13 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/functions/node_modules/
+/functions/lib/
+/.firebase/
+/functions/.secret.local
+/functions/.env
+/functions/.env.*
+!/functions/.env.example
 
 # Symbolication related
 app.*.symbols
@@ -46,3 +53,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+*.jks
+*.keystore
+key.properties
+.env
+*service-account*.json
+google-services.json
+GoogleService-Info.plist

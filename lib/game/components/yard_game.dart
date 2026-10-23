@@ -18,16 +18,19 @@ final class YardGame extends FlameGame with TapCallbacks {
     required this.level,
     required this.onVehicleTap,
     this.themePack = ThemePack.truckArt,
+    this.colorblindMode = false,
   });
 
   final GameLevel level;
   final VehicleTap onVehicleTap;
   final ThemePack themePack;
+  final bool colorblindMode;
 
   List<Vehicle> vehicles = [];
   String? suggestedVehicleId;
   Set<String> assistedVehicleIds = const {};
   String? blockerVehicleId;
+  GridPoint? blockerCell;
   String? _bumpedVehicleId;
   double _feedbackRemaining = 0;
   final Map<String, _ExitingVehicle> _exiting = {};
@@ -42,9 +45,10 @@ final class YardGame extends FlameGame with TapCallbacks {
     _exiting[vehicle.id] = _ExitingVehicle(vehicle);
   }
 
-  void showBlocked(String movingId, String blockerId) {
+  void showBlocked(String movingId, String blockerId, {GridPoint? cell}) {
     _bumpedVehicleId = movingId;
     blockerVehicleId = blockerId;
+    blockerCell = cell;
     _feedbackRemaining = 0.3;
   }
 
@@ -56,6 +60,7 @@ final class YardGame extends FlameGame with TapCallbacks {
       if (_feedbackRemaining == 0) {
         _bumpedVehicleId = null;
         blockerVehicleId = null;
+        blockerCell = null;
       }
     }
     final finished = <String>[];
@@ -93,12 +98,78 @@ final class YardGame extends FlameGame with TapCallbacks {
       ui.Paint()..color = themePack.yardSurface,
     );
     _drawGrid(canvas);
+    _drawObstacles(canvas);
+    if (_feedbackRemaining > 0 && blockerCell != null) {
+      final rect = _cellRect(blockerCell!).deflate(_cellSize * .07);
+      canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(rect, ui.Radius.circular(_cellSize * .15)),
+        ui.Paint()..color = themePack.coral.withValues(alpha: .48),
+      );
+    }
     for (var index = 0; index < vehicles.length; index++) {
       final vehicle = vehicles[index];
       _drawVehicle(canvas, vehicle, index);
     }
     for (final exiting in _exiting.values) {
       _drawVehicle(canvas, exiting.vehicle, 0, exitProgress: exiting.progress);
+    }
+  }
+
+  void _drawObstacles(ui.Canvas canvas) {
+    for (final cone in level.cones) {
+      final rect = _cellRect(cone).deflate(_cellSize * .19);
+      final path = ui.Path()
+        ..moveTo(rect.center.dx, rect.top)
+        ..lineTo(rect.right, rect.bottom)
+        ..lineTo(rect.left, rect.bottom)
+        ..close();
+      canvas.drawPath(path, ui.Paint()..color = themePack.accent);
+      canvas.drawLine(
+        ui.Offset(rect.left + 2, rect.bottom - 3),
+        ui.Offset(rect.right - 2, rect.bottom - 3),
+        ui.Paint()
+          ..color = themePack.ivory
+          ..strokeWidth = 2.3,
+      );
+      canvas.drawOval(
+        ui.Rect.fromCenter(
+          center: ui.Offset(rect.center.dx, rect.bottom + 2),
+          width: rect.width + 5,
+          height: 4,
+        ),
+        ui.Paint()..color = const Color(0xff121a1d),
+      );
+    }
+    for (final gate in level.gates) {
+      final rect = _cellRect(gate.position).deflate(_cellSize * .13);
+      canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(rect, ui.Radius.circular(_cellSize * .12)),
+        ui.Paint()..color = themePack.coral.withValues(alpha: .84),
+      );
+      final center = rect.center;
+      final direction = gate.direction.step;
+      final tip =
+          center +
+          ui.Offset(
+            direction.column * _cellSize * .22,
+            direction.row * _cellSize * .22,
+          );
+      final tail =
+          center -
+          ui.Offset(
+            direction.column * _cellSize * .17,
+            direction.row * _cellSize * .17,
+          );
+      final wing = ui.Offset(
+        -direction.row * _cellSize * .13,
+        direction.column * _cellSize * .13,
+      );
+      final arrow = ui.Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..lineTo(tail.dx + wing.dx, tail.dy + wing.dy)
+        ..lineTo(tail.dx - wing.dx, tail.dy - wing.dy)
+        ..close();
+      canvas.drawPath(arrow, ui.Paint()..color = themePack.ivory);
     }
   }
 
@@ -192,6 +263,15 @@ final class YardGame extends FlameGame with TapCallbacks {
 
     final body = ui.Paint()..color = color;
     canvas.drawRRect(ui.RRect.fromRectAndRadius(rect, radius), body);
+    if (vehicle.convoyId != null) {
+      canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(rect.inflate(2), radius),
+        ui.Paint()
+          ..color = themePack.floralMagenta
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 2.4,
+      );
+    }
     final inner = rect.deflate(_cellSize * 0.07);
     canvas.drawRRect(
       ui.RRect.fromRectAndRadius(inner, ui.Radius.circular(_cellSize * 0.15)),
@@ -209,9 +289,52 @@ final class YardGame extends FlameGame with TapCallbacks {
       color,
       rect.topLeft - unshiftedTopLeft,
     );
+    if (colorblindMode) {
+      final label = vehicle.id.split('-').last;
+      final painter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: themePack.ivory,
+            fontSize: _cellSize * .16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      painter.paint(
+        canvas,
+        rect.center - ui.Offset(painter.width / 2, painter.height / 2),
+      );
+    }
     if (suggestedVehicleId == vehicle.id ||
         assistedVehicleIds.contains(vehicle.id)) {
       _drawHint(canvas, rect);
+    }
+    if (level.number <= 3 && suggestedVehicleId == vehicle.id) {
+      final pointer = TextPainter(
+        text: const TextSpan(text: '👆', style: TextStyle(fontSize: 22)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final headCenter = _cellRect(vehicle.head).center;
+      canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(
+          ui.Rect.fromCenter(
+            center: headCenter.translate(0, -_cellSize * .1),
+            width: _cellSize * .58,
+            height: _cellSize * .58,
+          ),
+          ui.Radius.circular(_cellSize * .18),
+        ),
+        ui.Paint()..color = themePack.yardSurface.withValues(alpha: .92),
+      );
+      pointer.paint(
+        canvas,
+        ui.Offset(
+          headCenter.dx - pointer.width / 2,
+          headCenter.dy - pointer.height / 2 - _cellSize * .1,
+        ),
+      );
     }
   }
 
@@ -224,8 +347,13 @@ final class YardGame extends FlameGame with TapCallbacks {
     final horizontal =
         vehicle.direction == TravelDirection.left ||
         vehicle.direction == TravelDirection.right;
+    final convoyIndex =
+        int.tryParse(vehicle.convoyId?.split('-').last ?? '') ?? 0;
+    final convoyStripe = vehicle.convoyId == null
+        ? null
+        : themePack.vehicleColors[convoyIndex % themePack.vehicleColors.length];
     final accent = ui.Paint()
-      ..color = themePack.ivory.withValues(alpha: 0.88)
+      ..color = (convoyStripe ?? themePack.ivory).withValues(alpha: 0.92)
       ..strokeWidth = math.max(1.5, _cellSize * 0.045)
       ..strokeCap = ui.StrokeCap.round;
     if (horizontal) {
@@ -240,7 +368,7 @@ final class YardGame extends FlameGame with TapCallbacks {
         canvas.drawCircle(
           ui.Offset(x, y - _cellSize * 0.14),
           _cellSize * 0.045,
-          ui.Paint()..color = themePack.floralMagenta,
+          ui.Paint()..color = convoyStripe ?? themePack.floralMagenta,
         );
       }
     } else {
@@ -255,7 +383,7 @@ final class YardGame extends FlameGame with TapCallbacks {
         canvas.drawCircle(
           ui.Offset(x + _cellSize * 0.14, y),
           _cellSize * 0.045,
-          ui.Paint()..color = themePack.turquoise,
+          ui.Paint()..color = convoyStripe ?? themePack.turquoise,
         );
       }
     }

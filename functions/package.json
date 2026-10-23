@@ -1,0 +1,26 @@
+{
+  "name": "clearway-functions",
+  "private": true,
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only auth,firestore,functions",
+    "deploy": "npm run build && firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "test:rules": "node --test test/firestore.rules.test.mjs",
+    "test:rules:emulator": "cd .. && firebase emulators:exec --only firestore --project demo-clearway-rules \"npm --prefix functions run test:rules\""
+  },
+  "dependencies": {
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.4.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "@types/node": "^22.10.2",
+    "firebase": "^12.4.0",
+    "typescript": "^5.7.2"
+  }
+}
