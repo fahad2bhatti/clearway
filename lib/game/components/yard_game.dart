@@ -409,7 +409,7 @@ final class YardGame extends FlameGame with TapCallbacks {
   }
 
   void _drawHint(ui.Canvas canvas, ui.Rect rect) {
-    final pulse = 0.42 + 0.18 * math.sin(currentTime * 7);
+    final pulse = 0.42 + 0.18 * math.sin(nowSeconds * 7);
     canvas.drawRRect(
       ui.RRect.fromRectAndRadius(
         rect.inflate(4),
@@ -448,7 +448,7 @@ final class YardGame extends FlameGame with TapCallbacks {
     if (nearest != null) onVehicleTap(nearest);
   }
 
-  double get currentTime => DateTime.now().millisecondsSinceEpoch / 1000;
+  double get nowSeconds => DateTime.now().millisecondsSinceEpoch / 1000;
 }
 
 final class _ExitingVehicle {
