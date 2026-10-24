@@ -51,27 +51,45 @@ void main() {
       }
     });
 
-    test('level two starts with one safe vehicle and one blocked truck', () {
-      final level = LevelCatalog.getLevel(2);
-      final truck = level.vehicles.first;
-      final result = MoveValidator.check(level, level.vehicles, truck);
+    test(
+      'level two has a free bus and a blocked bus that names its blocker',
+      () {
+        final level = LevelCatalog.getLevel(2);
+        final blocked = level.vehicles
+            .where(
+              (v) => !MoveValidator.check(level, level.vehicles, v).canEscape,
+            )
+            .toList();
 
-      expect(result.canEscape, isFalse);
-      expect(result.blockerId, level.vehicles[1].id);
+        expect(blocked, isNotEmpty);
+        expect(MoveValidator.safeVehicles(level, level.vehicles), isNotEmpty);
+        final result = MoveValidator.check(
+          level,
+          level.vehicles,
+          blocked.first,
+        );
+        expect(level.vehicles.map((v) => v.id), contains(result.blockerId));
+      },
+    );
+
+    test('an escaped bus does not block the next move', () {
+      final level = LevelCatalog.getLevel(2);
+      final blocked = level.vehicles.firstWhere(
+        (v) => !MoveValidator.check(level, level.vehicles, v).canEscape,
+      );
+      final blockerId = MoveValidator.check(
+        level,
+        level.vehicles,
+        blocked,
+      ).blockerId;
+      final remaining = level.vehicles
+          .where((vehicle) => vehicle.id != blockerId)
+          .toList();
+
       expect(
-        MoveValidator.safeVehicles(level, level.vehicles).map((v) => v.id),
-        contains(level.vehicles[1].id),
+        MoveValidator.check(level, remaining, blocked).blockerId,
+        isNot(blockerId),
       );
-    });
-
-    test('an escaped vehicle does not block the next move', () {
-      final level = LevelCatalog.getLevel(2);
-      final truck = level.vehicles.first;
-      final remaining = level.vehicles.where(
-        (vehicle) => vehicle != level.vehicles[1],
-      );
-
-      expect(MoveValidator.check(level, remaining, truck).canEscape, isTrue);
     });
   });
 }

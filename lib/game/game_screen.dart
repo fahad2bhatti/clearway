@@ -44,7 +44,7 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  static const _levelLayoutVersion = 4;
+  static const _levelLayoutVersion = 5;
   final _themePack = ThemePack.truckArt;
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
   late int _levelIndex;
@@ -500,7 +500,7 @@ class _GameScreenState extends State<GameScreen> {
                         panEnabled: _level.width >= 9,
                         scaleEnabled: _level.width >= 9,
                         minScale: 1,
-                        maxScale: 2.2,
+                        maxScale: (_level.width / 5).clamp(2.2, 8.0).toDouble(),
                         boundaryMargin: const EdgeInsets.all(48),
                         child: GameWidget<YardGame>(game: _yardGame),
                       ),

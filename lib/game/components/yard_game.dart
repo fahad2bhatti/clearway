@@ -37,6 +37,8 @@ final class YardGame extends FlameGame with TapCallbacks {
 
   ui.Rect _boardRect = ui.Rect.zero;
   double _cellSize = 0;
+  ui.Path? _silhouette;
+  String _silhouetteKey = '';
 
   @override
   Color backgroundColor() => themePack.asphalt;
@@ -90,14 +92,7 @@ final class YardGame extends FlameGame with TapCallbacks {
       height,
     );
 
-    canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(
-        _boardRect.inflate(8),
-        const ui.Radius.circular(26),
-      ),
-      ui.Paint()..color = themePack.yardSurface,
-    );
-    _drawGrid(canvas);
+    _drawBoard(canvas);
     _drawObstacles(canvas);
     if (_feedbackRemaining > 0 && blockerCell != null) {
       final rect = _cellRect(blockerCell!).deflate(_cellSize * .07);
@@ -173,35 +168,31 @@ final class YardGame extends FlameGame with TapCallbacks {
     }
   }
 
-  void _drawGrid(ui.Canvas canvas) {
-    final paint = ui.Paint()
-      ..color = themePack.gridLine
-      ..strokeWidth = 1.2
-      ..style = ui.PaintingStyle.stroke;
-    for (var column = 0; column <= level.width; column++) {
-      final x = _boardRect.left + column * _cellSize;
-      canvas.drawLine(
-        ui.Offset(x, _boardRect.top),
-        ui.Offset(x, _boardRect.bottom),
-        paint,
+  /// The yard floor. A silhouette yard paints only its own cells. There is no
+  /// visible grid, so the buses read as lines drawn on the floor.
+  void _drawBoard(ui.Canvas canvas) {
+    final shape = level.shape;
+    final surface = ui.Paint()..color = themePack.yardSurface;
+    if (shape == null) {
+      canvas.drawRRect(
+        ui.RRect.fromRectAndRadius(
+          _boardRect.inflate(8),
+          const ui.Radius.circular(26),
+        ),
+        surface,
       );
+      return;
     }
-    for (var row = 0; row <= level.height; row++) {
-      final y = _boardRect.top + row * _cellSize;
-      canvas.drawLine(
-        ui.Offset(_boardRect.left, y),
-        ui.Offset(_boardRect.right, y),
-        paint,
-      );
+    final key = '$_cellSize:${_boardRect.left}:${_boardRect.top}';
+    if (_silhouette == null || _silhouetteKey != key) {
+      final path = ui.Path();
+      for (final cell in shape) {
+        path.addRect(_cellRect(cell).inflate(_cellSize * 0.04));
+      }
+      _silhouette = path;
+      _silhouetteKey = key;
     }
-    final border = ui.Paint()
-      ..color = themePack.accent.withValues(alpha: 0.75)
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = 2.4;
-    canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(_boardRect, const ui.Radius.circular(10)),
-      border,
-    );
+    canvas.drawPath(_silhouette!, surface);
   }
 
   void _drawVehicle(
@@ -210,110 +201,56 @@ final class YardGame extends FlameGame with TapCallbacks {
     int index, {
     double exitProgress = 0,
   }) {
-    final minRow = vehicle.cells
-        .map((cell) => cell.row)
-        .reduce((a, b) => a < b ? a : b);
-    final maxRow = vehicle.cells
-        .map((cell) => cell.row)
-        .reduce((a, b) => a > b ? a : b);
-    final minColumn = vehicle.cells
-        .map((cell) => cell.column)
-        .reduce((a, b) => a < b ? a : b);
-    final maxColumn = vehicle.cells
-        .map((cell) => cell.column)
-        .reduce((a, b) => a > b ? a : b);
-    var rect = ui.Rect.fromLTRB(
-      _boardRect.left + minColumn * _cellSize + 4,
-      _boardRect.top + minRow * _cellSize + 4,
-      _boardRect.left + (maxColumn + 1) * _cellSize - 4,
-      _boardRect.top + (maxRow + 1) * _cellSize - 4,
-    );
-    final unshiftedTopLeft = rect.topLeft;
-
     final flash = blockerVehicleId == vehicle.id && _feedbackRemaining > 0;
     final bumped = _bumpedVehicleId == vehicle.id && _feedbackRemaining > 0;
+    // Colour follows the bus id, so it stays the same while others leave.
+    final colorIndex = int.tryParse(vehicle.id.split('-').last) ?? index;
+    final color = flash
+        ? themePack.coral
+        : themePack.vehicleColors[colorIndex % themePack.vehicleColors.length];
+
+    final points = exitProgress > 0
+        ? _exitPoints(vehicle, exitProgress)
+        : [for (final cell in vehicle.cells.reversed) _cellRect(cell).center];
+    if (points.length < 2) return;
+    final path = _roundedPath(points);
+    final last = points[points.length - 1];
+    final before = points[points.length - 2];
+    final heading = (last - before) / (last - before).distance;
+    final lineWidth = math.max(1.6, _cellSize * 0.26).toDouble();
+
+    final body = ui.Paint()
+      ..color = color
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = lineWidth
+      ..strokeCap = ui.StrokeCap.round
+      ..strokeJoin = ui.StrokeJoin.round;
+    final shadow = ui.Paint()
+      ..color = const Color(0xff071013).withValues(alpha: 0.45)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = lineWidth
+      ..strokeCap = ui.StrokeCap.round
+      ..strokeJoin = ui.StrokeJoin.round;
+
+    canvas.save();
     if (bumped) {
       final shake =
           math.sin((0.3 - _feedbackRemaining) * 100) * _cellSize * 0.055;
-      rect = rect.shift(ui.Offset(shake, 0));
+      canvas.translate(shake, 0);
     }
-    if (exitProgress > 0) {
-      final distance =
-          exitProgress *
-          (_cellSize * 1.6 + math.max(size.x, size.y).toDouble() * 0.35);
-      rect = rect.shift(
-        ui.Offset(
-          vehicle.direction.columnStep * distance,
-          vehicle.direction.rowStep * distance,
-        ),
-      );
-    }
+    canvas.drawPath(path.shift(ui.Offset(0, _cellSize * 0.05)), shadow);
+    final hinted =
+        suggestedVehicleId == vehicle.id ||
+        assistedVehicleIds.contains(vehicle.id);
+    if (hinted && exitProgress == 0) _drawHint(canvas, path);
+    canvas.drawPath(path, body);
+    _drawArrowHead(canvas, last, heading, ui.Paint()..color = color);
+    if (colorblindMode) _drawPattern(canvas, path, colorIndex % 5);
+    canvas.restore();
 
-    final color = flash
-        ? themePack.coral
-        : themePack.vehicleColors[index % themePack.vehicleColors.length];
-    final radius = ui.Radius.circular(_cellSize * 0.2);
-    final shadow = ui.Paint()
-      ..color = const Color(0xff071013).withValues(alpha: 0.45)
-      ..maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, _cellSize * 0.08);
-    canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(rect.shift(ui.Offset(0, 3)), radius),
-      shadow,
-    );
-
-    final body = ui.Paint()..color = color;
-    canvas.drawRRect(ui.RRect.fromRectAndRadius(rect, radius), body);
-    if (vehicle.convoyId != null) {
-      canvas.drawRRect(
-        ui.RRect.fromRectAndRadius(rect.inflate(2), radius),
-        ui.Paint()
-          ..color = themePack.floralMagenta
-          ..style = ui.PaintingStyle.stroke
-          ..strokeWidth = 2.4,
-      );
-    }
-    final inner = rect.deflate(_cellSize * 0.07);
-    canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(inner, ui.Radius.circular(_cellSize * 0.15)),
-      ui.Paint()
-        ..color = themePack.ivory.withValues(alpha: 0.22)
-        ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 1.3,
-    );
-
-    _drawDecorativeStripe(canvas, vehicle, rect, color);
-    _drawCabAndWheels(
-      canvas,
-      vehicle,
-      rect,
-      color,
-      rect.topLeft - unshiftedTopLeft,
-    );
-    if (colorblindMode) {
-      final label = vehicle.id.split('-').last;
-      final painter = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: TextStyle(
-            color: themePack.ivory,
-            fontSize: _cellSize * .16,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      painter.paint(
-        canvas,
-        rect.center - ui.Offset(painter.width / 2, painter.height / 2),
-      );
-    }
-    if (suggestedVehicleId == vehicle.id ||
-        assistedVehicleIds.contains(vehicle.id)) {
-      _drawHint(canvas, rect);
-    }
     if (level.number <= 3 && suggestedVehicleId == vehicle.id) {
       final pointer = TextPainter(
-        text: const TextSpan(text: '👆', style: TextStyle(fontSize: 22)),
+        text: const TextSpan(text: '\u{1F446}', style: TextStyle(fontSize: 22)),
         textDirection: TextDirection.ltr,
       )..layout();
       final headCenter = _cellRect(vehicle.head).center;
@@ -338,215 +275,132 @@ final class YardGame extends FlameGame with TapCallbacks {
     }
   }
 
-  void _drawDecorativeStripe(
-    ui.Canvas canvas,
-    Vehicle vehicle,
-    ui.Rect rect,
-    Color color,
-  ) {
-    final horizontal =
-        vehicle.direction == TravelDirection.left ||
-        vehicle.direction == TravelDirection.right;
-    final convoyIndex =
-        int.tryParse(vehicle.convoyId?.split('-').last ?? '') ?? 0;
-    final convoyStripe = vehicle.convoyId == null
-        ? null
-        : themePack.vehicleColors[convoyIndex % themePack.vehicleColors.length];
-    final accent = ui.Paint()
-      ..color = (convoyStripe ?? themePack.ivory).withValues(alpha: 0.92)
-      ..strokeWidth = math.max(1.5, _cellSize * 0.045)
-      ..strokeCap = ui.StrokeCap.round;
-    if (horizontal) {
-      final y = rect.center.dy;
-      canvas.drawLine(
-        ui.Offset(rect.left + 7, y),
-        ui.Offset(rect.right - 7, y),
-        accent,
-      );
-      for (var dot = 0; dot < vehicle.cells.length; dot++) {
-        final x = rect.left + rect.width * (dot + 0.5) / vehicle.cells.length;
-        canvas.drawCircle(
-          ui.Offset(x, y - _cellSize * 0.14),
-          _cellSize * 0.045,
-          ui.Paint()..color = convoyStripe ?? themePack.floralMagenta,
-        );
-      }
-    } else {
-      final x = rect.center.dx;
-      canvas.drawLine(
-        ui.Offset(x, rect.top + 7),
-        ui.Offset(x, rect.bottom - 7),
-        accent,
-      );
-      for (var dot = 0; dot < vehicle.cells.length; dot++) {
-        final y = rect.top + rect.height * (dot + 0.5) / vehicle.cells.length;
-        canvas.drawCircle(
-          ui.Offset(x + _cellSize * 0.14, y),
-          _cellSize * 0.045,
-          ui.Paint()..color = convoyStripe ?? themePack.turquoise,
-        );
-      }
+  /// Smooth line through the cell centres (tail first, head last) with
+  /// rounded corners, so a bent bus looks like one curved snake.
+  ui.Path _roundedPath(List<ui.Offset> points) {
+    final path = ui.Path()..moveTo(points.first.dx, points.first.dy);
+    final radius = _cellSize * 0.32;
+    for (var i = 1; i < points.length - 1; i++) {
+      final a = points[i - 1];
+      final b = points[i];
+      final c = points[i + 1];
+      final ab = b - a;
+      final bc = c - b;
+      final cross = ab.dx * bc.dy - ab.dy * bc.dx;
+      if (cross.abs() < 1e-6) continue; // straight on, no corner here
+      final entry = b - ab / ab.distance * math.min(radius, ab.distance / 2);
+      final exit = b + bc / bc.distance * math.min(radius, bc.distance / 2);
+      path.lineTo(entry.dx, entry.dy);
+      path.quadraticBezierTo(b.dx, b.dy, exit.dx, exit.dy);
     }
-    // Small floral rosettes are drawn from simple original vector shapes.
-    if (!themePack.showFloralMotifs) return;
-    final center = rect.center;
-    final flowerRadius = _cellSize * 0.09;
-    for (var petal = 0; petal < 4; petal++) {
-      final angle = petal * math.pi / 2;
-      canvas.drawCircle(
-        center + ui.Offset(math.cos(angle), math.sin(angle)) * flowerRadius,
-        flowerRadius * 0.34,
-        ui.Paint()
-          ..color = petal.isEven
-              ? themePack.floralMagenta
-              : themePack.turquoise,
-      );
-    }
-    canvas.drawCircle(
-      center,
-      flowerRadius * 0.3,
-      ui.Paint()..color = themePack.ivory,
-    );
+    path.lineTo(points.last.dx, points.last.dy);
+    return path;
   }
 
-  void _drawCabAndWheels(
+  void _drawArrowHead(
     ui.Canvas canvas,
-    Vehicle vehicle,
-    ui.Rect rect,
-    Color color,
-    ui.Offset animationOffset,
+    ui.Offset at,
+    ui.Offset heading,
+    ui.Paint paint,
   ) {
-    final headRect = _cellRect(vehicle.head)
-        .shift(animationOffset)
-        .deflate(_cellSize * 0.13);
-    canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(
-        headRect,
-        ui.Radius.circular(_cellSize * 0.14),
-      ),
-      ui.Paint()..color = color.withValues(alpha: 0.74),
-    );
-    final window = headRect.deflate(_cellSize * 0.18);
-    final glassRect = switch (vehicle.direction) {
-      TravelDirection.right => ui.Rect.fromLTWH(
-        window.right - window.width * 0.45,
-        window.top,
-        window.width * 0.45,
-        window.height,
-      ),
-      TravelDirection.left => ui.Rect.fromLTWH(
-        window.left,
-        window.top,
-        window.width * 0.45,
-        window.height,
-      ),
-      TravelDirection.up => ui.Rect.fromLTWH(
-        window.left,
-        window.top,
-        window.width,
-        window.height * 0.45,
-      ),
-      TravelDirection.down => ui.Rect.fromLTWH(
-        window.left,
-        window.bottom - window.height * 0.45,
-        window.width,
-        window.height * 0.45,
-      ),
+    final tip = at + heading * (_cellSize * 0.5);
+    final base = at - heading * (_cellSize * 0.04);
+    final side = ui.Offset(-heading.dy, heading.dx) * (_cellSize * 0.34);
+    final arrow = ui.Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(base.dx + side.dx, base.dy + side.dy)
+      ..lineTo(base.dx - side.dx, base.dy - side.dy)
+      ..close();
+    canvas.drawPath(arrow, paint);
+  }
+
+  /// Snake-style exit: the head drives straight out of the yard and the body
+  /// follows the path it already lies on, until the whole bus has left.
+  List<ui.Offset> _exitPoints(Vehicle vehicle, double progress) {
+    final bodyCells = vehicle.cells.length - 1;
+    final toEdge = switch (vehicle.direction) {
+      TravelDirection.up => vehicle.head.row,
+      TravelDirection.down => level.height - 1 - vehicle.head.row,
+      TravelDirection.left => vehicle.head.column,
+      TravelDirection.right => level.width - 1 - vehicle.head.column,
     };
-    canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(
-        glassRect,
-        ui.Radius.circular(_cellSize * 0.07),
-      ),
-      ui.Paint()..color = const Color(0xff183840),
-    );
-
-    final wheel = ui.Paint()..color = const Color(0xff182329);
-    final wheelRadius = _cellSize * 0.075;
-    if (vehicle.direction == TravelDirection.left ||
-        vehicle.direction == TravelDirection.right) {
-      canvas.drawCircle(
-        ui.Offset(rect.left + _cellSize * 0.25, rect.bottom - 2),
-        wheelRadius,
-        wheel,
-      );
-      canvas.drawCircle(
-        ui.Offset(rect.right - _cellSize * 0.25, rect.bottom - 2),
-        wheelRadius,
-        wheel,
-      );
-    } else {
-      canvas.drawCircle(
-        ui.Offset(rect.right - 2, rect.top + _cellSize * 0.25),
-        wheelRadius,
-        wheel,
-      );
-      canvas.drawCircle(
-        ui.Offset(rect.right - 2, rect.bottom - _cellSize * 0.25),
-        wheelRadius,
-        wheel,
-      );
+    final step =
+        ui.Offset(
+          vehicle.direction.columnStep.toDouble(),
+          vehicle.direction.rowStep.toDouble(),
+        ) *
+        _cellSize;
+    // Tail ... head, then straight on past the edge of the yard.
+    final line = <ui.Offset>[
+      for (final cell in vehicle.cells.reversed) _cellRect(cell).center,
+    ];
+    final extra = bodyCells + toEdge + 2;
+    for (var k = 1; k <= extra; k++) {
+      line.add(line[bodyCells] + step * k.toDouble());
     }
-    final lights = ui.Paint()..color = themePack.ivory;
-    switch (vehicle.direction) {
-      case TravelDirection.right:
-        canvas.drawCircle(
-          ui.Offset(rect.right - 3, rect.top + _cellSize * 0.2),
-          _cellSize * 0.04,
-          lights,
+    final travel = (bodyCells + toEdge + 1).toDouble();
+    final eased = (0.35 * progress + 0.65 * progress * progress).clamp(
+      0.0,
+      1.0,
+    );
+    final from = eased * travel;
+    final to = from + bodyCells;
+    final result = <ui.Offset>[_pointAt(line, from)];
+    for (var i = from.floor() + 1; i <= to.floor(); i++) {
+      result.add(line[i]);
+    }
+    final end = _pointAt(line, to);
+    if ((end - result.last).distance > _cellSize * 0.01) result.add(end);
+    return result;
+  }
+
+  /// Point at [position] segments along [line] (all segments are one cell).
+  ui.Offset _pointAt(List<ui.Offset> line, double position) {
+    final i = math.min(math.max(position.floor(), 0), line.length - 2);
+    return ui.Offset.lerp(line[i], line[i + 1], position - i)!;
+  }
+
+  /// Colour-blind mode: every bus colour gets its own dash pattern.
+  void _drawPattern(ui.Canvas canvas, ui.Path path, int kind) {
+    const patterns = [
+      [1.0, 0.0],
+      [0.3, 0.3],
+      [0.12, 0.28],
+      [0.5, 0.5],
+      [0.12, 0.12],
+    ];
+    final on = patterns[kind][0] * _cellSize;
+    final off = patterns[kind][1] * _cellSize;
+    final paint = ui.Paint()
+      ..color = themePack.asphalt.withValues(alpha: 0.85)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = _cellSize * 0.09;
+    if (off == 0) {
+      canvas.drawPath(path, paint);
+      return;
+    }
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(distance, math.min(distance + on, metric.length)),
+          paint,
         );
-        canvas.drawCircle(
-          ui.Offset(rect.right - 3, rect.bottom - _cellSize * 0.2),
-          _cellSize * 0.04,
-          lights,
-        );
-      case TravelDirection.left:
-        canvas.drawCircle(
-          ui.Offset(rect.left + 3, rect.top + _cellSize * 0.2),
-          _cellSize * 0.04,
-          lights,
-        );
-        canvas.drawCircle(
-          ui.Offset(rect.left + 3, rect.bottom - _cellSize * 0.2),
-          _cellSize * 0.04,
-          lights,
-        );
-      case TravelDirection.up:
-        canvas.drawCircle(
-          ui.Offset(rect.left + _cellSize * 0.2, rect.top + 3),
-          _cellSize * 0.04,
-          lights,
-        );
-        canvas.drawCircle(
-          ui.Offset(rect.right - _cellSize * 0.2, rect.top + 3),
-          _cellSize * 0.04,
-          lights,
-        );
-      case TravelDirection.down:
-        canvas.drawCircle(
-          ui.Offset(rect.left + _cellSize * 0.2, rect.bottom - 3),
-          _cellSize * 0.04,
-          lights,
-        );
-        canvas.drawCircle(
-          ui.Offset(rect.right - _cellSize * 0.2, rect.bottom - 3),
-          _cellSize * 0.04,
-          lights,
-        );
+        distance += on + off;
+      }
     }
   }
 
-  void _drawHint(ui.Canvas canvas, ui.Rect rect) {
+  void _drawHint(ui.Canvas canvas, ui.Path path) {
     final pulse = 0.42 + 0.18 * math.sin(nowSeconds * 7);
-    canvas.drawRRect(
-      ui.RRect.fromRectAndRadius(
-        rect.inflate(4),
-        ui.Radius.circular(_cellSize * 0.22),
-      ),
+    canvas.drawPath(
+      path,
       ui.Paint()
         ..color = themePack.ivory.withValues(alpha: pulse)
         ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 2.6,
+        ..strokeWidth = _cellSize * 0.5
+        ..strokeCap = ui.StrokeCap.round
+        ..strokeJoin = ui.StrokeJoin.round,
     );
   }
 

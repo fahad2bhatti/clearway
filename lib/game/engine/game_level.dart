@@ -20,7 +20,9 @@ final class GameLevel {
     List<OneWayGate> gates = const [],
     this.chapter = 'Lahore',
     this.boss = false,
+    Set<GridPoint>? shape,
   }) : vehicles = List.unmodifiable(vehicles),
+       shape = shape == null ? null : Set.unmodifiable(shape),
        cones = List.unmodifiable(cones),
        gates = List.unmodifiable(gates) {
     if (width < 2 || height < 2) {
@@ -45,6 +47,11 @@ final class GameLevel {
         }
         if (!occupied.add(cell)) {
           throw ArgumentError('Two vehicles occupy $cell.');
+        }
+        if (this.shape != null && !this.shape!.contains(cell)) {
+          throw ArgumentError(
+            'Vehicle ${vehicle.id} leaves the board shape at $cell.',
+          );
         }
       }
     }
@@ -74,7 +81,16 @@ final class GameLevel {
   final String chapter;
   final bool boss;
 
+  /// Board cells of a silhouette-shaped yard, or null for a full rectangle.
+  /// Cells outside the shape are empty space: nothing is drawn or parked there.
+  final Set<GridPoint>? shape;
+
+  /// True when [cell] is inside the width x height box (the exit-line limit).
   bool contains(GridPoint cell) => _inside(cell);
+
+  /// True when [cell] is an actual board cell (inside the shape, if any).
+  bool inBoard(GridPoint cell) =>
+      _inside(cell) && (shape == null || shape!.contains(cell));
 
   bool hasCone(GridPoint cell) => cones.contains(cell);
 
