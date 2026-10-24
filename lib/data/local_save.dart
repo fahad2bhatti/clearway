@@ -48,11 +48,14 @@ final class LocalSave extends ChangeNotifier {
   }
 
   void _apply(Map<String, dynamic> data) {
-    level = (data['level'] as num?)?.toInt() ?? 1;
-    coins = (data['coins'] as num?)?.toInt() ?? 30;
-    hints = (data['hints'] as num?)?.toInt() ?? 3;
-    undos = (data['undos'] as num?)?.toInt() ?? 3;
-    streak = (data['streak'] as num?)?.toInt() ?? 0;
+    level = ((data['level'] as num?)?.toInt() ?? 1).clamp(
+      1,
+      LevelCatalog.totalLevels,
+    );
+    coins = _count(data['coins'], 30);
+    hints = _count(data['hints'], 3);
+    undos = _count(data['undos'], 3);
+    streak = _count(data['streak'], 0);
     lastDaily = data['lastDaily'] as String? ?? '';
     sound = data['sound'] as bool? ?? true;
     music = data['music'] as bool? ?? false;
@@ -60,17 +63,36 @@ final class LocalSave extends ChangeNotifier {
     darkTheme = (data['theme'] as String? ?? 'dark') == 'dark';
     colorblind = data['colorblind'] as bool? ?? false;
     language = data['lang'] as String? ?? 'en';
-    activeBoard = (data['activeBoard'] as Map<String, dynamic>?);
-    stars
-      ..clear()
-      ..addAll(
-        (data['stars'] as Map<String, dynamic>? ?? {}).map(
-          (key, value) => MapEntry(int.parse(key), (value as num).toInt()),
-        ),
-      );
+    final board = data['activeBoard'] as Map<String, dynamic>?;
+    activeBoard = board != null && _isPlayableBoard(board) ? board : null;
+    stars.clear();
+    for (final entry
+        in (data['stars'] as Map<String, dynamic>? ?? {}).entries) {
+      final number = int.parse(entry.key);
+      final earned = (entry.value as num).toInt().clamp(0, 3);
+      if (earned > 0 && number >= 1 && number <= LevelCatalog.totalLevels) {
+        stars[number] = earned;
+      }
+    }
     completedDailies
       ..clear()
       ..addAll((data['dailies'] as List<dynamic>? ?? []).cast<String>());
+  }
+
+  static int _count(Object? value, int fallback) {
+    final count = (value as num?)?.toInt() ?? fallback;
+    return count < 0 ? 0 : count;
+  }
+
+  /// A saved board must point at a real level (or a well-formed daily), or
+  /// restoring it would throw on every launch.
+  static bool _isPlayableBoard(Map<String, dynamic> board) {
+    if (board['daily'] == true) {
+      final seed = board['dailySeed'];
+      return board['dayKey'] is String && (seed == null || seed is num);
+    }
+    final number = board['level'];
+    return number is num && number >= 1 && number <= LevelCatalog.totalLevels;
   }
 
   void _resetInMemory() {

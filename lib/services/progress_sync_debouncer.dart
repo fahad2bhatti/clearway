@@ -53,7 +53,7 @@ final class ProgressSyncDebouncer {
 
   void request(ProgressSyncSignature signature) {
     if (_disposed || signature == _lastSynced) return;
-    if (signature == _pending) return;
+    if (signature == _pending && _timer != null) return;
     _pending = signature;
     _schedule();
   }
@@ -88,13 +88,20 @@ final class ProgressSyncDebouncer {
       return;
     }
 
+    final attempted = _pending;
+    var failed = false;
     _pending = null;
     _busy = true;
     try {
       final synced = await _sync(force);
-      if (synced != null) markSynced(synced);
+      if (synced == null) {
+        failed = true;
+      } else {
+        markSynced(synced);
+      }
     } catch (_) {
       // Keep local play independent of cloud availability.
+      failed = true;
     } finally {
       _busy = false;
       final flushAgain = _flushAgain;
@@ -109,6 +116,9 @@ final class ProgressSyncDebouncer {
         }
       }
     }
+    // Keep a failed attempt queued, without a retry timer: the next flush
+    // (level won, app paused, manual retry) sends it instead of losing it.
+    if (failed && !_disposed) _pending ??= attempted;
   }
 
   void dispose() {
