@@ -544,9 +544,9 @@ class _GameScreenState extends State<GameScreen> {
       1 => strings.firstDepartureTip,
       2 => strings.blockedVehicleTip,
       3 => strings.orderTip,
-      10 => strings.coneTip,
-      25 => strings.gateTip,
-      40 => strings.convoyTip,
+      10 => strings.bossShapeTip,
+      25 => strings.breatherTip,
+      40 => strings.bigBoardTip,
       _ => null,
     };
   }

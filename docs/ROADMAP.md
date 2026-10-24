@@ -1,6 +1,6 @@
 # Clearway Project Roadmap
 
-Last updated: 2026-10-24
+Last updated: 2026-10-25
 Project: Flutter + Flame, Android first; iOS planned  
 Application ID: `com.fahadapps.clearway`
 
@@ -12,25 +12,28 @@ features in the Clearway build brief. It is updated as work is completed.
 ## Phase 1 — Offline game and browser port
 
 - ✅ Flutter + Flame app shell, portrait Android setup, Clearway identity.
-- ✅ Pure Dart vehicle/grid model, movement validation, cone and one-way gate
-  rules, convoy group moves, solver-backed safe moves.
-- ✅ Truck-art-inspired Flame board rendering, vehicle exit/bump feedback,
-  obstacle art, haptic and system-sound feedback controls.
-- 🟡 Deterministic, lazily loaded 80-level catalog with chapter labels, boss markers and
-  mechanics introduced at levels 10, 25 and 40.
-- ✅ Difficulty ramp: levels 1–10 stay small with at most four short vehicles;
-  later 10-level chapters grow from 7×7 to 19×19 by two cells per side, while
-  vehicle counts and maximum path lengths rise gradually. Large boards support
-  pinch zoom and pan.
-- ✅ From level 40, denser boards have more vehicles and two long buses cross
-  each other's exit lanes and remain independent: each tap clears only one bus,
-  so the player must choose the safe order. Bus paths grow each chapter and the
-  crossing orientation alternates.
-  Separate truck/rickshaw convoys unlock from level 50.
+- ✅ Pure Dart vehicle/grid model, movement validation and solver-backed safe
+  moves. The engine still supports cones, one-way gates and convoy pairs
+  (covered by `engine_v2_test`), but the arrow-maze generator no longer
+  places them.
+- ✅ Arrow-maze Flame board rendering: curved buses drawn as rounded lines with
+  an arrow head, no visible grid, silhouette boards, snake-style exit and bump
+  feedback, hint pulse, colour-blind dash patterns, haptic and system-sound
+  feedback controls.
+- ✅ Deterministic, lazily loaded 80-level catalog built by
+  `MazeLevelGenerator`; all 80 levels are checked solvable. Chapter labels
+  cycle every 10 levels.
+- ✅ Difficulty ramp: levels 1–3 have 2–4 straight buses on a 4×4 board; from
+  level 4 buses start to bend, and boards grow to 38×38 with up to 77 buses
+  by level 80. Every 5th level from 15 is a lighter breather; every 10th
+  level is a boss yard with a silhouette board (heart, diamond, cross,
+  ellipse). Boards 9 cells wide or more support pinch zoom and pan.
+- ✅ Tutorial tips: levels 1–3 teach tapping, blocking and order; levels 10, 25
+  and 40 show tips for boss shapes, breather levels and big boards.
 - 🟡 UTC SHA-256-seeded daily puzzles now use the same client/server seed
   formula, can read the shared Firestore seed without waiting on it, and have
-  365-day solvability coverage written; the Flutter test runner still needs a
-  local run outside this workspace.
+  365-day solvability coverage, and `flutter test` passes on the owner's
+  machine (2026-10-25).
 - ✅ Local save for level unlocks, stars, coins, hints, undos, streaks and
   settings using SharedPreferences.
 - ✅ Home screen, level picker, daily entry, local practice-reward shop and
@@ -69,8 +72,8 @@ features in the Clearway build brief. It is updated as work is completed.
   workspace. Android options were generated from the local config; rerun
   `flutterfire configure` after network/auth is available.
 - 🟡 Firestore rules now validate compact progress documents and prevent
-  progress shrinkage. Rules tests are written, but need npm install and an
-  emulator run; CI remains.
+  progress shrinkage. The 15 rules tests pass on the owner's machine
+  (2026-10-25); CI remains.
 - ⬜ App Check on supported production clients.
 - ✅ Crashlytics dependency and Flutter fatal-error handlers are wired.
 - ⬜ Remote Config, Analytics and server-time daily rewards.
@@ -157,10 +160,10 @@ the app and reviews it.
 ## Phase 5 — Release readiness
 
 - ✅ Dart formatting and static analysis currently pass (`dart analyze lib`).
-- 🟡 Catalog and engine tests are written; full `flutter test` run remains.
-- ⛔ In this workspace Flutter tests cannot start their loopback server; Android
-  Gradle build cannot determine a usable machine IP. Re-run in a normal local
-  Flutter/Android environment.
+- ✅ Verified on the owner's machine (2026-10-25): `flutter analyze` reports no
+  issues and `flutter test` passes (66 tests).
+- ⬜ The Android Gradle build and an on-device run are not recorded as verified
+  yet; the earlier AI workspace could not run them.
 - ⬜ CI for format, analyze, unit/widget tests, Firebase emulator tests and level
   verification.
 - ⬜ Android signing, release AAB, Play internal/closed testing and store assets.
@@ -182,11 +185,18 @@ the app and reviews it.
   Check only when `ENFORCE_APP_CHECK=true`; see `functions/.env.example`.
 - ✅ `dart format .` and `flutter analyze` pass. A direct pure-Dart smoke run
   verified the codec, all catalog levels and 365 daily puzzles.
-- ⛔ `flutter test --reporter expanded` cannot start test isolates because this
-  workspace denies the test runner's `127.0.0.1` socket. Functions tests also
-  remain unrun: npm dependencies are absent, offline install is `ENOTCACHED`,
-  and `npm run test:daily` reports `tsc: not found`. Run the local commands in
-  the Pack 2 report before treating the pack as fully verified.
+- ✅ Verified later on the owner's machine (2026-10-25): `flutter test` passes
+  and the Firestore rules tests pass (15 of 15) with
+  `npm run test:rules:emulator` in `functions/`. `npm run build` and
+  `npm run test:daily` are not recorded as run yet.
+- ✅ The `functions/` dev dependency `firebase` is pinned to `^11.10.0` because
+  `@firebase/rules-unit-testing@4` needs `firebase@^11`. Firebase 13 with
+  rules-unit-testing 6 needs Node 24.12 or newer and did not reduce the
+  `npm audit` findings, so it was not adopted.
+- ⬜ Remaining `npm audit` findings: `uuid` through `firebase-admin` (needs a
+  `firebase-admin` 14 upgrade) and `@grpc/grpc-js` in the test-only firebase
+  client. Try the `firebase-admin` upgrade on its own branch before deploying
+  Functions; do not run `npm audit fix --force`.
 
 ## Working rules
 

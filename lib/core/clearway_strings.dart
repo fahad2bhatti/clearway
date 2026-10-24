@@ -42,22 +42,20 @@ final class ClearwayStrings {
       _ur ? 'نیا چیلنج $countdown میں' : 'New puzzle in $countdown';
   String get firstDepartureTip => _ur
       ? 'اس سواری کو چھوئیں جس کا راستہ صاف ہے۔'
-      : 'Tap the truck whose road ahead is already clear.';
+      : 'Tap the bus whose road ahead is already clear.';
   String get blockedVehicleTip => _ur
       ? 'پہلے وہ سواری ہٹائیں جو راستہ روک رہی ہے۔'
-      : 'Clear the vehicle blocking another truck’s exit.';
+      : 'Clear the bus blocking another bus’s exit.';
   String get orderTip => _ur
       ? 'چال چلنے سے پہلے محفوظ ترتیب دیکھیں۔'
       : 'Look for the safe order before moving.';
-  String get coneTip => _ur
-      ? 'ٹریفک کون مستقل رکاوٹ ہے۔ اس کے گرد راستہ بنائیں۔'
-      : 'Traffic cones are fixed obstacles. Plan around them.';
-  String get gateTip => _ur
-      ? 'یک طرفہ گیٹ سے صرف تیر کی سمت میں گزریں۔'
-      : 'One-way gates only allow traffic in the marked direction.';
-  String get convoyTip => _ur
-      ? 'قافلے کی دونوں سواریوں کے راستے صاف ہونے چاہئیں۔'
-      : 'Convoy vehicles move together. Both exits must be clear.';
+  // These three tips are English only for now.
+  String get bossShapeTip =>
+      'Boss yard! The board has a shape now. Buses bend to fit it.';
+  String get breatherTip =>
+      'A breather: fewer buses. Start with one that has a clear line out.';
+  String get bigBoardTip =>
+      'Boss yard! Pinch to zoom, drag to pan, free the front buses first.';
   String get blockedByVehicle =>
       _ur ? 'دوسری سواری راستہ روک رہی ہے' : 'Blocked by another vehicle';
   String get coneBlocked => _ur ? 'راستے میں کون ہے' : 'A cone is in the way';
