@@ -38,8 +38,9 @@ features in the Clearway build brief. It is updated as work is completed.
   settings using SharedPreferences.
 - ✅ Home screen, level picker, daily entry, local practice-reward shop and
   settings controls.
-- 🟡 Tutorial: guided hand pointer and mechanic tips now guide the first three
-  levels; tutorial completion tracking and a separate onboarding flow remain.
+- 🟡 Tutorial: guided hand pointer and tips guide the first three levels and
+  stop once level 3 is won (`tutorialDone` in the local save; older saves past
+  level 3 count as done). A separate onboarding flow remains.
 - 🟡 Accessibility: color-blind vehicle labels and larger-cell hit tolerance
   exist; semantics, scalable UI audit, high-contrast mode and device review remain.
 - 🟡 Localization: English/Urdu strings are now connected to the main home,
@@ -114,7 +115,7 @@ single commits; Git push is intentionally the final step after the owner runs
 the app and reviews it.
 
 1. **Finish offline game content:** chapter intros, boss board silhouettes,
-   tutorial completion, achievements, revive flow, pan/zoom, and expand the
+   achievements, revive flow, pan/zoom, and expand the
    verified catalog beyond the current 80 levels. The requested 10-level easy
    start and chapter-by-chapter grid/path ramp are now implemented.
 2. **Finish product polish:** full English/Urdu translation review, licensed
@@ -142,8 +143,8 @@ the app and reviews it.
 - ⬜ Chapter intro cards and chapter/boss board presentation.
 - 🟡 Daily calendar and monthly completion trophy view are implemented; daily
   streak/rewards are local. Achievements and device validation remain.
-- 🟡 Guided tutorial exists in levels 1–3; tutorial completion flow and revive
-  flow remain. Mid-level board restoration is implemented.
+- 🟡 Guided tutorial in levels 1–3 with completion tracking; the revive flow
+  remains. Mid-level board restoration is implemented.
 - 🟡 Larger-board pinch zoom and pan are enabled from 9×9 boards; a zoom-lock
   control and physical device review remain.
 - ⬜ Feedback/report form, share board/result and rate prompt.

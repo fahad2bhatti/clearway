@@ -14,6 +14,7 @@ import 'data/level_catalog.dart';
 import 'engine/game_level.dart';
 import 'engine/move_validator.dart';
 import 'engine/vehicle.dart';
+import 'tutorial.dart';
 
 enum GamePhase { ready, animating, paused, won, lost }
 
@@ -150,7 +151,10 @@ class _GameScreenState extends State<GameScreen> {
   String get _dailyDayKey => widget.dailyDayKey ?? DailyClock.dayKey();
 
   String? get _tutorialVehicleId {
-    if (widget.daily || _level.number > 3) return null;
+    if (widget.daily ||
+        !Tutorial.helps(_level.number, done: widget.save.tutorialDone)) {
+      return null;
+    }
     return MoveValidator.safeVehicles(_level, _remaining).firstOrNull?.id;
   }
 
@@ -340,6 +344,7 @@ class _GameScreenState extends State<GameScreen> {
       widget.save.coins += previousStars == 0 ? 15 : 5;
       final unlocked = (_level.number + 1).clamp(1, LevelCatalog.totalLevels);
       if (unlocked > widget.save.level) widget.save.level = unlocked;
+      if (_level.number >= Tutorial.levels) widget.save.tutorialDone = true;
     }
     _clearActiveBoard();
     await widget.save.save();
@@ -540,6 +545,7 @@ class _GameScreenState extends State<GameScreen> {
 
   String? get _tutorialTip {
     if (widget.daily) return null;
+    if (Tutorial.covers(_level.number) && widget.save.tutorialDone) return null;
     return switch (_level.number) {
       1 => strings.firstDepartureTip,
       2 => strings.blockedVehicleTip,

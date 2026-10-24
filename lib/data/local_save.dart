@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../game/data/level_catalog.dart';
+import '../game/tutorial.dart';
 
 /// Offline-first progress matching the original browser game's local save.
 final class LocalSave extends ChangeNotifier {
@@ -22,6 +23,7 @@ final class LocalSave extends ChangeNotifier {
   bool darkTheme = true;
   bool colorblind = false;
   String language = 'en';
+  bool tutorialDone = false;
   Map<String, dynamic>? activeBoard;
   final Map<int, int> stars = {};
   final Set<String> completedDailies = {};
@@ -63,6 +65,9 @@ final class LocalSave extends ChangeNotifier {
     darkTheme = (data['theme'] as String? ?? 'dark') == 'dark';
     colorblind = data['colorblind'] as bool? ?? false;
     language = data['lang'] as String? ?? 'en';
+    // Saves from before this flag existed carry no value: anyone who has
+    // already unlocked level 4 must have won the guided levels.
+    tutorialDone = data['tutorialDone'] == true || Tutorial.finishedBy(level);
     final board = data['activeBoard'] as Map<String, dynamic>?;
     activeBoard = board != null && _isPlayableBoard(board) ? board : null;
     stars.clear();
@@ -108,6 +113,7 @@ final class LocalSave extends ChangeNotifier {
     darkTheme = true;
     colorblind = false;
     language = 'en';
+    tutorialDone = false;
     activeBoard = null;
     stars.clear();
     completedDailies.clear();
@@ -141,6 +147,7 @@ final class LocalSave extends ChangeNotifier {
         'theme': darkTheme ? 'dark' : 'light',
         'colorblind': colorblind,
         'lang': language,
+        'tutorialDone': tutorialDone,
         'streak': streak,
         'lastDaily': lastDaily,
         'dailies': completedDailies.toList(),
@@ -157,6 +164,10 @@ final class LocalSave extends ChangeNotifier {
     final mergedLevel = highestLevel > level ? highestLevel : level;
     var changed = mergedLevel != level;
     level = mergedLevel.clamp(1, LevelCatalog.totalLevels);
+    if (Tutorial.finishedBy(level) && !tutorialDone) {
+      tutorialDone = true;
+      changed = true;
+    }
     for (final entry in cloudStars.entries) {
       if (entry.key < 1 || entry.key > LevelCatalog.totalLevels) continue;
       final bounded = entry.value.clamp(0, 3);
@@ -187,6 +198,7 @@ final class LocalSave extends ChangeNotifier {
     darkTheme = true;
     colorblind = false;
     language = 'en';
+    tutorialDone = false;
     activeBoard = null;
     notifyListeners();
   }
