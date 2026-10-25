@@ -16,7 +16,7 @@ final class ClearwayStrings {
   String get dailyChallenge => _ur ? 'روزانہ کا چیلنج' : 'Daily challenge';
   String streak(int days) => _ur ? '$days دن کا سلسلہ' : '$days day streak';
   String get dailyCalendar => _ur ? 'روزانہ کیلنڈر' : 'Daily calendar';
-  String get yardShop => _ur ? 'صحن کی دکان' : 'Yard shop';
+  String get yardShop => _ur ? 'دکان' : 'Shop';
   String get settings => _ur ? 'ترتیبات' : 'Settings';
   String get sound => _ur ? 'آواز' : 'Sound effects';
   String get music => _ur ? 'موسیقی' : 'Music';
@@ -36,7 +36,7 @@ final class ClearwayStrings {
   String get practiceReward => _ur ? 'مشق کا انعام' : 'Practice reward';
   String get offlineDemoReward =>
       _ur ? 'آف لائن نمونہ انعام' : 'Offline demo reward';
-  String get chooseYard => _ur ? 'صحن منتخب کریں' : 'Choose a yard';
+  String get chooseYard => _ur ? 'لیول منتخب کریں' : 'Choose a level';
   String get rushHour => _ur ? 'رش آور' : 'RUSH HOUR';
   String get daily => _ur ? 'روزانہ' : 'DAILY';
   String newPuzzleIn(String countdown) =>
@@ -55,18 +55,18 @@ final class ClearwayStrings {
   String chapterLevels(int first, int last) => 'Levels $first–$last';
   String chapterBoard(int width, int height) =>
       'Boards start at $width×$height.';
-  String chapterBoss(int level) => 'A boss yard waits at level $level.';
+  String chapterBoss(int level) => 'A boss waits at level $level.';
   String get letsGo => 'Let’s go';
   String reviveLabel(int cost) => 'Revive  🪙$cost';
   String reviveShort(int missing) => 'Earn 🪙$missing more to revive.';
   String get lockZoom => 'Lock zoom';
   String get zoomLocked => 'Zoom locked';
   String get bossShapeTip =>
-      'Boss yard! The board has a shape now. Buses bend to fit it.';
+      'Boss level! The board has a shape now. Buses bend to fit it.';
   String get breatherTip =>
       'A breather: fewer buses. Start with one that has a clear line out.';
   String get bigBoardTip =>
-      'Boss yard! Pinch to zoom, drag to pan, free the front buses first.';
+      'Boss level! Pinch to zoom, drag to pan, free the front buses first.';
   String get blockedByVehicle =>
       _ur ? 'دوسری سواری راستہ روک رہی ہے' : 'Blocked by another vehicle';
   String get coneBlocked => _ur ? 'راستے میں کون ہے' : 'A cone is in the way';
@@ -81,28 +81,28 @@ final class ClearwayStrings {
       : 'No undos left — visit the shop for more.';
   String get wayClear => _ur ? 'راستہ صاف ہے!' : 'Way clear!';
   String get allVehiclesOut => _ur
-      ? 'آپ نے تمام سواریوں کو صحن سے نکال دیا۔'
-      : 'You guided every vehicle out of the yard.';
+      ? 'آپ نے تمام سواریوں کو باہر نکال دیا۔'
+      : 'You guided every vehicle out.';
   String get trafficJam => _ur ? 'ٹریفک جام!' : 'Traffic jam!';
   String get retryMessage => _ur
       ? 'وقفہ لیں اور دوسری ترتیب آزمائیں۔'
       : 'Take a breath and try a different order.';
-  String get backToYard => _ur ? 'صحن پر واپس' : 'Back to yard';
+  String get backToHome => _ur ? 'ہوم پر واپس' : 'Back to home';
   String get nextLevel => _ur ? 'اگلا لیول' : 'Next level';
   String get replay => _ur ? 'دوبارہ کھیلیں' : 'Replay';
   String get tryAgain => _ur ? 'پھر کوشش کریں' : 'Try again';
   String get home => _ur ? 'ہوم' : 'Home';
   String get takeABreak => _ur ? 'وقفہ لیں' : 'Take a break';
   String get pauseMessage => _ur
-      ? 'آپ کی جگہ یہیں محفوظ ہے۔'
-      : 'Your place in the yard is right here.';
+      ? 'آپ کی پیش رفت یہیں محفوظ ہے۔'
+      : 'Your progress is saved right here.';
   String get keepPlaying => _ur ? 'کھیل جاری رکھیں' : 'Keep playing';
   String get restartLevel => _ur ? 'لیول دوبارہ شروع کریں' : 'Restart level';
   String get hint => _ur ? 'اشارہ' : 'Hint';
   String get undo => _ur ? 'واپس' : 'Undo';
   String get assistOn => _ur ? 'مدد آن' : 'Assist on';
   String get gridAssist => _ur ? 'گرڈ مدد' : 'Grid assist';
-  String get bossYard => _ur ? 'باس کا صحن' : 'BOSS YARD';
+  String get bossLevel => _ur ? 'باس لیول' : 'BOSS LEVEL';
   String get synced => _ur ? 'کلاؤڈ محفوظ' : 'Cloud save synced';
   String get syncing => _ur ? 'ہم وقت ہو رہا ہے' : 'Syncing progress';
   String get offline => _ur ? 'آف لائن / محفوظ نہیں' : 'Offline / not synced';
@@ -110,7 +110,6 @@ final class ClearwayStrings {
   String get cloudUnavailable =>
       _ur ? 'کلاؤڈ محفوظ دستیاب نہیں' : 'Cloud save unavailable';
   String get ready => _ur ? 'تیار' : 'READY';
-  String get truckArtYard => _ur ? 'ٹرک آرٹ کا صحن' : 'THE TRUCK-ART YARD';
   String chapterName(String chapter) => !_ur
       ? chapter
       : switch (chapter) {
@@ -130,9 +129,9 @@ final class ClearwayStrings {
       'Wait your turn' => 'اپنی باری کا انتظار کریں',
       'Plan the order' => 'ترتیب بنائیں',
       'Daily rush' => 'روزانہ کا رش',
-      _ when title.startsWith('Yard ') => 'صحن ${title.substring(5)}',
+      _ when title.startsWith('Yard ') => 'لیول ${title.substring(5)}',
       _ when title.endsWith(' yard') =>
-        '${chapterName(title.substring(0, title.length - 5))} کا صحن',
+        chapterName(title.substring(0, title.length - 5)),
       _ => title,
     };
   }
@@ -156,8 +155,8 @@ final class ClearwayStrings {
   String levelNumber(int number) =>
       '${_ur ? 'لیول' : 'LEVEL'} ${number.toString().padLeft(2, '0')}';
   String vehiclesRemaining(int count) => _ur
-      ? '$count سواریاں صحن میں باقی ہیں'
-      : '$count vehicles still in the yard';
+      ? '$count سواریاں باقی ہیں'
+      : '$count vehicles left';
   String hintCount(int count) => '$hint ${_digits(count)}';
   String undoCount(int count) => '$undo ${_digits(count)}';
   String monthName(int month) => _ur

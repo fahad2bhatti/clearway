@@ -2,7 +2,7 @@
 abstract final class AppIdentity {
   static const name = 'Clearway';
   static const tagline = 'Clear the path.';
-  static const storeTitle = 'Clearway: Truck Yard Puzzle';
+  static const storeTitle = 'Clearway: Arrow Puzzle';
   static const developer = 'Fahad Apps';
   static const applicationId = 'com.fahadapps.clearway';
 }

@@ -410,7 +410,7 @@ class _GameScreenState extends State<GameScreen> {
         title: strings.wayClear,
         message: strings.allVehiclesOut,
         stars: stars,
-        primaryLabel: isLast ? strings.backToYard : strings.nextLevel,
+        primaryLabel: isLast ? strings.backToHome : strings.nextLevel,
         onPrimary: () {
           Navigator.pop(context);
           if (isLast) {
@@ -432,6 +432,15 @@ class _GameScreenState extends State<GameScreen> {
           widget.save.save();
           setState(_loadLevel);
         },
+        tertiaryLabel: isLast ? null : strings.backToHome,
+        onTertiary: isLast
+            ? null
+            : () {
+                Navigator.pop(context);
+                _clearActiveBoard();
+                widget.save.save();
+                widget.onHome(_level.number);
+              },
       ),
     );
   }
@@ -678,7 +687,7 @@ class _TopBar extends StatelessWidget {
             Text(
               daily
                   ? '${strings.rushHour}  •  ${strings.dailyLabel}'
-                  : '${strings.levelNumber(level.number)}${level.boss ? '  •  ${strings.bossYard}' : ''}',
+                  : '${strings.levelNumber(level.number)}${level.boss ? '  •  ${strings.bossLevel}' : ''}',
               style: const TextStyle(
                 color: Color(0xffffb347),
                 fontWeight: FontWeight.w800,
@@ -863,6 +872,8 @@ class _ResultDialog extends StatelessWidget {
     required this.onPrimary,
     required this.secondaryLabel,
     required this.onSecondary,
+    this.tertiaryLabel,
+    this.onTertiary,
     this.stars = 0,
     this.note,
     this.reviveLabel,
@@ -877,6 +888,8 @@ class _ResultDialog extends StatelessWidget {
   final VoidCallback onPrimary;
   final String secondaryLabel;
   final VoidCallback onSecondary;
+  final String? tertiaryLabel;
+  final VoidCallback? onTertiary;
   final int stars;
   final String? note;
   final String? reviveLabel;
@@ -900,7 +913,7 @@ class _ResultDialog extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              won ? Icons.local_shipping_rounded : Icons.traffic_rounded,
+              won ? Icons.arrow_outward_rounded : Icons.traffic_rounded,
               color: won ? const Color(0xffffb347) : const Color(0xffed6ca7),
               size: 34,
             ),
@@ -983,12 +996,25 @@ class _ResultDialog extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(
-            onPressed: onSecondary,
-            child: Text(
-              secondaryLabel,
-              style: const TextStyle(color: Color(0xffc6d2ca)),
-            ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            children: [
+              TextButton(
+                onPressed: onSecondary,
+                child: Text(
+                  secondaryLabel,
+                  style: const TextStyle(color: Color(0xffc6d2ca)),
+                ),
+              ),
+              if (tertiaryLabel != null && onTertiary != null)
+                TextButton(
+                  onPressed: onTertiary,
+                  child: Text(
+                    tertiaryLabel!,
+                    style: const TextStyle(color: Color(0xffc6d2ca)),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

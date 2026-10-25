@@ -65,7 +65,7 @@ final class ThemePack {
     ],
     showFloralMotifs: true,
     vehicleNoun: 'vehicle',
-    emptyYardMessage: 'The yard is all yours.',
+    emptyYardMessage: 'All clear!',
     successSoundAsset: 'audio/horn_clear.mp3',
     blockedSoundAsset: 'audio/horn_bump.mp3',
     musicAsset: 'audio/yard_lofi.mp3',
