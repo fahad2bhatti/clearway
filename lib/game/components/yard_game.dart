@@ -9,6 +9,7 @@ import '../../app/theme_pack.dart';
 import '../engine/game_level.dart';
 import '../engine/grid_point.dart';
 import '../engine/vehicle.dart';
+import 'tap_gate.dart';
 
 typedef VehicleTap = void Function(Vehicle vehicle);
 
@@ -34,6 +35,7 @@ final class YardGame extends FlameGame with TapCallbacks {
   String? _bumpedVehicleId;
   double _feedbackRemaining = 0;
   final Map<String, _ExitingVehicle> _exiting = {};
+  final TapGate _tapGate = TapGate();
 
   ui.Rect _boardRect = ui.Rect.zero;
   double _cellSize = 0;
@@ -411,8 +413,27 @@ final class YardGame extends FlameGame with TapCallbacks {
     _cellSize,
   );
 
+  // A touch only counts once the finger lifts, and only when it was a quick,
+  // still, single-finger tap. Panning, pinching and long presses on the board
+  // must not move a bus (and cost a life).
   @override
-  void onTapDown(TapDownEvent event) {
+  void onTapDown(TapDownEvent event) => _tapGate.down(
+    event.pointerId,
+    event.devicePosition.x,
+    event.devicePosition.y,
+  );
+
+  @override
+  void onTapCancel(TapCancelEvent event) => _tapGate.cancel(event.pointerId);
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    final isTap = _tapGate.up(
+      event.pointerId,
+      event.devicePosition.x,
+      event.devicePosition.y,
+    );
+    if (!isTap) return;
     final point = ui.Offset(event.canvasPosition.x, event.canvasPosition.y);
     if (!_boardRect.contains(point)) return;
     Vehicle? nearest;

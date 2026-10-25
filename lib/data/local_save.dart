@@ -24,6 +24,7 @@ final class LocalSave extends ChangeNotifier {
   bool colorblind = false;
   String language = 'en';
   bool tutorialDone = false;
+  final Set<int> chaptersSeen = {};
   Map<String, dynamic>? activeBoard;
   final Map<int, int> stars = {};
   final Set<String> completedDailies = {};
@@ -68,6 +69,18 @@ final class LocalSave extends ChangeNotifier {
     // Saves from before this flag existed carry no value: anyone who has
     // already unlocked level 4 must have won the guided levels.
     tutorialDone = data['tutorialDone'] == true || Tutorial.finishedBy(level);
+    chaptersSeen.clear();
+    final seen = data['chaptersSeen'];
+    if (seen is List) {
+      for (final chapter in seen) {
+        if (chapter is int &&
+            chapter >= 1 &&
+            chapter <= LevelCatalog.totalChapters) {
+          chaptersSeen.add(chapter);
+        }
+      }
+    }
+    _markPlayedChapters();
     final board = data['activeBoard'] as Map<String, dynamic>?;
     activeBoard = board != null && _isPlayableBoard(board) ? board : null;
     stars.clear();
@@ -114,9 +127,23 @@ final class LocalSave extends ChangeNotifier {
     colorblind = false;
     language = 'en';
     tutorialDone = false;
+    chaptersSeen.clear();
     activeBoard = null;
     stars.clear();
     completedDailies.clear();
+  }
+
+  /// Chapters the player has already moved past never show their intro card:
+  /// older saves and cloud progress carry no record of it.
+  bool _markPlayedChapters() {
+    var changed = false;
+    for (var chapter = 1; chapter <= LevelCatalog.totalChapters; chapter++) {
+      if (LevelCatalog.firstLevelOfChapter(chapter) < level &&
+          chaptersSeen.add(chapter)) {
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   Future<void> save({bool notify = true}) async {
@@ -148,6 +175,7 @@ final class LocalSave extends ChangeNotifier {
         'colorblind': colorblind,
         'lang': language,
         'tutorialDone': tutorialDone,
+        'chaptersSeen': (chaptersSeen.toList()..sort()),
         'streak': streak,
         'lastDaily': lastDaily,
         'dailies': completedDailies.toList(),
@@ -168,6 +196,7 @@ final class LocalSave extends ChangeNotifier {
       tutorialDone = true;
       changed = true;
     }
+    if (_markPlayedChapters()) changed = true;
     for (final entry in cloudStars.entries) {
       if (entry.key < 1 || entry.key > LevelCatalog.totalLevels) continue;
       final bounded = entry.value.clamp(0, 3);
@@ -199,6 +228,7 @@ final class LocalSave extends ChangeNotifier {
     colorblind = false;
     language = 'en';
     tutorialDone = false;
+    chaptersSeen.clear();
     activeBoard = null;
     notifyListeners();
   }

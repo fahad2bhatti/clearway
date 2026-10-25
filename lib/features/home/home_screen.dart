@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../app/app_identity.dart';
@@ -103,40 +101,6 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
                 const Spacer(flex: 2),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xff31463f).withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xff61c69a).withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        color: Color(0xff61c69a),
-                        size: 15,
-                      ),
-                      SizedBox(width: 5),
-                      Text(
-                        strings.chapterOne,
-                        style: const TextStyle(
-                          color: Color(0xffc6d2ca),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 17),
                 Text(
                   strings.homeHeadline,
                   style: const TextStyle(
@@ -165,8 +129,8 @@ class HomeScreen extends StatelessWidget {
                       child: FilledButton.icon(
                         onPressed: () => onPlay(currentLevel),
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xffffb347),
-                          foregroundColor: const Color(0xff182329),
+                          backgroundColor: const Color(0xffff5c8d),
+                          foregroundColor: const Color(0xff0b232e),
                           padding: const EdgeInsets.symmetric(vertical: 17),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),
@@ -686,13 +650,13 @@ class _YardPreview extends StatelessWidget {
         Row(
           children: [
             const Icon(
-              Icons.local_shipping_rounded,
-              color: Color(0xffffb347),
+              Icons.arrow_forward_rounded,
+              color: Color(0xffff5c8d),
               size: 16,
             ),
             const SizedBox(width: 7),
             const Text(
-              'THE TRUCK-ART YARD',
+              'THE ARROW BOARD',
               style: TextStyle(
                 fontSize: 9,
                 color: Color(0xffc6d2ca),
@@ -752,39 +716,34 @@ class _PreviewBoardPainter extends CustomPainter {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
       if (i < 4) canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
-    _drawMiniTruck(
+    final t = size.height * 0.11;
+    _drawMiniArrow(
       canvas,
-      Rect.fromLTWH(
-        size.width * 0.12,
-        size.height * 0.17,
-        size.width * 0.30,
-        size.height * 0.28,
-      ),
-      const Color(0xffffb347),
-      true,
+      Offset(size.width * 0.08, size.height * 0.28),
+      Offset(size.width * 0.46, size.height * 0.28),
+      const Color(0xffff5c8d),
+      t,
     );
-    _drawMiniTruck(
+    _drawMiniArrow(
       canvas,
-      Rect.fromLTWH(
-        size.width * 0.45,
-        size.height * 0.58,
-        size.width * 0.35,
-        size.height * 0.25,
-      ),
-      const Color(0xffed6ca7),
-      false,
+      Offset(size.width * 0.72, size.height * 0.76),
+      Offset(size.width * 0.38, size.height * 0.76),
+      const Color(0xff5fe6af),
+      t,
     );
-    _drawMiniTruck(
+    _drawMiniArrow(
       canvas,
-      Rect.fromLTWH(
-        size.width * 0.76,
-        size.height * 0.13,
-        size.width * 0.16,
-        size.height * 0.55,
-      ),
+      Offset(size.width * 0.62, size.height * 0.12),
+      Offset(size.width * 0.62, size.height * 0.50),
       const Color(0xff4ecac1),
-      false,
-      vertical: true,
+      t,
+    );
+    _drawMiniArrow(
+      canvas,
+      Offset(size.width * 0.89, size.height * 0.88),
+      Offset(size.width * 0.89, size.height * 0.14),
+      const Color(0xffffb347),
+      t,
     );
     final fleck = Paint()
       ..color = const Color(0xfffff3d8).withValues(alpha: 0.6);
@@ -797,65 +756,49 @@ class _PreviewBoardPainter extends CustomPainter {
     }
   }
 
-  void _drawMiniTruck(
+  void _drawMiniArrow(
     Canvas canvas,
-    Rect rect,
+    Offset tail,
+    Offset tip,
     Color color,
-    bool goesRight, {
-    bool vertical = false,
-  }) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(7)),
-      Paint()..color = color,
-    );
-    final stripe = Paint()
-      ..color = const Color(0xfffff3d8)
-      ..strokeWidth = 2;
-    if (vertical) {
+    double thickness,
+  ) {
+    final delta = tip - tail;
+    final dir = delta / delta.distance;
+    final normal = Offset(-dir.dy, dir.dx);
+    final headLength = thickness * 1.9;
+    final headHalf = thickness * 1.15;
+    final base = tip - dir * headLength;
+
+    void draw(Offset shift, Color c) {
+      final paint = Paint()..color = c;
       canvas.drawLine(
-        Offset(rect.center.dx, rect.top + 5),
-        Offset(rect.center.dx, rect.bottom - 5),
-        stripe,
+        tail + shift,
+        base + dir * 1.5 + shift,
+        Paint()
+          ..color = c
+          ..strokeWidth = thickness
+          ..strokeCap = StrokeCap.round,
       );
-    } else {
-      canvas.drawLine(
-        Offset(rect.left + 5, rect.center.dy),
-        Offset(rect.right - 5, rect.center.dy),
-        stripe,
-      );
+      final head = Path()
+        ..moveTo(tip.dx + shift.dx, tip.dy + shift.dy)
+        ..lineTo(
+          base.dx + normal.dx * headHalf + shift.dx,
+          base.dy + normal.dy * headHalf + shift.dy,
+        )
+        ..lineTo(
+          base.dx - normal.dx * headHalf + shift.dx,
+          base.dy - normal.dy * headHalf + shift.dy,
+        )
+        ..close();
+      canvas.drawPath(head, paint);
     }
-    final cab = vertical
-        ? Rect.fromLTWH(
-            rect.left + 3,
-            rect.top + 3,
-            rect.width - 6,
-            rect.height * 0.23,
-          )
-        : Rect.fromLTWH(
-            goesRight ? rect.right - rect.width * 0.28 : rect.left + 3,
-            rect.top + 3,
-            rect.width * 0.23,
-            rect.height - 6,
-          );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(cab, const Radius.circular(5)),
-      Paint()..color = color.withValues(alpha: .73),
+
+    draw(
+      const Offset(0, 2.5),
+      Color.lerp(color, const Color(0xff000000), 0.38)!,
     );
-    final glint = Paint()..color = const Color(0xff183840);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(cab.deflate(4), const Radius.circular(3)),
-      glint,
-    );
-    canvas.drawCircle(
-      Offset(rect.left + 8, rect.bottom - 1),
-      3,
-      Paint()..color = const Color(0xff182329),
-    );
-    canvas.drawCircle(
-      Offset(rect.right - 8, rect.bottom - 1),
-      3,
-      Paint()..color = const Color(0xff182329),
-    );
+    draw(Offset.zero, color);
   }
 
   @override
@@ -868,59 +811,16 @@ class _ClearwayMark extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) => SizedBox.square(
-    dimension: size,
-    child: CustomPaint(painter: _ClearwayMarkPainter()),
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(size * 0.26),
+    child: Image.asset(
+      'assets/icon/icon_full_1024.png',
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      filterQuality: FilterQuality.medium,
+    ),
   );
-}
-
-class _ClearwayMarkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(14)),
-      Paint()..color = const Color(0xff31463f),
-    );
-    final center = rect.center;
-    final colors = [
-      const Color(0xffffb347),
-      const Color(0xffed6ca7),
-      const Color(0xff4ecac1),
-      const Color(0xff61c69a),
-    ];
-    for (var index = 0; index < colors.length; index++) {
-      final angle = index * math.pi / 2;
-      final petal = Rect.fromCenter(
-        center:
-            center +
-            Offset(math.cos(angle), math.sin(angle)) * size.width * .19,
-        width: size.width * .26,
-        height: size.height * .26,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(petal, const Radius.circular(4)),
-        Paint()..color = colors[index],
-      );
-    }
-    canvas.drawCircle(
-      center,
-      size.width * .11,
-      Paint()..color = const Color(0xfffff3d8),
-    );
-    final centerPaint = Paint()
-      ..color = const Color(0xff31463f)
-      ..strokeWidth = 1.8
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      center + Offset(-size.width * .24, 0),
-      center + Offset(size.width * .24, 0),
-      centerPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _YardBackdrop extends StatelessWidget {
@@ -937,7 +837,7 @@ class _BackdropPainter extends CustomPainter {
     final glow = Paint()
       ..shader =
           const RadialGradient(
-            colors: [Color(0xff31463f), Color(0xff182329)],
+            colors: [Color(0xff12323d), Color(0xff0b232e)],
             stops: [0, 1],
           ).createShader(
             Rect.fromCircle(
@@ -963,7 +863,7 @@ class _BackdropPainter extends CustomPainter {
     canvas.drawPath(path, paint);
     canvas.drawPath(
       path.shift(const Offset(13, 0)),
-      paint..color = const Color(0xffffb347).withValues(alpha: .09),
+      paint..color = const Color(0xffff5c8d).withValues(alpha: .10),
     );
   }
 

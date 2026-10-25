@@ -6,11 +6,12 @@ final class ClearwayStrings {
   bool get _ur => language == 'ur';
 
   String get tagline => _ur ? 'راستہ صاف کریں۔' : 'Clear the path.';
-  String get homeHeadline => _ur ? 'صحن کھلا ہے۔' : 'The yard is\nwide open.';
+  String get homeHeadline =>
+      _ur ? 'ہر تیر کے لیے راستہ ہے۔' : 'Every arrow\nhas a way out.';
   String get homeDescription => _ur
-      ? 'ہر رنگین سواری کو سڑک تک پہنچائیں۔ صحیح ترتیب تلاش کریں۔'
-      : 'Guide every colorful ride to the road.\nFind the right order, then clear the way.';
-  String get startDriving => _ur ? 'چلنا شروع کریں' : 'Start driving';
+      ? 'تیر کو چھو کر بورڈ سے باہر نکالیں۔ صحیح ترتیب تلاش کریں۔'
+      : 'Tap an arrow to slide it off the board.\nFind the right order, then clear the way.';
+  String get startDriving => _ur ? 'کھیلنا شروع کریں' : 'Play';
   String get level => _ur ? 'لیول' : 'LEVEL';
   String get dailyChallenge => _ur ? 'روزانہ کا چیلنج' : 'Daily challenge';
   String streak(int days) => _ur ? '$days دن کا سلسلہ' : '$days day streak';
@@ -49,7 +50,17 @@ final class ClearwayStrings {
   String get orderTip => _ur
       ? 'چال چلنے سے پہلے محفوظ ترتیب دیکھیں۔'
       : 'Look for the safe order before moving.';
-  // These three tips are English only for now.
+  // The strings from here to the end of this block are English only for now.
+  String chapterLabel(int number) => 'CHAPTER $number';
+  String chapterLevels(int first, int last) => 'Levels $first–$last';
+  String chapterBoard(int width, int height) =>
+      'Boards start at $width×$height.';
+  String chapterBoss(int level) => 'A boss yard waits at level $level.';
+  String get letsGo => 'Let’s go';
+  String reviveLabel(int cost) => 'Revive  🪙$cost';
+  String reviveShort(int missing) => 'Earn 🪙$missing more to revive.';
+  String get lockZoom => 'Lock zoom';
+  String get zoomLocked => 'Zoom locked';
   String get bossShapeTip =>
       'Boss yard! The board has a shape now. Buses bend to fit it.';
   String get breatherTip =>
@@ -100,7 +111,6 @@ final class ClearwayStrings {
       _ur ? 'کلاؤڈ محفوظ دستیاب نہیں' : 'Cloud save unavailable';
   String get ready => _ur ? 'تیار' : 'READY';
   String get truckArtYard => _ur ? 'ٹرک آرٹ کا صحن' : 'THE TRUCK-ART YARD';
-  String get chapterOne => _ur ? 'لاہور • باب اوّل' : 'LAHORE  •  CHAPTER ONE';
   String chapterName(String chapter) => !_ur
       ? chapter
       : switch (chapter) {

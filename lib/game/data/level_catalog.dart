@@ -20,8 +20,27 @@ abstract final class LevelCatalog {
     'Faisalabad',
   ];
 
+  static const levelsPerChapter = 10;
+
+  static int get totalChapters =>
+      (totalLevels + levelsPerChapter - 1) ~/ levelsPerChapter;
+
+  /// 1-based chapter that [number] belongs to.
+  static int chapterNumberFor(int number) =>
+      (number - 1) ~/ levelsPerChapter + 1;
+
+  static int firstLevelOfChapter(int chapterNumber) =>
+      (chapterNumber - 1) * levelsPerChapter + 1;
+
+  static int lastLevelOfChapter(int chapterNumber) {
+    final end = chapterNumber * levelsPerChapter;
+    return end < totalLevels ? end : totalLevels;
+  }
+
+  static bool startsChapter(int number) => (number - 1) % levelsPerChapter == 0;
+
   static String chapterFor(int number) =>
-      chapters[((number - 1) ~/ 10) % chapters.length];
+      chapters[(chapterNumberFor(number) - 1) % chapters.length];
 
   static GameLevel getLevel(int number) {
     if (number < 1 || number > totalLevels) {

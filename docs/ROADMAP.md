@@ -114,10 +114,10 @@ There are **8 large milestones left**. Some are substantial work groups, not
 single commits; Git push is intentionally the final step after the owner runs
 the app and reviews it.
 
-1. **Finish offline game content:** chapter intros, boss board silhouettes,
-   achievements, revive flow, pan/zoom, and expand the
-   verified catalog beyond the current 80 levels. The requested 10-level easy
-   start and chapter-by-chapter grid/path ramp are now implemented.
+1. **Finish offline game content:** achievements and expanding the verified
+   catalog beyond the current 80 levels. Chapter intro cards, boss board
+   silhouettes, the revive flow, pan/zoom with a zoom lock, and the 10-level
+   easy start with a chapter-by-chapter grid/path ramp are implemented.
 2. **Finish product polish:** full English/Urdu translation review, licensed
    fonts and audio, accessibility semantics/high contrast, and device layout
    checks.
@@ -140,13 +140,24 @@ the app and reviews it.
 
 ## Phase 3 — Remaining game content and retention
 
-- ⬜ Chapter intro cards and chapter/boss board presentation.
+- ✅ Chapter intro cards: a card opens the first time a player reaches the
+  first level of chapters 2–8 (name, level range, starting board size, boss
+  level). Chapter 1 is introduced by the home screen and the tutorial. The
+  shown chapters are kept in the local save; older saves and cloud progress
+  count the chapters already passed, so they never see a card for them.
 - 🟡 Daily calendar and monthly completion trophy view are implemented; daily
   streak/rewards are local. Achievements and device validation remain.
-- 🟡 Guided tutorial in levels 1–3 with completion tracking; the revive flow
-  remains. Mid-level board restoration is implemented.
-- 🟡 Larger-board pinch zoom and pan are enabled from 9×9 boards; a zoom-lock
-  control and physical device review remain.
+- ✅ Guided tutorial in levels 1–3 with completion tracking, and mid-level
+  board restoration.
+- ✅ Revive: when the last life is lost the player can spend 30 coins once per
+  attempt to continue with one life (stars still reflect the mistakes made).
+  Rewarded-ad revives belong to the monetization phase.
+- ✅ Tap safety on the board: a bus moves only when a finger lifts after a
+  quick, still, single-finger tap. Panning, pinch zoom and long presses no
+  longer move a bus or cost a life.
+- ✅ Larger-board pinch zoom and pan are enabled from 9×9 boards, with a
+  zoom-lock button next to Hint and Undo; the view resets on every new level.
+  A physical device review remains.
 - ⬜ Feedback/report form, share board/result and rate prompt.
 - ⬜ Accessibility semantics and small phone/tablet/foldable layout review.
 

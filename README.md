@@ -13,10 +13,12 @@ run locally so puzzles remain playable offline.
   Boards grow from 4×4 to 38×38 across the 80 levels, buses get longer and
   curvier, every 5th level from 15 is a lighter breather, and every 10th level
   is a boss yard with a silhouette board (heart, diamond, cross or ellipse).
-  Boards 9 cells wide or more support pinch zoom and pan.
-- Solver-backed hints and move safety, 3 lives, stars and chapter
-  progression. Every generated board is checked solvable by the same solver
-  used in play.
+  Boards 9 cells wide or more support pinch zoom and pan, with a zoom-lock
+  button. A bus only moves on a quick single-finger tap, so panning, pinching
+  and long presses never cost a life.
+- Solver-backed hints and move safety, 3 lives (one coin-paid revive per
+  attempt), stars, chapter intro cards and chapter progression. Every
+  generated board is checked solvable by the same solver used in play.
 - Local progress for unlocked level, stars, coins, hints, undos, daily streak,
   sound, music, haptics, theme, color-blind preference, and language selection.
 - Android Firebase initialization, anonymous guest auth, Firestore progress

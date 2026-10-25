@@ -1,4 +1,4 @@
-import 'package:flame/game.dart';
+import 'package:flame/game.dart' hide Matrix4;
 
 import 'dart:async';
 
@@ -9,11 +9,13 @@ import '../app/theme_pack.dart';
 import '../core/clearway_strings.dart';
 import '../core/daily_clock.dart';
 import '../data/local_save.dart';
+import 'chapter_intro.dart';
 import 'components/yard_game.dart';
 import 'data/level_catalog.dart';
 import 'engine/game_level.dart';
 import 'engine/move_validator.dart';
 import 'engine/vehicle.dart';
+import 'revive.dart';
 import 'tutorial.dart';
 
 enum GamePhase { ready, animating, paused, won, lost }
@@ -59,6 +61,9 @@ class _GameScreenState extends State<GameScreen> {
   var _phase = GamePhase.ready;
   var _assistEnabled = false;
   var _dailyTouched = false;
+  var _revived = false;
+  var _zoomLocked = false;
+  final _zoom = TransformationController();
 
   @override
   void initState() {
@@ -67,6 +72,12 @@ class _GameScreenState extends State<GameScreen> {
         .clamp(0, LevelCatalog.totalLevels - 1)
         .toInt();
     _loadLevel(restore: true);
+  }
+
+  @override
+  void dispose() {
+    _zoom.dispose();
+    super.dispose();
   }
 
   @override
@@ -93,6 +104,9 @@ class _GameScreenState extends State<GameScreen> {
     _mistakes = 0;
     _phase = GamePhase.ready;
     _assistEnabled = false;
+    _revived = false;
+    _zoomLocked = false;
+    _zoom.value = Matrix4.identity();
     if (restore) _restoreActiveBoard();
     _yardGame =
         YardGame(
@@ -103,6 +117,7 @@ class _GameScreenState extends State<GameScreen> {
           )
           ..vehicles = _remaining
           ..suggestedVehicleId = _tutorialVehicleId;
+    _scheduleChapterIntro();
     _persistActiveBoard();
     if (_remaining.isEmpty || _lives <= 0) {
       if (_remaining.isEmpty) _phase = GamePhase.won;
@@ -145,10 +160,46 @@ class _GameScreenState extends State<GameScreen> {
         widget.daily &&
         (_remaining.length != _level.vehicles.length || _mistakes > 0);
     _assistEnabled = saved['assistEnabled'] == true;
+    _revived = saved['revived'] == true;
     if (_lives == 0) _phase = GamePhase.lost;
   }
 
   String get _dailyDayKey => widget.dailyDayKey ?? DailyClock.dayKey();
+
+  bool get _zoomable => _level.width >= 9;
+
+  /// Marks the chapter card as shown (the save that follows in
+  /// [_persistActiveBoard] records it) and opens it after the first frame.
+  void _scheduleChapterIntro() {
+    if (widget.daily || _remaining.isEmpty || _lives <= 0) return;
+    final chapter = ChapterIntro.due(_level.number, widget.save.chaptersSeen);
+    if (chapter == null) return;
+    widget.save.chaptersSeen.add(chapter);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _showChapterIntro(chapter);
+    });
+  }
+
+  Future<void> _showChapterIntro(int chapter) async {
+    final first = LevelCatalog.firstLevelOfChapter(chapter);
+    final last = LevelCatalog.lastLevelOfChapter(chapter);
+    final lines = [
+      strings.chapterLevels(first, last),
+      strings.chapterBoard(_level.width, _level.height),
+      strings.chapterBoss(last),
+    ];
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _ChapterIntroDialog(
+        label: strings.chapterLabel(chapter),
+        name: strings.chapterName(_level.chapter),
+        lines: lines,
+        buttonLabel: strings.letsGo,
+        onStart: () => Navigator.pop(context),
+      ),
+    );
+  }
 
   String? get _tutorialVehicleId {
     if (widget.daily ||
@@ -173,6 +224,7 @@ class _GameScreenState extends State<GameScreen> {
       'lives': _lives,
       'mistakes': _mistakes,
       'assistEnabled': _assistEnabled,
+      'revived': _revived,
     };
     unawaited(widget.save.save(notify: false));
   }
@@ -384,7 +436,25 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _revive() {
+    if (_phase != GamePhase.lost ||
+        !Revive.isAvailable(alreadyRevived: _revived) ||
+        !Revive.canAfford(widget.save.coins)) {
+      return;
+    }
+    widget.save.coins -= Revive.cost;
+    unawaited(widget.save.save());
+    setState(() {
+      _revived = true;
+      _lives = Revive.livesRestored;
+      _phase = GamePhase.ready;
+    });
+    _persistActiveBoard();
+  }
+
   Future<void> _showLoseDialog() async {
+    final canRevive = Revive.isAvailable(alreadyRevived: _revived);
+    final canAfford = Revive.canAfford(widget.save.coins);
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -392,6 +462,15 @@ class _GameScreenState extends State<GameScreen> {
         won: false,
         title: strings.trafficJam,
         message: strings.retryMessage,
+        note: canRevive && !canAfford
+            ? strings.reviveShort(Revive.shortBy(widget.save.coins))
+            : null,
+        reviveLabel: canRevive ? strings.reviveLabel(Revive.cost) : null,
+        reviveEnabled: canAfford,
+        onRevive: () {
+          Navigator.pop(context);
+          _revive();
+        },
         primaryLabel: strings.tryAgain,
         onPrimary: () {
           Navigator.pop(context);
@@ -502,8 +581,9 @@ class _GameScreenState extends State<GameScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),
                       child: InteractiveViewer(
-                        panEnabled: _level.width >= 9,
-                        scaleEnabled: _level.width >= 9,
+                        transformationController: _zoom,
+                        panEnabled: _zoomable && !_zoomLocked,
+                        scaleEnabled: _zoomable && !_zoomLocked,
                         minScale: 1,
                         maxScale: (_level.width / 5).clamp(2.2, 8.0).toDouble(),
                         boundaryMargin: const EdgeInsets.all(48),
@@ -523,6 +603,10 @@ class _GameScreenState extends State<GameScreen> {
                 assistEnabled: _assistEnabled,
                 safeCount: safeCount,
                 onAssistChanged: _toggleAssist,
+                zoomAvailable: _zoomable,
+                zoomLocked: _zoomLocked,
+                onZoomLockChanged: (value) =>
+                    setState(() => _zoomLocked = value),
                 strings: strings,
               ),
               const SizedBox(height: 8),
@@ -602,14 +686,15 @@ class _TopBar extends StatelessWidget {
                 fontSize: 11,
               ),
             ),
-            Text(
-              strings.levelTitle(level.title),
-              style: const TextStyle(
-                color: Color(0xfffff3d8),
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
+            if (!RegExp(r'^(Boss yard|Yard) \d+$').hasMatch(level.title))
+              Text(
+                strings.levelTitle(level.title),
+                style: const TextStyle(
+                  color: Color(0xfffff3d8),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -653,6 +738,9 @@ class _ActionBar extends StatelessWidget {
     required this.assistEnabled,
     required this.safeCount,
     required this.onAssistChanged,
+    required this.zoomAvailable,
+    required this.zoomLocked,
+    required this.onZoomLockChanged,
     required this.strings,
   });
 
@@ -664,6 +752,9 @@ class _ActionBar extends StatelessWidget {
   final bool assistEnabled;
   final int safeCount;
   final ValueChanged<bool> onAssistChanged;
+  final bool zoomAvailable;
+  final bool zoomLocked;
+  final ValueChanged<bool> onZoomLockChanged;
   final ClearwayStrings strings;
 
   @override
@@ -694,6 +785,17 @@ class _ActionBar extends StatelessWidget {
           selected: assistEnabled,
         ),
       ),
+      if (zoomAvailable) ...[
+        const SizedBox(width: 9),
+        Expanded(
+          child: _ActionButton(
+            icon: zoomLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
+            label: zoomLocked ? strings.zoomLocked : strings.lockZoom,
+            onTap: () => onZoomLockChanged(!zoomLocked),
+            selected: zoomLocked,
+          ),
+        ),
+      ],
     ],
   );
 }
@@ -762,6 +864,10 @@ class _ResultDialog extends StatelessWidget {
     required this.secondaryLabel,
     required this.onSecondary,
     this.stars = 0,
+    this.note,
+    this.reviveLabel,
+    this.reviveEnabled = false,
+    this.onRevive,
   });
 
   final bool won;
@@ -772,6 +878,10 @@ class _ResultDialog extends StatelessWidget {
   final String secondaryLabel;
   final VoidCallback onSecondary;
   final int stars;
+  final String? note;
+  final String? reviveLabel;
+  final bool reviveEnabled;
+  final VoidCallback? onRevive;
 
   @override
   Widget build(BuildContext context) => Dialog(
@@ -826,7 +936,38 @@ class _ResultDialog extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xffc6d2ca), height: 1.45),
           ),
+          if (note != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              note!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xff91a49e), fontSize: 12),
+            ),
+          ],
           const SizedBox(height: 24),
+          if (reviveLabel != null && onRevive != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: reviveEnabled ? onRevive : null,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xffffb347),
+                  disabledForegroundColor: const Color(0xff758386),
+                  side: BorderSide(
+                    color: reviveEnabled
+                        ? const Color(0xffffb347)
+                        : const Color(0xff536165),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Text(
+                  reviveLabel!,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
             child: FilledButton(
@@ -847,6 +988,95 @@ class _ResultDialog extends StatelessWidget {
             child: Text(
               secondaryLabel,
               style: const TextStyle(color: Color(0xffc6d2ca)),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _ChapterIntroDialog extends StatelessWidget {
+  const _ChapterIntroDialog({
+    required this.label,
+    required this.name,
+    required this.lines,
+    required this.buttonLabel,
+    required this.onStart,
+  });
+
+  final String label;
+  final String name;
+  final List<String> lines;
+  final String buttonLabel;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: const Color(0xff25343a),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(24, 27, 24, 21),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 70,
+            height: 70,
+            decoration: const BoxDecoration(
+              color: Color(0xff38554f),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.map_rounded,
+              color: Color(0xffffb347),
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: 17),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xffffb347),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xfffff3d8),
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final line in lines)
+            Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                line,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xffc6d2ca), height: 1.45),
+              ),
+            ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onStart,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xffffb347),
+                foregroundColor: const Color(0xff182329),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: Text(
+                buttonLabel,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ],
