@@ -1,22 +1,52 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show debugPrint, kReleaseMode;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-/// AdMob setup. Debug mein hamesha Google ke test ad unit IDs use hoti hain.
+/// AdMob: banner, interstitial (har 5 level) aur rewarded ads.
+/// Debug mein hamesha Google ke test ad unit IDs use hoti hain.
 class AdService {
   AdService._();
 
-  // Google ka official test banner ID (Android).
+  // Google ke official test IDs (Android).
   static const _testBannerId = 'ca-app-pub-3940256099942544/6300978111';
+  static const _testInterstitialId = 'ca-app-pub-3940256099942544/1033173712';
+  static const _testRewardedId = 'ca-app-pub-3940256099942544/5224354917';
 
-  // Release ke liye apni real ID is tarah dein:
-  // flutter build appbundle --dart-define=ADMOB_BANNER_ID=ca-app-pub-xxx/yyy
+  // Release ke liye real IDs:
+  // flutter build appbundle --dart-define=ADMOB_BANNER_ID=ca-app-pub-xxx/aaa
+  //   --dart-define=ADMOB_INTERSTITIAL_ID=ca-app-pub-xxx/bbb
+  //   --dart-define=ADMOB_REWARDED_ID=ca-app-pub-xxx/ccc
   static const _liveBannerId = String.fromEnvironment('ADMOB_BANNER_ID');
+  static const _liveInterstitialId = String.fromEnvironment(
+    'ADMOB_INTERSTITIAL_ID',
+  );
+  static const _liveRewardedId = String.fromEnvironment('ADMOB_REWARDED_ID');
 
   // Logcat se mila test device ID yahan daal sakte hain (optional).
   static const _testDeviceIds = <String>[];
 
-  static String get bannerUnitId =>
-      kReleaseMode && _liveBannerId.isNotEmpty ? _liveBannerId : _testBannerId;
+  /// Itne level jeetne ke baad ek interstitial.
+  static const levelsPerInterstitial = 5;
+
+  /// Do interstitials ke darmiyan kam az kam itna waqfa.
+  static const interstitialCooldown = Duration(seconds: 60);
+
+  static String _pick(String live, String test) =>
+      kReleaseMode && live.isNotEmpty ? live : test;
+
+  static String get bannerUnitId => _pick(_liveBannerId, _testBannerId);
+  static String get interstitialUnitId =>
+      _pick(_liveInterstitialId, _testInterstitialId);
+  static String get rewardedUnitId => _pick(_liveRewardedId, _testRewardedId);
+
+  static var _initialized = false;
+  static InterstitialAd? _interstitial;
+  static RewardedAd? _rewarded;
+  static var _loadingInterstitial = false;
+  static var _loadingRewarded = false;
+  static var _levelsSinceAd = 0;
+  static DateTime? _lastInterstitial;
 
   static Future<void> initialize() async {
     try {
@@ -24,8 +54,130 @@ class AdService {
         RequestConfiguration(testDeviceIds: _testDeviceIds),
       );
       await MobileAds.instance.initialize();
+      _initialized = true;
+      preload();
     } catch (error) {
       debugPrint('AdMob initialization failed: $error');
     }
+  }
+
+  /// Interstitial aur rewarded dono pehle se load kar leta hai.
+  static void preload() {
+    _loadInterstitial();
+    _loadRewarded();
+  }
+
+  static void _loadInterstitial() {
+    if (!_initialized || _interstitial != null || _loadingInterstitial) return;
+    _loadingInterstitial = true;
+    InterstitialAd.load(
+      adUnitId: interstitialUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _loadingInterstitial = false;
+          _interstitial = ad;
+        },
+        onAdFailedToLoad: (error) {
+          _loadingInterstitial = false;
+          debugPrint('Interstitial failed: ${error.code} ${error.message}');
+        },
+      ),
+    );
+  }
+
+  static void _loadRewarded() {
+    if (!_initialized || _rewarded != null || _loadingRewarded) return;
+    _loadingRewarded = true;
+    RewardedAd.load(
+      adUnitId: rewardedUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _loadingRewarded = false;
+          _rewarded = ad;
+        },
+        onAdFailedToLoad: (error) {
+          _loadingRewarded = false;
+          debugPrint('Rewarded failed: ${error.code} ${error.message}');
+        },
+      ),
+    );
+  }
+
+  /// Har jeete hue level par ek bar call karein.
+  static void registerLevelCleared() => _levelsSinceAd++;
+
+  /// 5 level poore hone par (aur cooldown guzarne par) interstitial dikhata
+  /// hai. Ad band hone tak wait karta hai.
+  static Future<void> maybeShowInterstitial() async {
+    if (_levelsSinceAd < levelsPerInterstitial) return;
+    final last = _lastInterstitial;
+    if (last != null &&
+        DateTime.now().difference(last) < interstitialCooldown) {
+      return;
+    }
+    final ad = _interstitial;
+    if (ad == null) {
+      _loadInterstitial();
+      return;
+    }
+    _interstitial = null;
+    _levelsSinceAd = 0;
+    _lastInterstitial = DateTime.now();
+    final done = Completer<void>();
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _loadInterstitial();
+        if (!done.isCompleted) done.complete();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('Interstitial show failed: ${error.message}');
+        ad.dispose();
+        _loadInterstitial();
+        if (!done.isCompleted) done.complete();
+      },
+    );
+    try {
+      await ad.show();
+    } catch (error) {
+      debugPrint('Interstitial show error: $error');
+      if (!done.isCompleted) done.complete();
+    }
+    await done.future;
+  }
+
+  /// Rewarded ad dikhata hai. Sirf tab true deta hai jab user ne ad poora
+  /// dekh kar reward kamaya.
+  static Future<bool> showRewarded() async {
+    final ad = _rewarded;
+    if (ad == null) {
+      _loadRewarded();
+      return false;
+    }
+    _rewarded = null;
+    final done = Completer<bool>();
+    var earned = false;
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _loadRewarded();
+        if (!done.isCompleted) done.complete(earned);
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('Rewarded show failed: ${error.message}');
+        ad.dispose();
+        _loadRewarded();
+        if (!done.isCompleted) done.complete(false);
+      },
+    );
+    try {
+      await ad.show(onUserEarnedReward: (ad, reward) => earned = true);
+    } catch (error) {
+      debugPrint('Rewarded show error: $error');
+      if (!done.isCompleted) done.complete(false);
+    }
+    return done.future;
   }
 }

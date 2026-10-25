@@ -59,6 +59,15 @@ final class ClearwayStrings {
   String get letsGo => 'Let’s go';
   String reviveLabel(int cost) => 'Revive  🪙$cost';
   String reviveShort(int missing) => 'Earn 🪙$missing more to revive.';
+  String watchAdRevive(int lives) =>
+      _ur ? 'اشتہار دیکھیں · +$lives جانیں' : 'Watch ad · +$lives lives';
+  String watchAdDouble(int coins) => _ur
+      ? 'اشتہار دیکھیں · انعام دگنا (+🪙$coins)'
+      : 'Watch ad · double reward (+🪙$coins)';
+  String get rewardDoubled => _ur ? 'انعام دگنا ہو گیا!' : 'Reward doubled!';
+  String get adNotReady => _ur
+      ? 'کوئی انعام نہیں ملا۔ اشتہار دستیاب نہیں یا جلدی بند ہو گیا۔'
+      : 'No reward. Ad not available or closed early.';
   String get lockZoom => 'Lock zoom';
   String get zoomLocked => 'Zoom locked';
   String get bossShapeTip =>
@@ -130,8 +139,9 @@ final class ClearwayStrings {
       'Plan the order' => 'ترتیب بنائیں',
       'Daily rush' => 'روزانہ کا رش',
       _ when title.startsWith('Yard ') => 'لیول ${title.substring(5)}',
-      _ when title.endsWith(' yard') =>
-        chapterName(title.substring(0, title.length - 5)),
+      _ when title.endsWith(' yard') => chapterName(
+        title.substring(0, title.length - 5),
+      ),
       _ => title,
     };
   }
@@ -154,9 +164,8 @@ final class ClearwayStrings {
       '$dailyChallenge${days > 0 ? '  •  ${streak(days)}' : ''}';
   String levelNumber(int number) =>
       '${_ur ? 'لیول' : 'LEVEL'} ${number.toString().padLeft(2, '0')}';
-  String vehiclesRemaining(int count) => _ur
-      ? '$count سواریاں باقی ہیں'
-      : '$count vehicles left';
+  String vehiclesRemaining(int count) =>
+      _ur ? '$count سواریاں باقی ہیں' : '$count vehicles left';
   String hintCount(int count) => '$hint ${_digits(count)}';
   String undoCount(int count) => '$undo ${_digits(count)}';
   String monthName(int month) => _ur

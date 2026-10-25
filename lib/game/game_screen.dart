@@ -3,7 +3,9 @@ import 'package:flame/game.dart' hide Matrix4;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../widgets/clearway_banner.dart';
+
 import 'package:flutter/services.dart';
 
 import '../app/theme_pack.dart';
@@ -16,6 +18,7 @@ import 'data/level_catalog.dart';
 import 'engine/game_level.dart';
 import 'engine/move_validator.dart';
 import 'engine/vehicle.dart';
+import '../services/ad_service.dart';
 import 'revive.dart';
 import 'tutorial.dart';
 
@@ -377,6 +380,8 @@ class _GameScreenState extends State<GameScreen> {
         });
       });
     }
+    final coinsBefore = widget.save.coins;
+    if (!widget.daily) AdService.registerLevelCleared();
     if (widget.daily) {
       final key = _dailyDayKey;
       if (widget.save.completedDailies.add(key)) {
@@ -403,6 +408,8 @@ class _GameScreenState extends State<GameScreen> {
     await widget.save.save();
     widget.onLevelWon();
     if (!mounted) return;
+    final earned = widget.save.coins - coinsBefore;
+    AdService.preload();
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -411,14 +418,28 @@ class _GameScreenState extends State<GameScreen> {
         title: strings.wayClear,
         message: strings.allVehiclesOut,
         stars: stars,
+        adLabel: earned > 0 ? strings.watchAdDouble(earned) : null,
+        adDoneLabel: strings.rewardDoubled,
+        adFailedMessage: strings.adNotReady,
+        onAd: () async {
+          final rewarded = await AdService.showRewarded();
+          if (rewarded) {
+            widget.save.coins += earned;
+            await widget.save.save();
+            if (mounted) setState(() {});
+          }
+          return rewarded;
+        },
         primaryLabel: isLast ? strings.backToHome : strings.nextLevel,
-        onPrimary: () {
+        onPrimary: () async {
           Navigator.pop(context);
           if (isLast) {
             _clearActiveBoard();
             widget.save.save();
             widget.onHome(_level.number);
           } else {
+            await AdService.maybeShowInterstitial();
+            if (!mounted) return;
             setState(() {
               _levelIndex++;
               _loadLevel();
@@ -462,9 +483,23 @@ class _GameScreenState extends State<GameScreen> {
     _persistActiveBoard();
   }
 
+  void _reviveFromAd() {
+    if (_phase != GamePhase.lost ||
+        !Revive.isAvailable(alreadyRevived: _revived)) {
+      return;
+    }
+    setState(() {
+      _revived = true;
+      _lives = Revive.adLivesRestored;
+      _phase = GamePhase.ready;
+    });
+    _persistActiveBoard();
+  }
+
   Future<void> _showLoseDialog() async {
     final canRevive = Revive.isAvailable(alreadyRevived: _revived);
     final canAfford = Revive.canAfford(widget.save.coins);
+    AdService.preload();
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -475,6 +510,18 @@ class _GameScreenState extends State<GameScreen> {
         note: canRevive && !canAfford
             ? strings.reviveShort(Revive.shortBy(widget.save.coins))
             : null,
+        adLabel: canRevive
+            ? strings.watchAdRevive(Revive.adLivesRestored)
+            : null,
+        adFailedMessage: strings.adNotReady,
+        onAd: () async {
+          final rewarded = await AdService.showRewarded();
+          if (rewarded && context.mounted) {
+            Navigator.pop(context);
+            _reviveFromAd();
+          }
+          return rewarded;
+        },
         reviveLabel: canRevive ? strings.reviveLabel(Revive.cost) : null,
         reviveEnabled: canAfford,
         onRevive: () {
@@ -881,6 +928,10 @@ class _ResultDialog extends StatelessWidget {
     this.reviveLabel,
     this.reviveEnabled = false,
     this.onRevive,
+    this.adLabel,
+    this.adDoneLabel,
+    this.adFailedMessage = '',
+    this.onAd,
   });
 
   final bool won;
@@ -897,6 +948,10 @@ class _ResultDialog extends StatelessWidget {
   final String? reviveLabel;
   final bool reviveEnabled;
   final VoidCallback? onRevive;
+  final String? adLabel;
+  final String? adDoneLabel;
+  final String adFailedMessage;
+  final Future<bool> Function()? onAd;
 
   @override
   Widget build(BuildContext context) => Dialog(
@@ -960,6 +1015,15 @@ class _ResultDialog extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
+          if (adLabel != null && onAd != null) ...[
+            _AdRewardButton(
+              label: adLabel!,
+              doneLabel: adDoneLabel,
+              failedMessage: adFailedMessage,
+              onWatch: onAd!,
+            ),
+            const SizedBox(height: 10),
+          ],
           if (reviveLabel != null && onRevive != null) ...[
             SizedBox(
               width: double.infinity,
@@ -1019,6 +1083,69 @@ class _ResultDialog extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    ),
+  );
+}
+
+/// "Ad dekho, reward pao" button. Ad dekhne ke baad ek hi bar kaam karta hai.
+class _AdRewardButton extends StatefulWidget {
+  const _AdRewardButton({
+    required this.label,
+    required this.failedMessage,
+    required this.onWatch,
+    this.doneLabel,
+  });
+
+  final String label;
+  final String? doneLabel;
+  final String failedMessage;
+  final Future<bool> Function() onWatch;
+
+  @override
+  State<_AdRewardButton> createState() => _AdRewardButtonState();
+}
+
+class _AdRewardButtonState extends State<_AdRewardButton> {
+  var _busy = false;
+  var _done = false;
+
+  Future<void> _watch() async {
+    setState(() => _busy = true);
+    final rewarded = await widget.onWatch();
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _done = rewarded;
+    });
+    if (!rewarded) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(widget.failedMessage)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: FilledButton.icon(
+      onPressed: _busy || _done ? null : _watch,
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xff4ecac1),
+        foregroundColor: const Color(0xff182329),
+        disabledBackgroundColor: const Color(0xff38554f),
+        disabledForegroundColor: const Color(0xffc6d2ca),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      icon: _busy
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(_done ? Icons.check_circle_rounded : Icons.play_circle_fill),
+      label: Text(
+        _done ? (widget.doneLabel ?? widget.label) : widget.label,
+        style: const TextStyle(fontWeight: FontWeight.w800),
       ),
     ),
   );

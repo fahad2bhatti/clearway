@@ -6,6 +6,9 @@ abstract final class Revive {
   static const cost = 30;
   static const livesRestored = 1;
 
+  /// Rewarded ad dekhne par milne wali lives.
+  static const adLivesRestored = 2;
+
   /// Whether another revive may still be offered on this attempt.
   static bool isAvailable({required bool alreadyRevived}) => !alreadyRevived;
 
