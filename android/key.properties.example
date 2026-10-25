@@ -1,0 +1,4 @@
+storePassword=APNA_STORE_PASSWORD
+keyPassword=APNA_KEY_PASSWORD
+keyAlias=upload
+storeFile=/home/fahad/clearway-upload-key.jks

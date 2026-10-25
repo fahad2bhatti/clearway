@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/daily_clock.dart';
 import '../game/data/level_catalog.dart';
 import '../game/tutorial.dart';
 
@@ -17,6 +18,29 @@ final class LocalSave extends ChangeNotifier {
   int undos = 3;
   int streak = 0;
   String lastDaily = '';
+
+  // Ad rewards (sirf local, cloud mein nahi jate).
+  static const dailyGiftCoins = 50;
+  static const adCoinsReward = 30;
+  static const maxAdCoinsPerDay = 5;
+  String giftDay = '';
+  String adCoinsDay = '';
+  int adCoinsCount = 0;
+
+  /// Aaj shop se kitni bar aur "ad dekho, coins pao" mil sakta hai.
+  int get adCoinsLeft => adCoinsDay == DailyClock.dayKey()
+      ? (maxAdCoinsPerDay - adCoinsCount).clamp(0, maxAdCoinsPerDay)
+      : maxAdCoinsPerDay;
+
+  void recordAdCoins() {
+    final today = DailyClock.dayKey();
+    if (adCoinsDay != today) {
+      adCoinsDay = today;
+      adCoinsCount = 0;
+    }
+    adCoinsCount++;
+  }
+
   bool sound = true;
   bool music = false;
   bool haptics = true;
@@ -60,6 +84,9 @@ final class LocalSave extends ChangeNotifier {
     undos = _count(data['undos'], 3);
     streak = _count(data['streak'], 0);
     lastDaily = data['lastDaily'] as String? ?? '';
+    giftDay = data['giftDay'] as String? ?? '';
+    adCoinsDay = data['adCoinsDay'] as String? ?? '';
+    adCoinsCount = _count(data['adCoinsCount'], 0);
     sound = data['sound'] as bool? ?? true;
     music = data['music'] as bool? ?? false;
     haptics = data['haptics'] as bool? ?? true;
@@ -120,6 +147,9 @@ final class LocalSave extends ChangeNotifier {
     undos = 3;
     streak = 0;
     lastDaily = '';
+    giftDay = '';
+    adCoinsDay = '';
+    adCoinsCount = 0;
     sound = true;
     music = false;
     haptics = true;
@@ -178,6 +208,9 @@ final class LocalSave extends ChangeNotifier {
         'chaptersSeen': (chaptersSeen.toList()..sort()),
         'streak': streak,
         'lastDaily': lastDaily,
+        'giftDay': giftDay,
+        'adCoinsDay': adCoinsDay,
+        'adCoinsCount': adCoinsCount,
         'dailies': completedDailies.toList(),
         'activeBoard': activeBoard,
       }),
@@ -219,6 +252,9 @@ final class LocalSave extends ChangeNotifier {
     undos = 3;
     streak = 0;
     lastDaily = '';
+    giftDay = '';
+    adCoinsDay = '';
+    adCoinsCount = 0;
     stars.clear();
     completedDailies.clear();
     sound = true;

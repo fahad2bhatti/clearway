@@ -7,6 +7,7 @@ import '../../core/clearway_strings.dart';
 import '../../core/daily_clock.dart';
 import '../../data/local_save.dart';
 import '../../game/data/level_catalog.dart';
+import '../../services/ad_service.dart';
 import '../../services/cloud_progress_sync.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -226,13 +227,23 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 5),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => _showShop(context, save),
-                    icon: const Icon(Icons.storefront_rounded, size: 18),
-                    label: Text(strings.yardShop),
-                  ),
+                Row(
+                  children: [
+                    if (save.giftDay != DailyClock.dayKey())
+                      FilledButton.tonalIcon(
+                        onPressed: () => _claimDailyGift(context),
+                        icon: const Icon(Icons.card_giftcard_rounded, size: 18),
+                        label: Text(
+                          strings.dailyGift(LocalSave.dailyGiftCoins),
+                        ),
+                      ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => _showShop(context, save),
+                      icon: const Icon(Icons.storefront_rounded, size: 18),
+                      label: Text(strings.yardShop),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Center(
@@ -253,6 +264,24 @@ class HomeScreen extends StatelessWidget {
       ),
     ),
   );
+
+  Future<void> _claimDailyGift(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final today = DailyClock.dayKey();
+    if (save.giftDay == today) return;
+    AdService.preload();
+    final rewarded = await AdService.showRewarded();
+    if (!rewarded) {
+      messenger.showSnackBar(SnackBar(content: Text(strings.adNotReady)));
+      return;
+    }
+    save.giftDay = today;
+    save.coins += LocalSave.dailyGiftCoins;
+    await save.save();
+    messenger.showSnackBar(
+      SnackBar(content: Text(strings.giftClaimed(LocalSave.dailyGiftCoins))),
+    );
+  }
 
   void _showSettings(BuildContext context, LocalSave save) {
     showModalBottomSheet<void>(
@@ -403,13 +432,25 @@ class HomeScreen extends StatelessWidget {
                     Icons.card_giftcard,
                     color: Color(0xffed6ca7),
                   ),
-                  title: Text(strings.practiceReward),
-                  subtitle: Text(strings.offlineDemoReward),
-                  trailing: const Text('+20 🪙'),
-                  onTap: () {
-                    save.coins += 20;
-                    save.save();
-                    update(() {});
+                  title: Text(strings.freeCoinsAd),
+                  subtitle: Text(strings.freeCoinsLeft(save.adCoinsLeft)),
+                  trailing: Text('+${LocalSave.adCoinsReward} 🪙'),
+                  enabled: save.adCoinsLeft > 0,
+                  onTap: () async {
+                    if (save.adCoinsLeft <= 0) return;
+                    final messenger = ScaffoldMessenger.of(context);
+                    AdService.preload();
+                    final rewarded = await AdService.showRewarded();
+                    if (!rewarded) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(strings.adNotReady)),
+                      );
+                      return;
+                    }
+                    save.recordAdCoins();
+                    save.coins += LocalSave.adCoinsReward;
+                    await save.save();
+                    if (context.mounted) update(() {});
                   },
                 ),
               ],

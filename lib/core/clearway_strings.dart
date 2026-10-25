@@ -68,6 +68,26 @@ final class ClearwayStrings {
   String get adNotReady => _ur
       ? 'کوئی انعام نہیں ملا۔ اشتہار دستیاب نہیں یا جلدی بند ہو گیا۔'
       : 'No reward. Ad not available or closed early.';
+  String get adForHint => _ur
+      ? 'اشارے ختم ہو گئے۔ مختصر اشتہار دیکھ کر 1 اشارہ پائیں؟'
+      : 'Out of hints. Watch a short ad to get 1 hint?';
+  String get adForUndo => _ur
+      ? 'واپسی کے موقع ختم۔ مختصر اشتہار دیکھ کر 1 موقع پائیں؟'
+      : 'No undos left. Watch a short ad to get 1 undo?';
+  String get hintAdded => _ur ? '1 اشارہ مل گیا!' : 'Hint added!';
+  String get undoAdded => _ur ? '1 واپسی مل گئی!' : 'Undo added!';
+  String get watchAd => _ur ? 'اشتہار دیکھیں' : 'Watch ad';
+  String get notNow => _ur ? 'ابھی نہیں' : 'Not now';
+  String dailyGift(int coins) =>
+      _ur ? 'روزانہ تحفہ · +🪙$coins' : 'Daily gift · +🪙$coins';
+  String giftClaimed(int coins) =>
+      _ur ? 'تحفہ مل گیا! +🪙$coins' : 'Gift claimed! +🪙$coins';
+  String get freeCoinsAd => _ur ? 'مفت سکے' : 'Free coins';
+  String freeCoinsLeft(int left) => left > 0
+      ? (_ur
+            ? 'اشتہار دیکھیں · آج $left باقی'
+            : 'Watch an ad · $left left today')
+      : (_ur ? 'کل دوبارہ آئیں' : 'Come back tomorrow');
   String get lockZoom => 'Lock zoom';
   String get zoomLocked => 'Zoom locked';
   String get bossShapeTip =>

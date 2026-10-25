@@ -315,8 +315,13 @@ class _GameScreenState extends State<GameScreen> {
   void _useHint() {
     if (_phase != GamePhase.ready) return;
     if (widget.save.hints <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(strings.outOfHintsShort)));
+      unawaited(
+        _offerRewardedAd(
+          message: strings.adForHint,
+          rewardMessage: strings.hintAdded,
+          grant: () => widget.save.hints += 1,
+        ),
+      );
       return;
     }
     if (widget.daily) _dailyTouched = true;
@@ -329,6 +334,53 @@ class _GameScreenState extends State<GameScreen> {
       _yardGame.assistedVehicleIds = const {};
     });
     _persistActiveBoard();
+  }
+
+  Future<void> _offerRewardedAd({
+    required String message,
+    required String rewardMessage,
+    required void Function() grant,
+  }) async {
+    AdService.preload();
+    final watch = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xff25343a),
+        content: Text(
+          message,
+          style: const TextStyle(color: Color(0xfffff3d8), height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              strings.notNow,
+              style: const TextStyle(color: Color(0xffc6d2ca)),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xff4ecac1),
+              foregroundColor: const Color(0xff182329),
+            ),
+            icon: const Icon(Icons.play_circle_fill),
+            label: Text(strings.watchAd),
+          ),
+        ],
+      ),
+    );
+    if (watch != true || !mounted) return;
+    final rewarded = await AdService.showRewarded();
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    if (rewarded) {
+      grant();
+      await widget.save.save();
+      messenger.showSnackBar(SnackBar(content: Text(rewardMessage)));
+    } else {
+      messenger.showSnackBar(SnackBar(content: Text(strings.adNotReady)));
+    }
   }
 
   void _toggleAssist(bool value) {
@@ -348,8 +400,13 @@ class _GameScreenState extends State<GameScreen> {
   void _undo() {
     if (_phase != GamePhase.ready || _undoUsed || _undoSnapshot == null) return;
     if (widget.save.undos <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(strings.outOfUndosShort)));
+      unawaited(
+        _offerRewardedAd(
+          message: strings.adForUndo,
+          rewardMessage: strings.undoAdded,
+          grant: () => widget.save.undos += 1,
+        ),
+      );
       return;
     }
     widget.save.undos--;

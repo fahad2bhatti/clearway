@@ -53,12 +53,37 @@ class AdService {
       await MobileAds.instance.updateRequestConfiguration(
         RequestConfiguration(testDeviceIds: _testDeviceIds),
       );
+      await _gatherConsent();
+      if (!await ConsentInformation.instance.canRequestAds()) {
+        debugPrint('Ads off: consent abhi nahi mila.');
+        return;
+      }
       await MobileAds.instance.initialize();
       _initialized = true;
       preload();
     } catch (error) {
       debugPrint('AdMob initialization failed: $error');
     }
+  }
+
+  /// Google UMP consent: EEA/UK mein form dikhata hai, baqi jagah foran khatam.
+  /// Form AdMob console ke "Privacy & messaging" mein banta hai.
+  static Future<void> _gatherConsent() async {
+    final done = Completer<void>();
+    ConsentInformation.instance.requestConsentInfoUpdate(
+      ConsentRequestParameters(),
+      () {
+        ConsentForm.loadAndShowConsentFormIfRequired((FormError? error) {
+          if (error != null) debugPrint('Consent form: ${error.message}');
+          if (!done.isCompleted) done.complete();
+        });
+      },
+      (FormError error) {
+        debugPrint('Consent info: ${error.message}');
+        if (!done.isCompleted) done.complete();
+      },
+    );
+    await done.future.timeout(const Duration(seconds: 90), onTimeout: () {});
   }
 
   /// Interstitial aur rewarded dono pehle se load kar leta hai.
