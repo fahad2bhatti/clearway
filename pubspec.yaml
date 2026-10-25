@@ -38,6 +38,7 @@ dependencies:
   cloud_firestore: ^6.9.0
   firebase_crashlytics: ^5.4.0
   crypto: ^3.0.7
+  google_mobile_ads: ^9.2.0
 
 dev_dependencies:
   flutter_test:

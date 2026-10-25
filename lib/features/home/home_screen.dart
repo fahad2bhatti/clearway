@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/clearway_banner.dart';
+
 import '../../app/app_identity.dart';
 import '../../core/clearway_strings.dart';
 import '../../core/daily_clock.dart';
@@ -29,6 +31,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    bottomNavigationBar: const ClearwayBanner(),
     body: SafeArea(
       child: Stack(
         children: [

@@ -14,6 +14,7 @@ import 'game/data/level_catalog.dart';
 import 'game/game_screen.dart';
 import 'data/local_save.dart';
 import 'firebase_options.dart';
+import 'services/ad_service.dart';
 import 'services/cloud_progress_sync.dart';
 import 'services/progress_sync_debouncer.dart';
 
@@ -35,6 +36,7 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
   ]);
+  await AdService.initialize();
   runApp(const ClearwayApp());
 }
 

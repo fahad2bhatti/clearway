@@ -3,6 +3,7 @@ import 'package:flame/game.dart' hide Matrix4;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../widgets/clearway_banner.dart';
 import 'package:flutter/services.dart';
 
 import '../app/theme_pack.dart';
@@ -548,6 +549,7 @@ class _GameScreenState extends State<GameScreen> {
     final tutorialTip = _tutorialTip;
     return Scaffold(
       backgroundColor: _themePack.asphalt,
+      bottomNavigationBar: const ClearwayBanner(),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
