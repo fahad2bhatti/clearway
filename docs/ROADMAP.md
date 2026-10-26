@@ -1,6 +1,6 @@
 # Clearway Project Roadmap
 
-Last updated: 2026-10-25
+Last updated: 2026-10-27
 Project: Flutter + Flame, Android first; iOS planned  
 Application ID: `com.fahadapps.clearway`
 
@@ -12,21 +12,21 @@ features in the Clearway build brief. It is updated as work is completed.
 ## Phase 1 — Offline game and browser port
 
 - ✅ Flutter + Flame app shell, portrait Android setup, Clearway identity.
-- ✅ Pure Dart vehicle/grid model, movement validation and solver-backed safe
-  moves. The engine still supports cones, one-way gates and convoy pairs
+- ✅ Pure Dart arrow/grid model, movement validation and solver-backed safe
+  moves. The engine still keeps legacy blocker mechanics
   (covered by `engine_v2_test`), but the arrow-maze generator no longer
   places them.
-- ✅ Arrow-maze Flame board rendering: curved buses drawn as rounded lines with
+- ✅ Arrow-maze Flame board rendering: curved arrows drawn as rounded lines with
   an arrow head, no visible grid, silhouette boards, snake-style exit and bump
   feedback, hint pulse, colour-blind dash patterns, haptic and system-sound
   feedback controls.
 - ✅ Deterministic, lazily loaded 80-level catalog built by
   `MazeLevelGenerator`; all 80 levels are checked solvable. Chapter labels
   cycle every 10 levels.
-- ✅ Difficulty ramp: levels 1–3 have 2–4 straight buses on a 4×4 board; from
-  level 4 buses start to bend, and boards grow to 38×38 with up to 77 buses
+- ✅ Difficulty ramp: levels 1–3 have 2–4 straight arrows on a 4×4 board; from
+  level 4 arrows start to bend, and boards grow to 38×38 with up to 77 arrows
   by level 80. Every 5th level from 15 is a lighter breather; every 10th
-  level is a boss yard with a silhouette board (heart, diamond, cross,
+  level is a boss board with a silhouette shape (heart, diamond, cross,
   ellipse). Boards 9 cells wide or more support pinch zoom and pan.
 - ✅ Tutorial tips: levels 1–3 teach tapping, blocking and order; levels 10, 25
   and 40 show tips for boss shapes, breather levels and big boards.
@@ -41,7 +41,7 @@ features in the Clearway build brief. It is updated as work is completed.
 - 🟡 Tutorial: guided hand pointer and tips guide the first three levels and
   stop once level 3 is won (`tutorialDone` in the local save; older saves past
   level 3 count as done). A separate onboarding flow remains.
-- 🟡 Accessibility: color-blind vehicle labels and larger-cell hit tolerance
+- 🟡 Accessibility: color-blind arrow labels and larger-cell hit tolerance
   exist; semantics, scalable UI audit, high-contrast mode and device review remain.
 - 🟡 Localization: English/Urdu strings are now connected to the main home,
   settings, calendar, gameplay, tips, hints, errors and result dialogs; Urdu
@@ -49,7 +49,7 @@ features in the Clearway build brief. It is updated as work is completed.
   labels, font coverage and a full translation review remain.
 - 🟡 Audio: system click/alert feedback is wired to the sound switch; original
   engine, horn, clear, and music assets/player remain.
-- 🟡 Recovery: current level, remaining vehicles, lives, mistakes and undo
+- 🟡 Recovery: current level, remaining arrows, lives, mistakes and undo
   snapshot resume locally after app restart. A last-known-good local save backup
   now recovers malformed primary saves; low-memory recovery and device
   validation remain.
@@ -152,9 +152,9 @@ the app and reviews it.
 - ✅ Revive: when the last life is lost the player can spend 30 coins once per
   attempt to continue with one life (stars still reflect the mistakes made).
   Rewarded-ad revives belong to the monetization phase.
-- ✅ Tap safety on the board: a bus moves only when a finger lifts after a
+- ✅ Tap safety on the board: an arrow moves only when a finger lifts after a
   quick, still, single-finger tap. Panning, pinch zoom and long presses no
-  longer move a bus or cost a life.
+  longer move an arrow or cost a life.
 - ✅ Larger-board pinch zoom and pan are enabled from 9×9 boards, with a
   zoom-lock button next to Hint and Undo; the view resets on every new level.
   A physical device review remains.
@@ -163,7 +163,7 @@ the app and reviews it.
 
 ## Phase 4 — Economy and platform services
 
-- ⬜ Real rewarded/interstitial ads with consent flow and test-build kill switch.
+- 🟡 Banner ads are in (`google_mobile_ads`); rewarded/interstitial ads, consent flow and test-build kill switch remain.
 - ⬜ IAP products, server receipt/token verification, restore, refund/revoke path.
 - ⬜ Shop state for unsupported region/store, offline state and purchase errors.
 - ⬜ Notifications with opt-in flow and Firebase Cloud Messaging.
@@ -178,7 +178,7 @@ the app and reviews it.
   yet; the earlier AI workspace could not run them.
 - ⬜ CI for format, analyze, unit/widget tests, Firebase emulator tests and level
   verification.
-- ⬜ Android signing, release AAB, Play internal/closed testing and store assets.
+- 🟡 Uploaded to Play closed testing; store assets and the rest of release automation remain.
 - ⬜ iOS macOS CI/signing/TestFlight workflow and device testing.
 - ⬜ Performance, crash-free, accessibility and low-end device QA.
 
