@@ -27,7 +27,10 @@ class _ClearwayBannerState extends State<ClearwayBanner> {
   }
 
   Future<void> _load(int width) async {
-    final size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(width);
+    final size = await AdSize.getAnchoredAdaptiveBannerAdSize(
+      MediaQuery.orientationOf(context),
+      width,
+    );
     if (!mounted || size == null) return;
 
     final old = _ad;

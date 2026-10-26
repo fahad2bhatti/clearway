@@ -93,14 +93,34 @@ void main() {
         final spec = MazeLevelGenerator.specFor(n);
         final report = LevelSolver.analyze(level);
         expect(report, isNotNull, reason: 'level $n is not solvable');
-        expect(level.vehicles, hasLength(spec.buses), reason: 'level $n');
-        expect(report!.taps, hasLength(spec.buses), reason: 'level $n');
+        expect(
+          level.vehicles.length,
+          greaterThanOrEqualTo(spec.buses),
+          reason: 'level $n',
+        );
+        expect(
+          report!.taps,
+          hasLength(level.vehicles.length),
+          reason: 'level $n',
+        );
         expect(
           _fingerprint(MazeLevelGenerator.generate(n)),
           _fingerprint(level),
           reason: 'level $n changes between runs',
         );
       }
+    });
+
+    test('boards are filled: few empty cells (levels 4 to 80)', () {
+      final tooEmpty = <String>[];
+      for (var n = 4; n <= 80; n++) {
+        final level = MazeLevelGenerator.generate(n);
+        final cells = level.shape!;
+        final covered = {for (final v in level.vehicles) ...v.cells};
+        final empty = cells.where((c) => !covered.contains(c)).length;
+        if (empty > 4) tooEmpty.add('level $n: $empty empty');
+      }
+      expect(tooEmpty, isEmpty);
     });
 
     test('only buses, no cones, gates or convoys', () {
@@ -132,8 +152,9 @@ void main() {
       expect(buses(20), lessThanOrEqualTo(buses(60)));
       expect(buses(60), lessThanOrEqualTo(buses(80)));
       expect(buses(80), greaterThanOrEqualTo(70));
-      // A relief level is lighter than the level before it.
-      expect(buses(35), lessThanOrEqualTo(buses(34)));
+      // A monster level (every 5th) is heavier than the level before it.
+      expect(buses(15), greaterThan(buses(14)));
+      expect(buses(21), greaterThan(buses(10)));
     });
 
     test('later levels have curved buses', () {
@@ -144,7 +165,27 @@ void main() {
     test('later levels need real planning', () {
       final report = LevelSolver.analyze(MazeLevelGenerator.generate(40))!;
       expect(report.rounds, greaterThanOrEqualTo(6));
-      expect(report.initiallyFree, lessThanOrEqualTo(39 ~/ 2));
+      expect(report.initiallyFree, lessThanOrEqualTo(report.taps.length ~/ 2));
+    });
+
+    test('every 5th level from level 5 is a monster level', () {
+      for (var n = 1; n <= 80; n++) {
+        expect(
+          MazeLevelGenerator.specFor(n).boss,
+          n >= 5 && n % 5 == 0,
+          reason: 'level $n',
+        );
+      }
+      final normal = MazeLevelGenerator.specFor(14).buses;
+      final monster = MazeLevelGenerator.specFor(15).buses;
+      expect(monster, greaterThan(normal * 1.3));
+    });
+
+    test('arrow count steps up every 10 levels', () {
+      int buses(int n) => MazeLevelGenerator.specFor(n).buses;
+      expect(buses(11), greaterThan(buses(9)));
+      expect(buses(21), greaterThan(buses(19)));
+      expect(buses(31), greaterThan(buses(29)));
     });
 
     test('boss levels are silhouette shaped and keep buses inside', () {

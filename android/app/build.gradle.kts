@@ -53,6 +53,9 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // key.properties ho to upload key se sign hota hai, warna debug key
             // (taake `flutter run --release` chalta rahe).
             signingConfig = if (keystorePropertiesFile.exists()) {

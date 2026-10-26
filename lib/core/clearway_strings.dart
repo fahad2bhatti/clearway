@@ -55,7 +55,7 @@ final class ClearwayStrings {
   String chapterLevels(int first, int last) => 'Levels $first–$last';
   String chapterBoard(int width, int height) =>
       'Boards start at $width×$height.';
-  String chapterBoss(int level) => 'A boss waits at level $level.';
+  String chapterBoss(int level) => 'A boss yard waits at level $level.';
   String get letsGo => 'Let’s go';
   String reviveLabel(int cost) => 'Revive  🪙$cost';
   String reviveShort(int missing) => 'Earn 🪙$missing more to revive.';
