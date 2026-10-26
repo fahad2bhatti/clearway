@@ -25,6 +25,11 @@ bool _hasBend(Vehicle vehicle) {
   return false;
 }
 
+int _emptyCells(GameLevel level) {
+  final covered = {for (final v in level.vehicles) ...v.cells};
+  return level.shape!.where((c) => !covered.contains(c)).length;
+}
+
 void main() {
   group('SeededRandom', () {
     test('same seed gives the same sequence', () {
@@ -111,16 +116,15 @@ void main() {
       }
     });
 
-    test('boards are filled: few empty cells (levels 4 to 80)', () {
-      final tooEmpty = <String>[];
-      for (var n = 4; n <= 80; n++) {
+    test('every board is completely filled (levels 1 to 80)', () {
+      final withHoles = <String>[];
+      for (var n = 1; n <= 80; n++) {
         final level = MazeLevelGenerator.generate(n);
-        final cells = level.shape!;
         final covered = {for (final v in level.vehicles) ...v.cells};
-        final empty = cells.where((c) => !covered.contains(c)).length;
-        if (empty > 4) tooEmpty.add('level $n: $empty empty');
+        final empty = level.shape!.where((c) => !covered.contains(c)).length;
+        if (empty > 0) withHoles.add('level $n: $empty empty');
       }
-      expect(tooEmpty, isEmpty);
+      expect(withHoles, isEmpty);
     });
 
     test('only buses, no cones, gates or convoys', () {
@@ -202,9 +206,10 @@ void main() {
   });
 
   group('daily maze', () {
-    test('has 100 buses, is solvable and is the same for the same date', () {
+    test('has 100+ buses, is solvable and is the same for the same date', () {
       final level = MazeLevelGenerator.generateDaily(20261024);
-      expect(level.vehicles, hasLength(100));
+      expect(level.vehicles.length, greaterThanOrEqualTo(100));
+      expect(_emptyCells(level), 0);
       expect(level.title, 'Rush Hour');
       expect(LevelSolver.isSolvable(level), isTrue);
       expect(
@@ -220,10 +225,15 @@ void main() {
       );
     });
 
-    test('30 consecutive days are all solvable with 100 buses', () {
+    test('30 consecutive days are solvable, filled, 100+ buses', () {
       for (var day = 1; day <= 30; day++) {
         final level = MazeLevelGenerator.generateDaily(20261100 + day);
-        expect(level.vehicles, hasLength(100), reason: 'day $day');
+        expect(
+          level.vehicles.length,
+          greaterThanOrEqualTo(100),
+          reason: 'day $day',
+        );
+        expect(_emptyCells(level), 0, reason: 'day $day');
         expect(LevelSolver.isSolvable(level), isTrue, reason: 'day $day');
       }
     });

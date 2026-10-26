@@ -8,6 +8,11 @@ String _fingerprint(GameLevel level) =>
     [for (final v in level.vehicles) '${v.id}:${v.direction.name}:${v.cells}']
         .join('|');
 
+int _emptyCells(GameLevel level) {
+  final covered = {for (final v in level.vehicles) ...v.cells};
+  return level.shape!.where((c) => !covered.contains(c)).length;
+}
+
 void main() {
   group('maze level catalog', () {
     test('all catalog levels are deterministic and solvable', () {
@@ -40,7 +45,8 @@ void main() {
       for (var number = 1; number <= 3; number++) {
         final level = LevelCatalog.getLevel(number);
         final report = LevelSolver.analyze(level)!;
-        expect(level.vehicles.length, number + 1);
+        expect(level.vehicles.length, greaterThanOrEqualTo(number + 1));
+        expect(_emptyCells(level), 0, reason: 'tutorial level $number');
         expect(report.initiallyFree, greaterThanOrEqualTo(1));
         if (number >= 2) expect(report.rounds, greaterThanOrEqualTo(2));
       }
@@ -63,13 +69,14 @@ void main() {
   });
 
   group('daily board', () {
-    test('is date-seeded, uses Rush Hour, has 100 buses and is solvable', () {
+    test('is date-seeded, uses Rush Hour, has 100+ buses and is solvable', () {
       final first = LevelCatalog.daily('2026-10-23');
       final sameDay = LevelCatalog.daily('2026-10-23');
       final nextDay = LevelCatalog.daily('2026-10-24');
 
       expect(first.chapter, 'Rush Hour');
-      expect(first.vehicles, hasLength(100));
+      expect(first.vehicles.length, greaterThanOrEqualTo(100));
+      expect(_emptyCells(first), 0);
       expect(LevelSolver.isSolvable(first), isTrue);
       expect(_fingerprint(sameDay), _fingerprint(first));
       expect(_fingerprint(nextDay), isNot(_fingerprint(first)));
@@ -83,11 +90,16 @@ void main() {
       );
     });
 
-    test('30 consecutive days are solvable with 100 buses', () {
+    test('30 consecutive days are solvable with 100+ buses', () {
       for (var day = 1; day <= 30; day++) {
         final dayKey = '2026-11-${day.toString().padLeft(2, '0')}';
         final level = LevelCatalog.daily(dayKey);
-        expect(level.vehicles, hasLength(100), reason: dayKey);
+        expect(
+          level.vehicles.length,
+          greaterThanOrEqualTo(100),
+          reason: dayKey,
+        );
+        expect(_emptyCells(level), 0, reason: dayKey);
         expect(LevelSolver.isSolvable(level), isTrue, reason: dayKey);
       }
     });

@@ -18,7 +18,6 @@ final class MazeSpec {
     this.tanglePercent = 60,
     this.boss = false,
     this.fillGaps = true,
-    this.growBuses = true,
   });
 
   /// Number of buses on the board.
@@ -38,13 +37,9 @@ final class MazeSpec {
   final int tanglePercent;
   final bool boss;
 
-  /// Fill leftover empty cells after the main build, so the board has no
-  /// visible holes (tiny tutorial levels keep their open space).
+  /// Fill every cell the main build leaves empty, so no board has holes.
+  /// Only switched off by the safety net in [MazeLevelGenerator].
   final bool fillGaps;
-
-  /// When filling, also add extra short buses into gaps. Off for the daily
-  /// board, which must keep exactly [MazeLevelGenerator.dailyBuses] buses.
-  final bool growBuses;
 }
 
 /// Builds dense "arrow maze" boards: long, curvy buses packed tightly, where
@@ -56,6 +51,8 @@ final class MazeSpec {
 /// bus can therefore be removed before all of them. The solver double-checks.
 abstract final class MazeLevelGenerator {
   static const maxLevelBuses = 100;
+
+  /// Rush Hour starts from this many buses; filling every cell adds more.
   static const dailyBuses = 100;
   static const _density = 0.87;
   static const _attempts = 24;
@@ -112,7 +109,6 @@ abstract final class MazeLevelGenerator {
           : math.min(60, 15 + number + (monster ? 10 : 0)),
       tanglePercent: monster ? 95 : math.min(90, 40 + number),
       boss: monster,
-      fillGaps: number > 3,
     );
   }
 
@@ -128,7 +124,8 @@ abstract final class MazeLevelGenerator {
     );
   }
 
-  /// The Rush Hour daily board for a date key such as 20261024: 100 buses.
+  /// The Rush Hour daily board for a date key such as 20261024: at least
+  /// [dailyBuses] buses, every cell covered.
   static GameLevel generateDaily(int dateKey, {String chapter = 'Rush Hour'}) {
     const shapes = BoardShapeKind.values;
     final spec = MazeSpec(
@@ -137,7 +134,6 @@ abstract final class MazeLevelGenerator {
       maxLength: 22,
       bendPercent: 45,
       tanglePercent: 70,
-      growBuses: false,
     );
     return _generate(
       number: 900000 + dateKey,
@@ -164,7 +160,7 @@ abstract final class MazeLevelGenerator {
       if (layout.buses.length < math.min(2, spec.buses)) continue;
       final complete = layout.buses.length >= spec.buses;
       final deepEnough = layout.rounds >= _minRounds(number, spec);
-      final tidy = !spec.fillGaps || layout.empty <= 3;
+      final tidy = !spec.fillGaps || layout.empty == 0;
       // A complete board beats an incomplete one, fewer empty cells beat more,
       // then deeper beats shallower.
       final score = (complete ? 100000 : 0) - layout.empty * 50 + layout.rounds;
@@ -197,7 +193,6 @@ abstract final class MazeLevelGenerator {
           tanglePercent: spec.tanglePercent,
           boss: spec.boss,
           fillGaps: false,
-          growBuses: spec.growBuses,
         ),
         seedBase: seedBase,
         chapter: chapter,
@@ -221,7 +216,7 @@ abstract final class MazeLevelGenerator {
     final averageLength =
         spec.minLength + (spec.maxLength - spec.minLength) * 0.25;
     final needed = spec.buses * averageLength / _density;
-    for (var side = 4; side < 90; side++) {
+    for (var side = 3; side < 90; side++) {
       if (BoardShapes.cells(spec.shape, side, side).length >= needed) {
         return side;
       }
@@ -328,7 +323,7 @@ final class _Builder {
       _commit(bus);
     }
     if (spec.fillGaps) _fillGaps();
-    final empty = _countAndPruneEmpty();
+    final empty = _countEmpty();
     return _Layout(side, mask, List.unmodifiable(buses), empty, _rounds());
   }
 
@@ -400,14 +395,15 @@ final class _Builder {
       if (!occupied.contains(cell)) cell,
   ];
 
-  /// Fills holes without ever creating a deadlock: first with extra short
-  /// buses (if allowed), then by growing the tail of existing buses.
+  /// Fills holes without ever creating a deadlock: extra short buses, then
+  /// growing the tail of existing buses, then re-cutting buses around the
+  /// last stubborn cells. Every step keeps the "must leave first" graph free
+  /// of loops, so the board stays solvable.
   void _fillGaps() {
-    for (var pass = 0; pass < 6; pass++) {
-      var changed = false;
-      if (spec.growBuses && _insertSmallBuses()) changed = true;
+    for (var pass = 0; pass < 12; pass++) {
+      var changed = _insertSmallBuses();
       if (_extendTails()) changed = true;
-      if (spec.growBuses && _stealTails()) changed = true;
+      if (_repairHoles()) changed = true;
       if (!changed) break;
     }
   }
@@ -490,75 +486,173 @@ final class _Builder {
     return extended;
   }
 
-  /// A free cell next to the tail of a longer bus: cut that tail cell off and
-  /// turn it plus the free cell into a new two-cell bus. Works where growing
-  /// the tail would have created a deadlock.
-  bool _stealTails() {
+  /// Lone free cells next to a bus: re-cut that bus so the cell joins in.
+  bool _repairHoles() {
     var changed = false;
     final free = _freeCells();
     rng.shuffle(free);
     for (final cell in free) {
       if (occupied.contains(cell)) continue;
-      for (final direction in TravelDirection.values) {
-        final behind = GridPoint(
-          cell.row - direction.rowStep,
-          cell.column - direction.columnStep,
-        );
-        final donor = owner[behind];
-        if (donor == null) continue;
-        final donorBus = buses[donor];
-        if (donorBus.cells.length < 3 || donorBus.cells.last != behind) {
-          continue;
-        }
-        final exitLine = _ray(cell, direction);
-        final needs = <int>{};
-        for (final onLine in exitLine) {
-          final other = owner[onLine];
-          if (other != null) needs.add(other);
-        }
-        final blocks = <int>{
-          ...(rayAt[cell] ?? const <int>[]),
-          ...(rayAt[behind] ?? const <int>[]),
-        };
-        if (_reaches(needs, blocks)) continue;
-
-        final index = buses.length;
-        buses[donor] = _Bus(
-          donorBus.direction,
-          donorBus.cells.sublist(0, donorBus.cells.length - 1),
-        );
-        buses.add(_Bus(direction, [cell, behind]));
-        blockedBy.add(0);
-        deps.add(needs);
-        occupied.add(cell);
-        owner[cell] = index;
-        owner[behind] = index;
-        for (final other in blocks) {
-          deps[other].add(index);
-        }
-        for (final onLine in exitLine) {
-          rayAt.putIfAbsent(onLine, () => []).add(index);
-        }
+      if (_extendHead(cell) ||
+          _reverseAndExtend(cell) ||
+          _cutAndExtend(cell) ||
+          _splitIntoGap(cell)) {
         changed = true;
-        break;
       }
     }
     return changed;
   }
 
-  /// Removes any unfillable cells from the rendered board shape, so gap
-  /// filling never leaves visible empty holes between vehicles.
-  int _countAndPruneEmpty() {
-    var empty = 0;
-    for (final cell in maskList) {
-      if (occupied.contains(cell)) continue;
-      empty++;
-      if (spec.fillGaps) {
-        mask.remove(cell);
+  /// [cell] is the first cell in front of a bus: that bus moves its head
+  /// into it, so its exit line just gets one cell shorter.
+  bool _extendHead(GridPoint cell) {
+    for (final direction in TravelDirection.values) {
+      final head = cell - direction.step;
+      final index = owner[head];
+      if (index == null) continue;
+      final bus = buses[index];
+      if (bus.cells.first != head || bus.direction != direction) continue;
+      if (_tryReplace(index, _Bus(direction, [cell, ...bus.cells]))) {
+        return true;
       }
     }
-    return empty;
+    return false;
   }
+
+  /// [cell] touches the head of a bus: the bus is turned around (its old tail
+  /// becomes the head) and grows into [cell] at its new tail.
+  bool _reverseAndExtend(GridPoint cell) {
+    for (final direction in TravelDirection.values) {
+      final head = cell + direction.step;
+      final index = owner[head];
+      if (index == null) continue;
+      final bus = buses[index];
+      if (bus.cells.first != head) continue;
+      final cells = bus.cells;
+      final turned = [...cells.reversed, cell];
+      final step = turned[0] - turned[1];
+      final turnedDirection = TravelDirection.values.firstWhere(
+        (d) => d.rowStep == step.row && d.columnStep == step.column,
+      );
+      if (_ray(turned.first, turnedDirection).any(turned.contains)) continue;
+      if (_tryReplace(index, _Bus(turnedDirection, turned))) return true;
+    }
+    return false;
+  }
+
+  /// Cuts a bus behind a body cell next to [cell]: the front part grows into
+  /// [cell] and the rest becomes a bus of its own.
+  bool _cutAndExtend(GridPoint cell) {
+    for (final direction in TravelDirection.values) {
+      final next = cell + direction.step;
+      final index = owner[next];
+      if (index == null) continue;
+      final bus = buses[index];
+      final cells = bus.cells;
+      final at = cells.indexOf(next);
+      // The front part keeps its head and the cell behind it (at >= 1); the
+      // part that is cut off needs 2 or more cells.
+      if (at < 1 || at > cells.length - 3) continue;
+      if (_ray(cells.first, bus.direction).contains(cell)) continue;
+      final rest = cells.sublist(at + 1);
+      final heading = rest.first - rest[1];
+      final restDirection = TravelDirection.values.firstWhere(
+        (d) => d.rowStep == heading.row && d.columnStep == heading.column,
+      );
+      if (_ray(rest.first, restDirection).any(rest.contains)) continue;
+      final front = _Bus(bus.direction, [...cells.sublist(0, at + 1), cell]);
+      if (_tryReplace(index, front, _Bus(restDirection, rest))) return true;
+    }
+    return false;
+  }
+
+  /// Makes [cell] the head of a new bus built from the cell plus the tail
+  /// part of a neighbouring bus.
+  bool _splitIntoGap(GridPoint cell) {
+    for (final direction in TravelDirection.values) {
+      final behind = cell - direction.step;
+      final index = owner[behind];
+      if (index == null) continue;
+      final cells = buses[index].cells;
+      final at = cells.indexOf(behind);
+      if (at < 2) continue; // the front part must stay a bus of 2+ cells
+      final moved = [cell, ...cells.sublist(at)];
+      if (_ray(cell, direction).any(moved.contains)) continue;
+      final front = _Bus(buses[index].direction, cells.sublist(0, at));
+      if (_tryReplace(index, front, _Bus(direction, moved))) return true;
+    }
+    return false;
+  }
+
+  /// Swaps bus [index] for [front] (and adds [extra]); kept only if no loop of
+  /// "must leave first" links appears.
+  bool _tryReplace(int index, _Bus front, [_Bus? extra]) {
+    final saved = List<_Bus>.of(buses);
+    buses[index] = front;
+    if (extra != null) buses.add(extra);
+    _rebuild();
+    if (_acyclic()) return true;
+    buses
+      ..clear()
+      ..addAll(saved);
+    _rebuild();
+    return false;
+  }
+
+  /// Recomputes every lookup table from [buses].
+  void _rebuild() {
+    owner.clear();
+    occupied.clear();
+    rayAt.clear();
+    deps.clear();
+    blockedBy
+      ..clear()
+      ..addAll(List<int>.filled(buses.length, 0));
+    for (var i = 0; i < buses.length; i++) {
+      for (final cell in buses[i].cells) {
+        owner[cell] = i;
+        occupied.add(cell);
+      }
+      for (final cell in _ray(buses[i].cells.first, buses[i].direction)) {
+        rayAt.putIfAbsent(cell, () => []).add(i);
+      }
+    }
+    for (var i = 0; i < buses.length; i++) {
+      final mustLeaveFirst = <int>{};
+      for (final cell in _ray(buses[i].cells.first, buses[i].direction)) {
+        final other = owner[cell];
+        if (other != null && other != i) mustLeaveFirst.add(other);
+      }
+      deps.add(mustLeaveFirst);
+    }
+  }
+
+  /// Same rule as the solver: a bus leaves once everything in front is gone.
+  bool _acyclic() {
+    final waiting = [for (final d in deps) d.length];
+    final unblocks = List.generate(buses.length, (_) => <int>[]);
+    for (var i = 0; i < deps.length; i++) {
+      for (final other in deps[i]) {
+        unblocks[other].add(i);
+      }
+    }
+    final ready = [
+      for (var i = 0; i < waiting.length; i++)
+        if (waiting[i] == 0) i,
+    ];
+    var left = buses.length;
+    while (ready.isNotEmpty) {
+      final done = ready.removeLast();
+      left--;
+      for (final i in unblocks[done]) {
+        if (--waiting[i] == 0) ready.add(i);
+      }
+    }
+    return left == 0;
+  }
+
+  /// Board cells still not covered by any bus.
+  int _countEmpty() => _freeCells().length;
 
   _Bus? _bestCandidate(List<GridPoint> freeCells, int cap) {
     _Bus? best;

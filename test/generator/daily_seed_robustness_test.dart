@@ -8,6 +8,11 @@ String _fingerprint(GameLevel level) => level.vehicles
     .map((v) => '${v.id}:${v.direction.name}:${v.cells.join()}')
     .join(';');
 
+int _emptyCells(GameLevel level) {
+  final covered = {for (final v in level.vehicles) ...v.cells};
+  return level.shape!.where((c) => !covered.contains(c)).length;
+}
+
 void main() {
   group('daily board for any seed', () {
     // Edge values, then a spread of pseudo-random 32-bit server seeds.
@@ -26,10 +31,11 @@ void main() {
       for (final seed in seeds) {
         final board = LevelCatalog.daily('any', serverSeed: seed);
         expect(
-          board.vehicles,
-          hasLength(MazeLevelGenerator.dailyBuses),
+          board.vehicles.length,
+          greaterThanOrEqualTo(MazeLevelGenerator.dailyBuses),
           reason: 'seed=$seed',
         );
+        expect(_emptyCells(board), 0, reason: 'seed=$seed');
         expect(LevelSolver.isSolvable(board), isTrue, reason: 'seed=$seed');
         expect(
           _fingerprint(LevelCatalog.daily('any', serverSeed: seed)),
@@ -45,10 +51,11 @@ void main() {
         for (final seed in [-1, -5000000000, 0x100000000, 0x7FFFFFFFFFFFFFFF]) {
           final board = LevelCatalog.daily('any', serverSeed: seed);
           expect(
-            board.vehicles,
-            hasLength(MazeLevelGenerator.dailyBuses),
+            board.vehicles.length,
+            greaterThanOrEqualTo(MazeLevelGenerator.dailyBuses),
             reason: 'seed=$seed',
           );
+          expect(_emptyCells(board), 0, reason: 'seed=$seed');
           expect(LevelSolver.isSolvable(board), isTrue, reason: 'seed=$seed');
         }
       },
