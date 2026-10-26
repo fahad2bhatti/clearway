@@ -17,6 +17,17 @@ class _ClearwayBannerState extends State<ClearwayBanner> {
   int? _requestedWidth;
 
   @override
+  void initState() {
+    super.initState();
+    AdService.adsReady.addListener(_onAdsReady);
+  }
+
+  void _onAdsReady() {
+    final width = _requestedWidth;
+    if (width != null && _ad == null) _load(width);
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final width = MediaQuery.sizeOf(context).width.truncate();
@@ -27,6 +38,8 @@ class _ClearwayBannerState extends State<ClearwayBanner> {
   }
 
   Future<void> _load(int width) async {
+    if (!AdService.adsReady.value) return;
+    // ignore: deprecated_member_use
     final size = await AdSize.getAnchoredAdaptiveBannerAdSize(
       MediaQuery.orientationOf(context),
       width,
@@ -68,6 +81,7 @@ class _ClearwayBannerState extends State<ClearwayBanner> {
 
   @override
   void dispose() {
+    AdService.adsReady.removeListener(_onAdsReady);
     _ad?.dispose();
     super.dispose();
   }

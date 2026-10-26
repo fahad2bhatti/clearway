@@ -51,12 +51,19 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  static const _levelLayoutVersion = 5;
+  static const _levelLayoutVersion = 6;
   final _themePack = ThemePack.truckArt;
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
   late int _levelIndex;
   late GameLevel _level;
   late YardGame _yardGame;
+  // Same widget instance across rebuilds, so Flutter skips the whole board
+  // subtree when only HUD state (lives, hints, zoom lock) changes.
+  late Widget _board;
+
+  // safeVehicles() walks every bus; cache it until the board actually changes.
+  List<Vehicle>? _safeKey;
+  var _safeCountCache = 0;
   late List<Vehicle> _remaining;
   List<Vehicle>? _undoSnapshot;
   var _undoUsed = false;
@@ -121,8 +128,11 @@ class _GameScreenState extends State<GameScreen> {
           )
           ..vehicles = _remaining
           ..suggestedVehicleId = _tutorialVehicleId;
+    _board = GameWidget<YardGame>(game: _yardGame);
     _scheduleChapterIntro();
     _persistActiveBoard();
+    // Build the next level on a background isolate while the player is busy.
+    if (!widget.daily) unawaited(LevelCatalog.prefetch(_level.number + 1));
     if (_remaining.isEmpty || _lives <= 0) {
       if (_remaining.isEmpty) _phase = GamePhase.won;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -429,14 +439,6 @@ class _GameScreenState extends State<GameScreen> {
         ? 2
         : 1;
     final isLast = widget.daily || _levelIndex == LevelCatalog.totalLevels - 1;
-    if (!isLast) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        scheduleMicrotask(() {
-          if (mounted) LevelCatalog.getLevel(_level.number + 1);
-        });
-      });
-    }
     final coinsBefore = widget.save.coins;
     if (!widget.daily) AdService.registerLevelCleared();
     if (widget.daily) {
@@ -647,9 +649,28 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  int get _safeCount {
+    final key = _safeKey;
+    if (key != null && key.length == _remaining.length) {
+      var same = true;
+      for (var i = 0; i < key.length; i++) {
+        if (!identical(key[i], _remaining[i])) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return _safeCountCache;
+    }
+    _safeKey = List.of(_remaining);
+    return _safeCountCache = MoveValidator.safeVehicles(
+      _level,
+      _remaining,
+    ).length;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final safeCount = MoveValidator.safeVehicles(_level, _remaining).length;
+    final safeCount = _safeCount;
     final tutorialTip = _tutorialTip;
     return Scaffold(
       backgroundColor: _themePack.asphalt,
@@ -702,7 +723,7 @@ class _GameScreenState extends State<GameScreen> {
                         minScale: 1,
                         maxScale: (_level.width / 5).clamp(2.2, 8.0).toDouble(),
                         boundaryMargin: const EdgeInsets.all(48),
-                        child: GameWidget<YardGame>(game: _yardGame),
+                        child: _board,
                       ),
                     ),
                   ),

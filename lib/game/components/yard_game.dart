@@ -42,6 +42,25 @@ final class YardGame extends FlameGame with TapCallbacks {
   ui.Path? _silhouette;
   String _silhouetteKey = '';
 
+  // Per-bus geometry only changes when the board is resized, so it is built
+  // once and reused every frame instead of being rebuilt 60 times a second.
+  final Map<Vehicle, _VehicleShape> _shapes = Map.identity();
+  double _shapesCellSize = -1;
+  ui.Rect _shapesBoard = ui.Rect.zero;
+
+  // Reused paints: no per-frame allocation inside render().
+  late final ui.Paint _surface = ui.Paint()..color = themePack.yardSurface;
+  final ui.Paint _fill = ui.Paint();
+  final ui.Paint _stroke = ui.Paint()
+    ..style = ui.PaintingStyle.stroke
+    ..strokeCap = ui.StrokeCap.round
+    ..strokeJoin = ui.StrokeJoin.round;
+  final ui.Paint _dashPaint = ui.Paint()..style = ui.PaintingStyle.stroke;
+  static final TextPainter _pointer = TextPainter(
+    text: const TextSpan(text: '\u{1F446}', style: TextStyle(fontSize: 22)),
+    textDirection: TextDirection.ltr,
+  )..layout();
+
   @override
   Color backgroundColor() => themePack.asphalt;
 
@@ -93,6 +112,11 @@ final class YardGame extends FlameGame with TapCallbacks {
       width,
       height,
     );
+    if (_cellSize != _shapesCellSize || _boardRect != _shapesBoard) {
+      _shapes.clear();
+      _shapesCellSize = _cellSize;
+      _shapesBoard = _boardRect;
+    }
 
     _drawBoard(canvas);
     _drawObstacles(canvas);
@@ -100,7 +124,7 @@ final class YardGame extends FlameGame with TapCallbacks {
       final rect = _cellRect(blockerCell!).deflate(_cellSize * .07);
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(rect, ui.Radius.circular(_cellSize * .15)),
-        ui.Paint()..color = themePack.coral.withValues(alpha: .48),
+        _fill..color = themePack.coral.withValues(alpha: .48),
       );
     }
     for (var index = 0; index < vehicles.length; index++) {
@@ -174,7 +198,7 @@ final class YardGame extends FlameGame with TapCallbacks {
   /// visible grid, so the buses read as lines drawn on the floor.
   void _drawBoard(ui.Canvas canvas) {
     final shape = level.shape;
-    final surface = ui.Paint()..color = themePack.yardSurface;
+    final surface = _surface;
     if (shape == null) {
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(
@@ -211,28 +235,22 @@ final class YardGame extends FlameGame with TapCallbacks {
         ? themePack.coral
         : themePack.vehicleColors[colorIndex % themePack.vehicleColors.length];
 
-    final points = exitProgress > 0
-        ? _exitPoints(vehicle, exitProgress)
-        : [for (final cell in vehicle.cells.reversed) _cellRect(cell).center];
-    if (points.length < 2) return;
-    final path = _roundedPath(points);
-    final last = points[points.length - 1];
-    final before = points[points.length - 2];
-    final heading = (last - before) / (last - before).distance;
+    final _VehicleShape? shape;
+    if (exitProgress > 0) {
+      // Exit animation changes every frame, so it is never cached.
+      shape = _buildShape(_exitPoints(vehicle, exitProgress));
+    } else {
+      var cached = _shapes[vehicle];
+      if (cached == null) {
+        cached = _buildShape([
+          for (final cell in vehicle.cells.reversed) _cellRect(cell).center,
+        ]);
+        if (cached != null) _shapes[vehicle] = cached;
+      }
+      shape = cached;
+    }
+    if (shape == null) return;
     final lineWidth = math.max(1.6, _cellSize * 0.26).toDouble();
-
-    final body = ui.Paint()
-      ..color = color
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = lineWidth
-      ..strokeCap = ui.StrokeCap.round
-      ..strokeJoin = ui.StrokeJoin.round;
-    final shadow = ui.Paint()
-      ..color = const Color(0xff071013).withValues(alpha: 0.45)
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = lineWidth
-      ..strokeCap = ui.StrokeCap.round
-      ..strokeJoin = ui.StrokeJoin.round;
 
     canvas.save();
     if (bumped) {
@@ -240,21 +258,29 @@ final class YardGame extends FlameGame with TapCallbacks {
           math.sin((0.3 - _feedbackRemaining) * 100) * _cellSize * 0.055;
       canvas.translate(shake, 0);
     }
-    canvas.drawPath(path.shift(ui.Offset(0, _cellSize * 0.05)), shadow);
+    canvas.drawPath(
+      shape.shadow,
+      _stroke
+        ..color = _shadowColor
+        ..strokeWidth = lineWidth,
+    );
     final hinted =
         suggestedVehicleId == vehicle.id ||
         assistedVehicleIds.contains(vehicle.id);
-    if (hinted && exitProgress == 0) _drawHint(canvas, path);
-    canvas.drawPath(path, body);
-    _drawArrowHead(canvas, last, heading, ui.Paint()..color = color);
-    if (colorblindMode) _drawPattern(canvas, path, colorIndex % 5);
+    if (hinted && exitProgress == 0) _drawHint(canvas, shape.path);
+    canvas.drawPath(
+      shape.path,
+      _stroke
+        ..color = color
+        ..strokeWidth = lineWidth,
+    );
+    canvas.drawPath(shape.arrow, _fill..color = color);
+    if (colorblindMode) {
+      _drawPattern(canvas, shape.path, shape, colorIndex % 5, exitProgress > 0);
+    }
     canvas.restore();
 
     if (level.number <= 3 && suggestedVehicleId == vehicle.id) {
-      final pointer = TextPainter(
-        text: const TextSpan(text: '\u{1F446}', style: TextStyle(fontSize: 22)),
-        textDirection: TextDirection.ltr,
-      )..layout();
       final headCenter = _cellRect(vehicle.head).center;
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(
@@ -265,16 +291,33 @@ final class YardGame extends FlameGame with TapCallbacks {
           ),
           ui.Radius.circular(_cellSize * .18),
         ),
-        ui.Paint()..color = themePack.yardSurface.withValues(alpha: .92),
+        _fill..color = themePack.yardSurface.withValues(alpha: .92),
       );
-      pointer.paint(
+      _pointer.paint(
         canvas,
         ui.Offset(
-          headCenter.dx - pointer.width / 2,
-          headCenter.dy - pointer.height / 2 - _cellSize * .1,
+          headCenter.dx - _pointer.width / 2,
+          headCenter.dy - _pointer.height / 2 - _cellSize * .1,
         ),
       );
     }
+  }
+
+  static const _shadowColor = Color(0x73071013);
+
+  /// Path, shadow and arrow head for a bus drawn through [points]
+  /// (tail first, head last).
+  _VehicleShape? _buildShape(List<ui.Offset> points) {
+    if (points.length < 2) return null;
+    final path = _roundedPath(points);
+    final last = points[points.length - 1];
+    final before = points[points.length - 2];
+    final heading = (last - before) / (last - before).distance;
+    return _VehicleShape(
+      path: path,
+      shadow: path.shift(ui.Offset(0, _cellSize * 0.05)),
+      arrow: _arrowPath(last, heading),
+    );
   }
 
   /// Smooth line through the cell centres (tail first, head last) with
@@ -299,21 +342,15 @@ final class YardGame extends FlameGame with TapCallbacks {
     return path;
   }
 
-  void _drawArrowHead(
-    ui.Canvas canvas,
-    ui.Offset at,
-    ui.Offset heading,
-    ui.Paint paint,
-  ) {
+  ui.Path _arrowPath(ui.Offset at, ui.Offset heading) {
     final tip = at + heading * (_cellSize * 0.5);
     final base = at - heading * (_cellSize * 0.04);
     final side = ui.Offset(-heading.dy, heading.dx) * (_cellSize * 0.34);
-    final arrow = ui.Path()
+    return ui.Path()
       ..moveTo(tip.dx, tip.dy)
       ..lineTo(base.dx + side.dx, base.dy + side.dy)
       ..lineTo(base.dx - side.dx, base.dy - side.dy)
       ..close();
-    canvas.drawPath(arrow, paint);
   }
 
   /// Snake-style exit: the head drives straight out of the yard and the body
@@ -363,7 +400,25 @@ final class YardGame extends FlameGame with TapCallbacks {
   }
 
   /// Colour-blind mode: every bus colour gets its own dash pattern.
-  void _drawPattern(ui.Canvas canvas, ui.Path path, int kind) {
+  void _drawPattern(
+    ui.Canvas canvas,
+    ui.Path path,
+    _VehicleShape shape,
+    int kind,
+    bool animated,
+  ) {
+    final dashes = animated
+        ? _dashPath(path, kind)
+        : (shape.pattern ??= _dashPath(path, kind));
+    canvas.drawPath(
+      dashes,
+      _dashPaint
+        ..color = themePack.asphalt.withValues(alpha: 0.85)
+        ..strokeWidth = _cellSize * 0.09,
+    );
+  }
+
+  ui.Path _dashPath(ui.Path path, int kind) {
     const patterns = [
       [1.0, 0.0],
       [0.3, 0.3],
@@ -373,36 +428,28 @@ final class YardGame extends FlameGame with TapCallbacks {
     ];
     final on = patterns[kind][0] * _cellSize;
     final off = patterns[kind][1] * _cellSize;
-    final paint = ui.Paint()
-      ..color = themePack.asphalt.withValues(alpha: 0.85)
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = _cellSize * 0.09;
-    if (off == 0) {
-      canvas.drawPath(path, paint);
-      return;
-    }
+    if (off == 0) return path;
+    final dashes = ui.Path();
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
       while (distance < metric.length) {
-        canvas.drawPath(
+        dashes.addPath(
           metric.extractPath(distance, math.min(distance + on, metric.length)),
-          paint,
+          ui.Offset.zero,
         );
         distance += on + off;
       }
     }
+    return dashes;
   }
 
   void _drawHint(ui.Canvas canvas, ui.Path path) {
     final pulse = 0.42 + 0.18 * math.sin(nowSeconds * 7);
     canvas.drawPath(
       path,
-      ui.Paint()
+      _stroke
         ..color = themePack.ivory.withValues(alpha: pulse)
-        ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = _cellSize * 0.5
-        ..strokeCap = ui.StrokeCap.round
-        ..strokeJoin = ui.StrokeJoin.round,
+        ..strokeWidth = _cellSize * 0.5,
     );
   }
 
@@ -459,4 +506,16 @@ final class _ExitingVehicle {
 
   final Vehicle vehicle;
   double progress = 0;
+}
+
+/// Cached drawing geometry of one bus at the current board size.
+final class _VehicleShape {
+  _VehicleShape({required this.path, required this.shadow, required this.arrow});
+
+  final ui.Path path;
+  final ui.Path shadow;
+  final ui.Path arrow;
+
+  /// Colour-blind dash overlay, built the first time it is needed.
+  ui.Path? pattern;
 }

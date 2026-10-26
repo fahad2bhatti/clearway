@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../widgets/clearway_banner.dart';
@@ -36,7 +38,7 @@ class HomeScreen extends StatelessWidget {
     body: SafeArea(
       child: Stack(
         children: [
-          const Positioned.fill(child: _YardBackdrop()),
+          const Positioned.fill(child: RepaintBoundary(child: _YardBackdrop())),
           Padding(
             padding: const EdgeInsets.fromLTRB(25, 14, 25, 25),
             child: Column(
@@ -125,7 +127,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const Spacer(flex: 3),
-                const _YardPreview(),
+                const RepaintBoundary(child: _YardPreview()),
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -195,26 +197,9 @@ class HomeScreen extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: onDaily,
                         icon: const Icon(Icons.calendar_month_rounded),
-                        label: StreamBuilder<int>(
-                          stream: Stream<int>.periodic(
-                            const Duration(minutes: 1),
-                            (minute) => minute,
-                          ),
-                          builder: (context, snapshot) => Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${strings.rushHour}  •  ${strings.dailyWithStreak(save.streak)}',
-                              ),
-                              Text(
-                                strings.newPuzzleIn(
-                                  DailyClock.countdownLabel(),
-                                ),
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                            ],
-                          ),
+                        label: _DailyRushLabel(
+                          strings: strings,
+                          streak: save.streak,
                         ),
                       ),
                     ),
@@ -676,6 +661,53 @@ class HomeScreen extends StatelessWidget {
       '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
 }
 
+/// "Rush Hour" button label. Owns its own once-a-minute timer so only this
+/// label rebuilds for the countdown, and the timer is cancelled on dispose.
+class _DailyRushLabel extends StatefulWidget {
+  const _DailyRushLabel({required this.strings, required this.streak});
+
+  final ClearwayStrings strings;
+  final int streak;
+
+  @override
+  State<_DailyRushLabel> createState() => _DailyRushLabelState();
+}
+
+class _DailyRushLabelState extends State<_DailyRushLabel> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => setState(() {}),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('${strings.rushHour}  •  ${strings.dailyWithStreak(widget.streak)}'),
+        Text(
+          strings.newPuzzleIn(DailyClock.countdownLabel()),
+          style: const TextStyle(fontSize: 10),
+        ),
+      ],
+    );
+  }
+}
+
 class _YardPreview extends StatelessWidget {
   const _YardPreview();
 
@@ -858,7 +890,7 @@ class _ClearwayMark extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(size * 0.26),
     child: Image.asset(
-      'assets/icon/icon_full_1024.png',
+      'assets/images/clearway_mark.png',
       width: size,
       height: size,
       fit: BoxFit.cover,

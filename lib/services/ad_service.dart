@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show debugPrint, kReleaseMode;
+import 'package:flutter/foundation.dart'
+    show ValueNotifier, debugPrint, kReleaseMode;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// AdMob: banner, interstitial (har 5 level) aur rewarded ads.
@@ -41,6 +42,9 @@ class AdService {
   static String get rewardedUnitId => _pick(_liveRewardedId, _testRewardedId);
 
   static var _initialized = false;
+
+  /// True once consent is settled and the SDK is ready; banners wait for it.
+  static final adsReady = ValueNotifier<bool>(false);
   static InterstitialAd? _interstitial;
   static RewardedAd? _rewarded;
   static var _loadingInterstitial = false;
@@ -60,6 +64,7 @@ class AdService {
       }
       await MobileAds.instance.initialize();
       _initialized = true;
+      adsReady.value = true;
       preload();
     } catch (error) {
       debugPrint('AdMob initialization failed: $error');

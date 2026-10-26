@@ -36,8 +36,9 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
   ]);
-  await AdService.initialize();
   runApp(const ClearwayApp());
+  // Ads (consent form + SDK init) start after the first frame is on screen.
+  unawaited(AdService.initialize());
 }
 
 class ClearwayApp extends StatefulWidget {
@@ -75,6 +76,8 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
 
   Future<void> _initializeServices() async {
     await _save.load();
+    unawaited(LevelCatalog.prefetch(_save.level));
+    unawaited(LevelCatalog.prefetchDaily(DailyClock.dayKey()));
     final activeBoard = _save.activeBoard;
     if (activeBoard != null) {
       final isDaily = activeBoard['daily'] == true;
@@ -132,6 +135,8 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
         _dailyServerSeed == seed) {
       return;
     }
+    await LevelCatalog.prefetchDaily(dayKey, serverSeed: seed);
+    if (!mounted || !_playing || !_daily || _dailyDayKey != dayKey) return;
     setState(() => _dailyServerSeed = seed);
   }
 
@@ -180,39 +185,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
           : TextDirection.ltr,
       child: child ?? const SizedBox.shrink(),
     ),
-    theme: ThemeData(
-      useMaterial3: true,
-      brightness: _save.darkTheme ? Brightness.dark : Brightness.light,
-      scaffoldBackgroundColor: _save.darkTheme
-          ? const Color(0xff182329)
-          : const Color(0xfffff8e9),
-      colorScheme: _save.darkTheme
-          ? const ColorScheme.dark(
-              primary: Color(0xffffb347),
-              secondary: Color(0xff4ecac1),
-              surface: Color(0xff25343a),
-              onPrimary: Color(0xff182329),
-              onSurface: Color(0xfffff3d8),
-            )
-          : const ColorScheme.light(
-              primary: Color(0xffc47718),
-              secondary: Color(0xff148d83),
-            ),
-      textTheme: (_save.darkTheme ? ThemeData.dark() : ThemeData.light())
-          .textTheme
-          .apply(
-            bodyColor: _save.darkTheme
-                ? const Color(0xfffff3d8)
-                : const Color(0xff273238),
-            displayColor: _save.darkTheme
-                ? const Color(0xfffff3d8)
-                : const Color(0xff273238),
-          ),
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: Color(0xff33434a),
-        contentTextStyle: TextStyle(color: Color(0xfffff3d8)),
-      ),
-    ),
+    theme: _save.darkTheme ? _darkTheme : _lightTheme,
     home: _playing
         ? GameScreen(
             startingLevel: _level,
@@ -244,5 +217,40 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
             }),
             onDaily: () => unawaited(_startDaily()),
           ),
+  );
+}
+
+// Built once (top-level finals are lazy) instead of on every app rebuild.
+final _darkTheme = _buildTheme(dark: true);
+final _lightTheme = _buildTheme(dark: false);
+
+ThemeData _buildTheme({required bool dark}) {
+  final text = dark ? const Color(0xfffff3d8) : const Color(0xff273238);
+  return ThemeData(
+    useMaterial3: true,
+    brightness: dark ? Brightness.dark : Brightness.light,
+    scaffoldBackgroundColor: dark
+        ? const Color(0xff182329)
+        : const Color(0xfffff8e9),
+    colorScheme: dark
+        ? const ColorScheme.dark(
+            primary: Color(0xffffb347),
+            secondary: Color(0xff4ecac1),
+            surface: Color(0xff25343a),
+            onPrimary: Color(0xff182329),
+            onSurface: Color(0xfffff3d8),
+          )
+        : const ColorScheme.light(
+            primary: Color(0xffc47718),
+            secondary: Color(0xff148d83),
+          ),
+    textTheme: (dark ? ThemeData.dark() : ThemeData.light()).textTheme.apply(
+      bodyColor: text,
+      displayColor: text,
+    ),
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: Color(0xff33434a),
+      contentTextStyle: TextStyle(color: Color(0xfffff3d8)),
+    ),
   );
 }
