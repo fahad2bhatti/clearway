@@ -27,11 +27,9 @@ The game engine and level catalog run locally, so every puzzle is playable witho
 
 ### Gameplay
 - **Arrow-path puzzles:** each arrow is a curved path drawn as a rounded line with an arrow head. Tap one to slide it out of the board; if it is blocked, it bumps and you lose a life.
-- **Fully filled boards:** boards have no empty gaps, so there are more arrows to read and more orders to untangle. <!-- VERIFY: confirm fully-filled boards are in the shipped build -->
 - **80 deterministic levels:** the same level number always generates the same board. Every level is verified solvable.
 - **Difficulty ramp:** the first ten levels are an easy start. Boards then grow chapter by chapter, with more arrows and longer, twistier paths. Large boards support pinch-to-zoom and pan.
 - **Breather levels and boss boards:** lighter levels give you a rest, and boss levels use silhouette boards (heart, diamond, cross, ellipse).
-- **Monster stages:** a very hard stage every few levels for players who want a real challenge. <!-- VERIFY: confirm monster stage every 5-6 levels is implemented -->
 - **Daily challenge:** a new puzzle every day, seeded by the UTC date so every player gets the same board. A calendar and monthly trophy view track completion.
 - **Hints, undo and lives:** solver-backed hints and safe-move checks, 3 lives per attempt, stars for clean clears, and a coin-based revive.
 - **Safe tapping:** an arrow moves only on a quick, still, single-finger tap. Panning, zooming and long presses never cost a life.
@@ -46,7 +44,7 @@ The game engine and level catalog run locally, so every puzzle is playable witho
 - Anonymous guest sign-in with Firebase Authentication.
 - Cloud progress merge via Cloud Firestore: only the highest level and best stars sync, so progress never shrinks.
 - Crashlytics crash reporting.
-- Banner ads via Google Mobile Ads (AdMob). <!-- VERIFY: add "rewarded" here if rewarded ads are live -->
+- Banner ads via Google Mobile Ads (AdMob).
 - Cloud Functions v2 scaffold: daily reward ledger, account export and deletion, scheduled daily seed.
 
 ## Tech stack
