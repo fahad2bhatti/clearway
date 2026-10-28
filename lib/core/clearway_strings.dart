@@ -25,7 +25,8 @@ final class ClearwayStrings {
   String get colorblind =>
       _ur ? 'رنگوں کے متبادل نشانات' : 'Color-blind patterns';
   String get languageLabel => _ur ? 'زبان' : 'Language';
-  String get hints3 => _ur ? '۳ اشارے' : '3 hints';
+  String hintPack(int count) =>
+      _ur ? '${_digits(count)} اشارے' : '$count hints';
   String get hintDescription => _ur
       ? 'ابھی نکلنے والی سواری دیکھیں'
       : 'Find a vehicle that can leave now';

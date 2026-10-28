@@ -391,13 +391,13 @@ class HomeScreen extends StatelessWidget {
                     Icons.lightbulb,
                     color: Color(0xffffb347),
                   ),
-                  title: Text(strings.hints3),
+                  title: Text(strings.hintPack(LocalSave.hintPackSize)),
                   subtitle: Text(strings.hintDescription),
-                  trailing: const Text('40 🪙'),
+                  trailing: Text('${LocalSave.hintPackCost} 🪙'),
                   onTap: () {
-                    if (save.coins < 40) return;
-                    save.coins -= 40;
-                    save.hints += 3;
+                    if (save.coins < LocalSave.hintPackCost) return;
+                    save.coins -= LocalSave.hintPackCost;
+                    save.hints += LocalSave.hintPackSize;
                     save.save();
                     update(() {});
                   },

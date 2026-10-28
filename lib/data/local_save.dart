@@ -23,6 +23,10 @@ final class LocalSave extends ChangeNotifier {
   static const dailyGiftCoins = 50;
   static const adCoinsReward = 30;
   static const maxAdCoinsPerDay = 5;
+
+  /// Shop: a hint pack is deliberately pricey (25 coins per hint).
+  static const hintPackCost = 50;
+  static const hintPackSize = 2;
   String giftDay = '';
   String adCoinsDay = '';
   int adCoinsCount = 0;
