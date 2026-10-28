@@ -9,6 +9,11 @@ final class ThemePack {
     required this.yardSurface,
     required this.gridLine,
     required this.ivory,
+    required this.panel,
+    required this.panelActive,
+    required this.textMuted,
+    required this.iconDisabled,
+    required this.textDisabled,
     required this.accent,
     required this.floralMagenta,
     required this.emerald,
@@ -30,6 +35,14 @@ final class ThemePack {
   final Color yardSurface;
   final Color gridLine;
   final Color ivory;
+
+  /// Dialog and button surfaces, their selected state, and muted or
+  /// disabled foregrounds.
+  final Color panel;
+  final Color panelActive;
+  final Color textMuted;
+  final Color iconDisabled;
+  final Color textDisabled;
   final Color accent;
   final Color floralMagenta;
   final Color emerald;
@@ -51,6 +64,11 @@ final class ThemePack {
     yardSurface: Color(0xff202f35),
     gridLine: Color(0xff3d5154),
     ivory: Color(0xfffff3d8),
+    panel: Color(0xff25343a),
+    panelActive: Color(0xff38554f),
+    textMuted: Color(0xffc6d2ca),
+    iconDisabled: Color(0xff69777a),
+    textDisabled: Color(0xff758386),
     accent: Color(0xffffb347),
     floralMagenta: Color(0xffed6ca7),
     emerald: Color(0xff61c69a),

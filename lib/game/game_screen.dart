@@ -375,24 +375,24 @@ class _GameScreenState extends State<GameScreen> {
     final watch = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xff25343a),
+        backgroundColor: _themePack.panel,
         content: Text(
           message,
-          style: const TextStyle(color: Color(0xfffff3d8), height: 1.4),
+          style: TextStyle(color: _themePack.ivory, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               strings.notNow,
-              style: const TextStyle(color: Color(0xffc6d2ca)),
+              style: TextStyle(color: _themePack.textMuted),
             ),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xff4ecac1),
-              foregroundColor: const Color(0xff182329),
+              backgroundColor: _themePack.turquoise,
+              foregroundColor: _themePack.asphalt,
             ),
             icon: const Icon(Icons.play_circle_fill),
             label: Text(strings.watchAd),
@@ -750,6 +750,7 @@ class _GameScreenState extends State<GameScreen> {
               Padding(
                 padding: _sidePad,
                 child: _ActionBar(
+                  theme: _themePack,
                   onHint: _useHint,
                   hintCount: widget.save.hints,
                   onUndo: _undo,
@@ -888,6 +889,7 @@ class _TopBar extends StatelessWidget {
 
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
+    required this.theme,
     required this.onHint,
     required this.hintCount,
     required this.onUndo,
@@ -902,6 +904,7 @@ class _ActionBar extends StatelessWidget {
     required this.strings,
   });
 
+  final ThemePack theme;
   final VoidCallback onHint;
   final int hintCount;
   final VoidCallback onUndo;
@@ -920,6 +923,7 @@ class _ActionBar extends StatelessWidget {
     children: [
       Expanded(
         child: _ActionButton(
+          theme: theme,
           icon: Icons.lightbulb_rounded,
           label: strings.hintCount(hintCount),
           onTap: onHint,
@@ -928,6 +932,7 @@ class _ActionBar extends StatelessWidget {
       const SizedBox(width: 9),
       Expanded(
         child: _ActionButton(
+          theme: theme,
           icon: Icons.undo_rounded,
           label: strings.undoCount(undoCount),
           enabled: undoEnabled,
@@ -937,6 +942,7 @@ class _ActionBar extends StatelessWidget {
       const SizedBox(width: 9),
       Expanded(
         child: _ActionButton(
+          theme: theme,
           icon: assistEnabled
               ? Icons.grid_on_rounded
               : assistFree
@@ -955,6 +961,7 @@ class _ActionBar extends StatelessWidget {
         const SizedBox(width: 9),
         Expanded(
           child: _ActionButton(
+            theme: theme,
             icon: zoomLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
             label: zoomLocked ? strings.zoomLocked : strings.lockZoom,
             onTap: () => onZoomLockChanged(!zoomLocked),
@@ -968,6 +975,7 @@ class _ActionBar extends StatelessWidget {
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
+    required this.theme,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -975,6 +983,7 @@ class _ActionButton extends StatelessWidget {
     this.selected = false,
   });
 
+  final ThemePack theme;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -983,7 +992,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: selected ? const Color(0xff38554f) : const Color(0xff25343a),
+    color: selected ? theme.panelActive : theme.panel,
     borderRadius: BorderRadius.circular(16),
     child: InkWell(
       onTap: enabled ? onTap : null,
@@ -994,9 +1003,7 @@ class _ActionButton extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: enabled
-                  ? const Color(0xffffb347)
-                  : const Color(0xff69777a),
+              color: enabled ? theme.accent : theme.iconDisabled,
               size: 20,
             ),
             const SizedBox(height: 4),
@@ -1005,9 +1012,7 @@ class _ActionButton extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: enabled
-                      ? const Color(0xfffff3d8)
-                      : const Color(0xff758386),
+                  color: enabled ? theme.ivory : theme.textDisabled,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
