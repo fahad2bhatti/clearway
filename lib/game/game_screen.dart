@@ -64,9 +64,6 @@ class _GameScreenState extends State<GameScreen> {
   // subtree when only HUD state (lives, hints, zoom lock) changes.
   late Widget _board;
 
-  // safeVehicles() walks every bus; cache it until the board actually changes.
-  List<Vehicle>? _safeKey;
-  var _safeCountCache = 0;
   late List<Vehicle> _remaining;
   List<Vehicle>? _undoSnapshot;
   var _undoUsed = false;
@@ -692,28 +689,8 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  int get _safeCount {
-    final key = _safeKey;
-    if (key != null && key.length == _remaining.length) {
-      var same = true;
-      for (var i = 0; i < key.length; i++) {
-        if (!identical(key[i], _remaining[i])) {
-          same = false;
-          break;
-        }
-      }
-      if (same) return _safeCountCache;
-    }
-    _safeKey = List.of(_remaining);
-    return _safeCountCache = MoveValidator.safeVehicles(
-      _level,
-      _remaining,
-    ).length;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final safeCount = _safeCount;
     final tutorialTip = _tutorialTip;
     return Scaffold(
       backgroundColor: _themePack.asphalt,
@@ -780,7 +757,6 @@ class _GameScreenState extends State<GameScreen> {
                   undoEnabled: !_undoUsed && _undoSnapshot != null,
                   assistEnabled: _assist.active,
                   assistFree: _assist.nextUseIsFree,
-                  safeCount: safeCount,
                   onAssist: _onAssistTap,
                   zoomAvailable: _zoomable,
                   zoomLocked: _zoomLocked,
@@ -919,7 +895,6 @@ class _ActionBar extends StatelessWidget {
     required this.undoEnabled,
     required this.assistEnabled,
     required this.assistFree,
-    required this.safeCount,
     required this.onAssist,
     required this.zoomAvailable,
     required this.zoomLocked,
@@ -934,7 +909,6 @@ class _ActionBar extends StatelessWidget {
   final bool undoEnabled;
   final bool assistEnabled;
   final bool assistFree;
-  final int safeCount;
   final VoidCallback onAssist;
   final bool zoomAvailable;
   final bool zoomLocked;
