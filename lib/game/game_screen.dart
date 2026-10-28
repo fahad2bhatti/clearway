@@ -19,7 +19,6 @@ import 'data/level_catalog.dart';
 import 'engine/game_level.dart';
 import 'engine/move_validator.dart';
 import 'engine/vehicle.dart';
-import 'grid_assist.dart';
 import '../services/ad_service.dart';
 import '../services/sound_service.dart';
 import 'revive.dart';
@@ -70,7 +69,6 @@ class _GameScreenState extends State<GameScreen> {
   var _lives = 3;
   var _mistakes = 0;
   var _phase = GamePhase.ready;
-  var _assist = GridAssist();
   final _blockedTaps = BlockedTapGuard();
   var _dailyTouched = false;
   var _revived = false;
@@ -118,7 +116,6 @@ class _GameScreenState extends State<GameScreen> {
     _lives = 3;
     _mistakes = 0;
     _phase = GamePhase.ready;
-    _assist = GridAssist();
     _revived = false;
     _zoomLocked = false;
     _zoom.value = Matrix4.identity();
@@ -131,8 +128,7 @@ class _GameScreenState extends State<GameScreen> {
             colorblindMode: widget.save.colorblind,
           )
           ..vehicles = _remaining
-          ..suggestedVehicleId = _tutorialVehicleId
-          ..assistedVehicleIds = _assist.highlight(_level, _remaining);
+          ..suggestedVehicleId = _tutorialVehicleId;
     _board = GameWidget<YardGame>(game: _yardGame);
     _scheduleChapterIntro();
     _persistActiveBoard();
@@ -178,7 +174,6 @@ class _GameScreenState extends State<GameScreen> {
     _dailyTouched =
         widget.daily &&
         (_remaining.length != _level.vehicles.length || _mistakes > 0);
-    _assist = GridAssist.fromJson(saved);
     _revived = saved['revived'] == true;
     if (_lives == 0) _phase = GamePhase.lost;
   }
@@ -252,7 +247,6 @@ class _GameScreenState extends State<GameScreen> {
       'undoUsed': _undoUsed,
       'lives': _lives,
       'mistakes': _mistakes,
-      ..._assist.toJson(),
       'revived': _revived,
     };
     _saveTimer?.cancel();
@@ -286,8 +280,7 @@ class _GameScreenState extends State<GameScreen> {
         if (_remaining.isEmpty) _phase = GamePhase.animating;
         _yardGame
           ..vehicles = List.of(_remaining)
-          ..suggestedVehicleId = null
-          ..assistedVehicleIds = _assist.highlight(_level, _remaining);
+          ..suggestedVehicleId = null;
       });
       _persistActiveBoard();
       if (_remaining.isEmpty) {
@@ -413,36 +406,6 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  void _onAssistTap() {
-    if (_assist.active) {
-      _setAssist(on: false);
-    } else if (_assist.nextUseIsFree) {
-      _setAssist(on: true);
-    } else {
-      unawaited(
-        _offerRewardedAd(
-          message: strings.adForAssist,
-          rewardMessage: strings.assistAdded,
-          grant: () => _setAssist(on: true),
-        ),
-      );
-    }
-  }
-
-  void _setAssist({required bool on}) {
-    if (widget.daily) _dailyTouched = true;
-    setState(() {
-      if (on) {
-        _assist.turnOn();
-        _yardGame.suggestedVehicleId = null;
-      } else {
-        _assist.turnOff();
-      }
-      _yardGame.assistedVehicleIds = _assist.highlight(_level, _remaining);
-    });
-    _persistActiveBoard();
-  }
-
   void _undo() {
     if (_phase != GamePhase.ready || _undoUsed || _undoSnapshot == null) return;
     if (widget.save.undos <= 0) {
@@ -464,8 +427,7 @@ class _GameScreenState extends State<GameScreen> {
       _yardGame
         ..clearExits()
         ..vehicles = _remaining
-        ..suggestedVehicleId = null
-        ..assistedVehicleIds = _assist.highlight(_level, _remaining);
+        ..suggestedVehicleId = null;
     });
     _persistActiveBoard();
   }
@@ -756,9 +718,6 @@ class _GameScreenState extends State<GameScreen> {
                   onUndo: _undo,
                   undoCount: widget.save.undos,
                   undoEnabled: !_undoUsed && _undoSnapshot != null,
-                  assistEnabled: _assist.active,
-                  assistFree: _assist.nextUseIsFree,
-                  onAssist: _onAssistTap,
                   zoomAvailable: _zoomable,
                   zoomLocked: _zoomLocked,
                   onZoomLockChanged: (value) =>
@@ -895,9 +854,6 @@ class _ActionBar extends StatelessWidget {
     required this.onUndo,
     required this.undoCount,
     required this.undoEnabled,
-    required this.assistEnabled,
-    required this.assistFree,
-    required this.onAssist,
     required this.zoomAvailable,
     required this.zoomLocked,
     required this.onZoomLockChanged,
@@ -910,9 +866,6 @@ class _ActionBar extends StatelessWidget {
   final VoidCallback onUndo;
   final int undoCount;
   final bool undoEnabled;
-  final bool assistEnabled;
-  final bool assistFree;
-  final VoidCallback onAssist;
   final bool zoomAvailable;
   final bool zoomLocked;
   final ValueChanged<bool> onZoomLockChanged;
@@ -937,24 +890,6 @@ class _ActionBar extends StatelessWidget {
           label: strings.undoCount(undoCount),
           enabled: undoEnabled,
           onTap: onUndo,
-        ),
-      ),
-      const SizedBox(width: 9),
-      Expanded(
-        child: _ActionButton(
-          theme: theme,
-          icon: assistEnabled
-              ? Icons.grid_on_rounded
-              : assistFree
-              ? Icons.grid_4x4_rounded
-              : Icons.ondemand_video_rounded,
-          label: assistEnabled
-              ? strings.assistOn
-              : assistFree
-              ? strings.gridAssist
-              : strings.gridAssistAd,
-          onTap: onAssist,
-          selected: assistEnabled,
         ),
       ),
       if (zoomAvailable) ...[

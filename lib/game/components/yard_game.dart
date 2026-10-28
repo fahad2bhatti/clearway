@@ -43,13 +43,6 @@ final class YardGame extends FlameGame with TapCallbacks {
     _invalidateScene();
   }
 
-  Set<String> _assistedVehicleIds = const {};
-  Set<String> get assistedVehicleIds => _assistedVehicleIds;
-  set assistedVehicleIds(Set<String> value) {
-    _assistedVehicleIds = value;
-    _invalidateScene();
-  }
-
   // The still board is recorded once and replayed as one picture, so idle
   // frames cost almost nothing even with hundreds of vehicles.
   ui.Picture? _scene;
@@ -166,7 +159,7 @@ final class YardGame extends FlameGame with TapCallbacks {
     }
 
     // Anything that moves is drawn live; a still board is cached, including
-    // its hint and assist highlights, which are static.
+    // its hint highlight, which is static.
     final live = _feedbackRemaining > 0 || _exiting.isNotEmpty;
     if (live) {
       _scene?.dispose();
@@ -333,10 +326,9 @@ final class YardGame extends FlameGame with TapCallbacks {
         ..color = _shadowColor
         ..strokeWidth = lineWidth,
     );
-    final hinted =
-        suggestedVehicleId == vehicle.id ||
-        assistedVehicleIds.contains(vehicle.id);
-    if (hinted && exitProgress == 0) _drawHint(canvas, shape.path);
+    if (suggestedVehicleId == vehicle.id && exitProgress == 0) {
+      _drawHint(canvas, shape.path);
+    }
     canvas.drawPath(
       shape.path,
       _stroke
