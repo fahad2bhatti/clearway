@@ -18,11 +18,20 @@ class AdService {
   // flutter build appbundle --dart-define=ADMOB_BANNER_ID=ca-app-pub-xxx/aaa
   //   --dart-define=ADMOB_INTERSTITIAL_ID=ca-app-pub-xxx/bbb
   //   --dart-define=ADMOB_REWARDED_ID=ca-app-pub-xxx/ccc
-  static const _liveBannerId = String.fromEnvironment('ADMOB_BANNER_ID');
+  // Default mein real IDs hain, taake --dart-define bhoolne par bhi release
+  // build mein test IDs na lagein. Debug mein hamesha test IDs chalti hain.
+  static const _liveBannerId = String.fromEnvironment(
+    'ADMOB_BANNER_ID',
+    defaultValue: 'ca-app-pub-8397637614188934/5851587236',
+  );
   static const _liveInterstitialId = String.fromEnvironment(
     'ADMOB_INTERSTITIAL_ID',
+    defaultValue: 'ca-app-pub-8397637614188934/7108828584',
   );
-  static const _liveRewardedId = String.fromEnvironment('ADMOB_REWARDED_ID');
+  static const _liveRewardedId = String.fromEnvironment(
+    'ADMOB_REWARDED_ID',
+    defaultValue: 'ca-app-pub-8397637614188934/5739820870',
+  );
 
   // Logcat se mila test device ID yahan daal sakte hain (optional).
   static const _testDeviceIds = <String>[];
@@ -77,13 +86,13 @@ class AdService {
     final done = Completer<void>();
     ConsentInformation.instance.requestConsentInfoUpdate(
       ConsentRequestParameters(),
-      () {
+          () {
         ConsentForm.loadAndShowConsentFormIfRequired((FormError? error) {
           if (error != null) debugPrint('Consent form: ${error.message}');
           if (!done.isCompleted) done.complete();
         });
       },
-      (FormError error) {
+          (FormError error) {
         debugPrint('Consent info: ${error.message}');
         if (!done.isCompleted) done.complete();
       },

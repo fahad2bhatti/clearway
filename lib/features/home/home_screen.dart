@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -132,22 +133,24 @@ class HomeScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () => onPlay(currentLevel),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xffff5c8d),
-                          foregroundColor: const Color(0xff0b232e),
-                          padding: const EdgeInsets.symmetric(vertical: 17),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                      child: _PlayPulse(
+                        child: FilledButton.icon(
+                          onPressed: () => onPlay(currentLevel),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xffff5c8d),
+                            foregroundColor: const Color(0xff0b232e),
+                            padding: const EdgeInsets.symmetric(vertical: 17),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
                           ),
-                        ),
-                        icon: const Icon(Icons.play_arrow_rounded, size: 25),
-                        label: Text(
-                          strings.startDriving,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
+                          icon: const Icon(Icons.play_arrow_rounded, size: 25),
+                          label: Text(
+                            strings.startDriving,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
                       ),
@@ -679,10 +682,7 @@ class _DailyRushLabelState extends State<_DailyRushLabel> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) => setState(() {}),
-    );
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
   }
 
   @override
@@ -698,7 +698,9 @@ class _DailyRushLabelState extends State<_DailyRushLabel> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('${strings.rushHour}  •  ${strings.dailyWithStreak(widget.streak)}'),
+        Text(
+          '${strings.rushHour}  •  ${strings.dailyWithStreak(widget.streak)}',
+        ),
         Text(
           strings.newPuzzleIn(DailyClock.countdownLabel()),
           style: const TextStyle(fontSize: 10),
@@ -767,22 +769,119 @@ class _YardPreview extends StatelessWidget {
   );
 }
 
-class _PreviewBoard extends StatelessWidget {
+/// Ek arrow ka demo: kab nikalta hai aur kab wapas aata hai
+/// (sab waqt controller ke 0..1 cycle ke hisab se).
+class _MiniArrow {
+  const _MiniArrow({
+    required this.tail,
+    required this.tip,
+    required this.color,
+    required this.exitStart,
+    required this.exitEnd,
+    required this.returnStart,
+    required this.returnEnd,
+  });
+
+  final Offset tail;
+  final Offset tip;
+  final Color color;
+  final double exitStart;
+  final double exitEnd;
+  final double returnStart;
+  final double returnEnd;
+}
+
+const _previewArrows = <_MiniArrow>[
+  _MiniArrow(
+    tail: Offset(0.08, 0.28),
+    tip: Offset(0.46, 0.28),
+    color: Color(0xffff5c8d),
+    exitStart: 0.06,
+    exitEnd: 0.20,
+    returnStart: 0.66,
+    returnEnd: 0.76,
+  ),
+  _MiniArrow(
+    tail: Offset(0.62, 0.12),
+    tip: Offset(0.62, 0.50),
+    color: Color(0xff4ecac1),
+    exitStart: 0.16,
+    exitEnd: 0.30,
+    returnStart: 0.70,
+    returnEnd: 0.80,
+  ),
+  _MiniArrow(
+    tail: Offset(0.89, 0.88),
+    tip: Offset(0.89, 0.14),
+    color: Color(0xffffb347),
+    exitStart: 0.26,
+    exitEnd: 0.40,
+    returnStart: 0.74,
+    returnEnd: 0.84,
+  ),
+  _MiniArrow(
+    tail: Offset(0.72, 0.76),
+    tip: Offset(0.38, 0.76),
+    color: Color(0xff5fe6af),
+    exitStart: 0.36,
+    exitEnd: 0.50,
+    returnStart: 0.78,
+    returnEnd: 0.88,
+  ),
+];
+
+/// Home ka demo board: arrows ek ek kar ke apni direction mein screen se
+/// nikalte hain, phir wapas aate hain (game jaisa).
+class _PreviewBoard extends StatefulWidget {
   const _PreviewBoard();
 
   @override
+  State<_PreviewBoard> createState() => _PreviewBoardState();
+}
+
+class _PreviewBoardState extends State<_PreviewBoard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 8),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Phone mein "reduce motion" on ho to animation band rahe.
+    if (MediaQuery.of(context).disableAnimations) {
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) =>
-      CustomPaint(painter: _PreviewBoardPainter());
+      CustomPaint(painter: _PreviewBoardPainter(_controller));
 }
 
 class _PreviewBoardPainter extends CustomPainter {
+  _PreviewBoardPainter(this.animation) : super(repaint: animation);
+
+  final Animation<double> animation;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final background = Paint()..color = const Color(0xff1a272c);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(13)),
-      background,
+    final t = animation.value;
+    final boardRect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(13),
     );
+    canvas.drawRRect(boardRect, Paint()..color = const Color(0xff1a272c));
     final grid = Paint()
       ..color = const Color(0xff3d5154)
       ..strokeWidth = 1;
@@ -792,43 +891,96 @@ class _PreviewBoardPainter extends CustomPainter {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
       if (i < 4) canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
-    final t = size.height * 0.11;
-    _drawMiniArrow(
-      canvas,
-      Offset(size.width * 0.08, size.height * 0.28),
-      Offset(size.width * 0.46, size.height * 0.28),
-      const Color(0xffff5c8d),
-      t,
-    );
-    _drawMiniArrow(
-      canvas,
-      Offset(size.width * 0.72, size.height * 0.76),
-      Offset(size.width * 0.38, size.height * 0.76),
-      const Color(0xff5fe6af),
-      t,
-    );
-    _drawMiniArrow(
-      canvas,
-      Offset(size.width * 0.62, size.height * 0.12),
-      Offset(size.width * 0.62, size.height * 0.50),
-      const Color(0xff4ecac1),
-      t,
-    );
-    _drawMiniArrow(
-      canvas,
-      Offset(size.width * 0.89, size.height * 0.88),
-      Offset(size.width * 0.89, size.height * 0.14),
-      const Color(0xffffb347),
-      t,
-    );
-    final fleck = Paint()
-      ..color = const Color(0xfffff3d8).withValues(alpha: 0.6);
-    for (final point in [
+
+    final thickness = size.height * 0.11;
+    canvas.save();
+    canvas.clipRRect(boardRect);
+    for (final arrow in _previewArrows) {
+      _paintArrow(canvas, size, arrow, t, thickness);
+    }
+    canvas.restore();
+
+    // Chhote dots halka sa chamakte hain.
+    final flecks = [
       Offset(size.width * .35, size.height * .3),
       Offset(size.width * .64, size.height * .7),
       Offset(size.width * .82, size.height * .42),
-    ]) {
-      canvas.drawCircle(point, 2, fleck);
+    ];
+    for (var i = 0; i < flecks.length; i++) {
+      final twinkle = 0.5 + 0.5 * math.sin(2 * math.pi * (t * 4 + i / 3));
+      final alpha = 0.25 + 0.4 * twinkle;
+      canvas.drawCircle(
+        flecks[i],
+        2,
+        Paint()..color = const Color(0xfffff3d8).withValues(alpha: alpha),
+      );
+    }
+  }
+
+  void _paintArrow(
+    Canvas canvas,
+    Size size,
+    _MiniArrow arrow,
+    double t,
+    double thickness,
+  ) {
+    final tail = Offset(
+      size.width * arrow.tail.dx,
+      size.height * arrow.tail.dy,
+    );
+    final tip = Offset(size.width * arrow.tip.dx, size.height * arrow.tip.dy);
+    final delta = tip - tail;
+    final dir = delta / delta.distance;
+    final horizontal = dir.dx.abs() > dir.dy.abs();
+    // Board se poora bahar nikalne ka fasla.
+    final distance =
+        (horizontal
+            ? (dir.dx > 0 ? size.width - tail.dx : tail.dx)
+            : (dir.dy > 0 ? size.height - tail.dy : tail.dy)) +
+        thickness * 3;
+
+    void drawShifted(double move, double alpha, [double scale = 1]) {
+      canvas.save();
+      final center = (tail + tip) / 2;
+      canvas.translate(dir.dx * move, dir.dy * move);
+      if (scale != 1) {
+        canvas.translate(center.dx, center.dy);
+        canvas.scale(scale);
+        canvas.translate(-center.dx, -center.dy);
+      }
+      _drawMiniArrow(
+        canvas,
+        tail,
+        tip,
+        arrow.color.withValues(alpha: alpha),
+        thickness,
+      );
+      canvas.restore();
+    }
+
+    if (t >= arrow.exitStart && t < arrow.exitEnd) {
+      final p = (t - arrow.exitStart) / (arrow.exitEnd - arrow.exitStart);
+      // Nikalne se pehle thoda sa peeche kheenchta hai, phir tez ho jata hai.
+      final windUp = p < 0.15
+          ? -thickness * 0.6 * math.sin(p / 0.15 * math.pi)
+          : 0.0;
+      final move = distance * Curves.easeInCubic.transform(p) + windUp;
+      if (p > 0.15) {
+        for (final ghost in const [(0.10, 0.16), (0.20, 0.08)]) {
+          final gp = (p - ghost.$1).clamp(0.0, 1.0);
+          drawShifted(distance * Curves.easeInCubic.transform(gp), ghost.$2);
+        }
+      }
+      drawShifted(move, 1);
+    } else if (t >= arrow.exitEnd && t < arrow.returnStart) {
+      return; // board se nikal chuka hai
+    } else if (t >= arrow.returnStart && t < arrow.returnEnd) {
+      final p = (t - arrow.returnStart) / (arrow.returnEnd - arrow.returnStart);
+      final alpha = Curves.easeOut.transform((p * 1.6).clamp(0.0, 1.0));
+      final scale = 0.8 + 0.2 * Curves.easeOutBack.transform(p);
+      drawShifted(0, alpha, scale);
+    } else {
+      drawShifted(0, 1);
     }
   }
 
@@ -870,15 +1022,82 @@ class _PreviewBoardPainter extends CustomPainter {
       canvas.drawPath(head, paint);
     }
 
+    // Shadow ka alpha arrow ke alpha jaisa rahe (fade ke waqt bhi).
     draw(
       const Offset(0, 2.5),
-      Color.lerp(color, const Color(0xff000000), 0.38)!,
+      Color.lerp(
+        color.withValues(alpha: 1),
+        const Color(0xff000000),
+        0.38,
+      )!.withValues(alpha: color.a),
     );
     draw(Offset.zero, color);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _PreviewBoardPainter oldDelegate) =>
+      oldDelegate.animation != animation;
+}
+
+/// Play button halka sa dhadakta hai (scale + glow), dhyan kheenchne ke liye.
+class _PlayPulse extends StatefulWidget {
+  const _PlayPulse({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_PlayPulse> createState() => _PlayPulseState();
+}
+
+class _PlayPulseState extends State<_PlayPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _controller,
+    child: widget.child,
+    builder: (context, child) {
+      final e = Curves.easeInOut.transform(_controller.value);
+      return Transform.scale(
+        scale: 1 + 0.02 * e,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xffff5c8d)
+                    .withValues(alpha: 0.12 + 0.22 * e),
+                blurRadius: 10 + 12 * e,
+                spreadRadius: 1 + 2 * e,
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      );
+    },
+  );
 }
 
 class _ClearwayMark extends StatelessWidget {

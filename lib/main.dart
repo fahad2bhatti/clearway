@@ -17,6 +17,7 @@ import 'firebase_options.dart';
 import 'services/ad_service.dart';
 import 'services/cloud_progress_sync.dart';
 import 'services/progress_sync_debouncer.dart';
+import 'services/sound_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ Future<void> main() async {
   ]);
   runApp(const ClearwayApp());
   // Ads (consent form + SDK init) start after the first frame is on screen.
+  unawaited(SoundService.preload());
   unawaited(AdService.initialize());
 }
 

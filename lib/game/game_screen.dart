@@ -19,6 +19,7 @@ import 'engine/game_level.dart';
 import 'engine/move_validator.dart';
 import 'engine/vehicle.dart';
 import '../services/ad_service.dart';
+import '../services/sound_service.dart';
 import 'revive.dart';
 import 'tutorial.dart';
 
@@ -255,7 +256,7 @@ class _GameScreenState extends State<GameScreen> {
     if (widget.daily) _dailyTouched = true;
     final result = MoveValidator.check(_level, _remaining, vehicle);
     if (result.canEscape) {
-      if (widget.save.sound) SystemSound.play(SystemSoundType.click);
+      SoundService.clear(enabled: widget.save.sound);
       if (widget.save.haptics) HapticFeedback.selectionClick();
       setState(() {
         _phase = GamePhase.animating;
@@ -284,7 +285,7 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     if (widget.save.haptics) HapticFeedback.lightImpact();
-    if (widget.save.sound) SystemSound.play(SystemSoundType.alert);
+    SoundService.bump(enabled: widget.save.sound);
     setState(() {
       _mistakes++;
       _lives--;
@@ -433,6 +434,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _showWinDialog() async {
+    SoundService.win(enabled: widget.save.sound);
     final stars = _mistakes == 0
         ? 3
         : _mistakes == 1
@@ -556,6 +558,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _showLoseDialog() async {
+    SoundService.lose(enabled: widget.save.sound);
     final canRevive = Revive.isAvailable(alreadyRevived: _revived);
     final canAfford = Revive.canAfford(widget.save.coins);
     AdService.preload();
