@@ -12,6 +12,7 @@ import '../app/theme_pack.dart';
 import '../core/clearway_strings.dart';
 import '../core/daily_clock.dart';
 import '../data/local_save.dart';
+import 'blocked_tap_guard.dart';
 import 'chapter_intro.dart';
 import 'components/yard_game.dart';
 import 'data/level_catalog.dart';
@@ -72,6 +73,7 @@ class _GameScreenState extends State<GameScreen> {
   var _mistakes = 0;
   var _phase = GamePhase.ready;
   var _assistEnabled = false;
+  final _blockedTaps = BlockedTapGuard();
   var _dailyTouched = false;
   var _revived = false;
   var _zoomLocked = false;
@@ -114,6 +116,7 @@ class _GameScreenState extends State<GameScreen> {
     _remaining = _level.vehicles.map((vehicle) => vehicle.copy()).toList();
     _undoSnapshot = null;
     _undoUsed = false;
+    _blockedTaps.reset();
     _lives = 3;
     _mistakes = 0;
     _phase = GamePhase.ready;
@@ -271,6 +274,7 @@ class _GameScreenState extends State<GameScreen> {
     if (result.canEscape) {
       SoundService.clear(enabled: widget.save.sound);
       if (widget.save.haptics) HapticFeedback.selectionClick();
+      _blockedTaps.reset();
       setState(() {
         _undoSnapshot = List.of(_remaining);
         for (final id in result.groupIds) {
@@ -299,9 +303,13 @@ class _GameScreenState extends State<GameScreen> {
 
     if (widget.save.haptics) HapticFeedback.lightImpact();
     SoundService.bump(enabled: widget.save.sound);
+    final repeat = _blockedTaps.isRepeat(vehicle.id, _remaining.length);
+    _blockedTaps.record(vehicle.id, _remaining.length);
     setState(() {
-      _mistakes++;
-      _lives--;
+      if (!repeat) {
+        _mistakes++;
+        _lives--;
+      }
       _phase = GamePhase.animating;
       _yardGame.showBlocked(
         vehicle.id,
@@ -309,7 +317,7 @@ class _GameScreenState extends State<GameScreen> {
         cell: result.blockerCell,
       );
     });
-    _persistActiveBoard();
+    if (!repeat) _persistActiveBoard();
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -434,6 +442,7 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     widget.save.undos--;
+    _blockedTaps.reset();
     setState(() {
       _remaining = List.of(_undoSnapshot!);
       _undoSnapshot = null;
