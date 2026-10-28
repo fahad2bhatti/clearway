@@ -19,6 +19,7 @@ import 'data/level_catalog.dart';
 import 'engine/game_level.dart';
 import 'engine/move_validator.dart';
 import 'engine/vehicle.dart';
+import 'grid_assist.dart';
 import '../services/ad_service.dart';
 import '../services/sound_service.dart';
 import 'revive.dart';
@@ -72,7 +73,7 @@ class _GameScreenState extends State<GameScreen> {
   var _lives = 3;
   var _mistakes = 0;
   var _phase = GamePhase.ready;
-  var _assistEnabled = false;
+  var _assist = GridAssist();
   final _blockedTaps = BlockedTapGuard();
   var _dailyTouched = false;
   var _revived = false;
@@ -120,7 +121,7 @@ class _GameScreenState extends State<GameScreen> {
     _lives = 3;
     _mistakes = 0;
     _phase = GamePhase.ready;
-    _assistEnabled = false;
+    _assist = GridAssist();
     _revived = false;
     _zoomLocked = false;
     _zoom.value = Matrix4.identity();
@@ -133,7 +134,8 @@ class _GameScreenState extends State<GameScreen> {
             colorblindMode: widget.save.colorblind,
           )
           ..vehicles = _remaining
-          ..suggestedVehicleId = _tutorialVehicleId;
+          ..suggestedVehicleId = _tutorialVehicleId
+          ..assistedVehicleIds = _assist.highlight(_level, _remaining);
     _board = GameWidget<YardGame>(game: _yardGame);
     _scheduleChapterIntro();
     _persistActiveBoard();
@@ -179,7 +181,7 @@ class _GameScreenState extends State<GameScreen> {
     _dailyTouched =
         widget.daily &&
         (_remaining.length != _level.vehicles.length || _mistakes > 0);
-    _assistEnabled = saved['assistEnabled'] == true;
+    _assist = GridAssist.fromJson(saved);
     _revived = saved['revived'] == true;
     if (_lives == 0) _phase = GamePhase.lost;
   }
@@ -253,7 +255,7 @@ class _GameScreenState extends State<GameScreen> {
       'undoUsed': _undoUsed,
       'lives': _lives,
       'mistakes': _mistakes,
-      'assistEnabled': _assistEnabled,
+      ..._assist.toJson(),
       'revived': _revived,
     };
     _saveTimer?.cancel();
@@ -288,7 +290,7 @@ class _GameScreenState extends State<GameScreen> {
         _yardGame
           ..vehicles = List.of(_remaining)
           ..suggestedVehicleId = null
-          ..assistedVehicleIds = const {};
+          ..assistedVehicleIds = _assist.highlight(_level, _remaining);
       });
       _persistActiveBoard();
       if (_remaining.isEmpty) {
@@ -363,7 +365,6 @@ class _GameScreenState extends State<GameScreen> {
     widget.save.save();
     setState(() {
       _yardGame.suggestedVehicleId = safe.first.id;
-      _yardGame.assistedVehicleIds = const {};
     });
     _persistActiveBoard();
   }
@@ -415,16 +416,32 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  void _toggleAssist(bool value) {
+  void _onAssistTap() {
+    if (_assist.active) {
+      _setAssist(on: false);
+    } else if (_assist.nextUseIsFree) {
+      _setAssist(on: true);
+    } else {
+      unawaited(
+        _offerRewardedAd(
+          message: strings.adForAssist,
+          rewardMessage: strings.assistAdded,
+          grant: () => _setAssist(on: true),
+        ),
+      );
+    }
+  }
+
+  void _setAssist({required bool on}) {
     if (widget.daily) _dailyTouched = true;
-    final safeIds = MoveValidator.safeVehicles(
-      _level,
-      _remaining,
-    ).map((v) => v.id).toSet();
     setState(() {
-      _assistEnabled = value;
-      _yardGame.assistedVehicleIds = value ? safeIds : const {};
-      if (value) _yardGame.suggestedVehicleId = null;
+      if (on) {
+        _assist.turnOn();
+        _yardGame.suggestedVehicleId = null;
+      } else {
+        _assist.turnOff();
+      }
+      _yardGame.assistedVehicleIds = _assist.highlight(_level, _remaining);
     });
     _persistActiveBoard();
   }
@@ -451,7 +468,7 @@ class _GameScreenState extends State<GameScreen> {
         ..clearExits()
         ..vehicles = _remaining
         ..suggestedVehicleId = null
-        ..assistedVehicleIds = const {};
+        ..assistedVehicleIds = _assist.highlight(_level, _remaining);
     });
     _persistActiveBoard();
   }
@@ -761,9 +778,10 @@ class _GameScreenState extends State<GameScreen> {
                   onUndo: _undo,
                   undoCount: widget.save.undos,
                   undoEnabled: !_undoUsed && _undoSnapshot != null,
-                  assistEnabled: _assistEnabled,
+                  assistEnabled: _assist.active,
+                  assistFree: _assist.nextUseIsFree,
                   safeCount: safeCount,
-                  onAssistChanged: _toggleAssist,
+                  onAssist: _onAssistTap,
                   zoomAvailable: _zoomable,
                   zoomLocked: _zoomLocked,
                   onZoomLockChanged: (value) =>
@@ -900,8 +918,9 @@ class _ActionBar extends StatelessWidget {
     required this.undoCount,
     required this.undoEnabled,
     required this.assistEnabled,
+    required this.assistFree,
     required this.safeCount,
-    required this.onAssistChanged,
+    required this.onAssist,
     required this.zoomAvailable,
     required this.zoomLocked,
     required this.onZoomLockChanged,
@@ -914,8 +933,9 @@ class _ActionBar extends StatelessWidget {
   final int undoCount;
   final bool undoEnabled;
   final bool assistEnabled;
+  final bool assistFree;
   final int safeCount;
-  final ValueChanged<bool> onAssistChanged;
+  final VoidCallback onAssist;
   final bool zoomAvailable;
   final bool zoomLocked;
   final ValueChanged<bool> onZoomLockChanged;
@@ -943,9 +963,17 @@ class _ActionBar extends StatelessWidget {
       const SizedBox(width: 9),
       Expanded(
         child: _ActionButton(
-          icon: assistEnabled ? Icons.grid_on_rounded : Icons.grid_4x4_rounded,
-          label: assistEnabled ? strings.assistOn : strings.gridAssist,
-          onTap: () => onAssistChanged(!assistEnabled),
+          icon: assistEnabled
+              ? Icons.grid_on_rounded
+              : assistFree
+              ? Icons.grid_4x4_rounded
+              : Icons.ondemand_video_rounded,
+          label: assistEnabled
+              ? strings.assistOn
+              : assistFree
+              ? strings.gridAssist
+              : strings.gridAssistAd,
+          onTap: onAssist,
           selected: assistEnabled,
         ),
       ),

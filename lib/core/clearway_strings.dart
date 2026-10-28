@@ -131,6 +131,11 @@ final class ClearwayStrings {
   String get undo => _ur ? 'واپس' : 'Undo';
   String get assistOn => _ur ? 'مدد آن' : 'Assist on';
   String get gridAssist => _ur ? 'گرڈ مدد' : 'Grid assist';
+  String get gridAssistAd => _ur ? 'گرڈ مدد • اشتہار' : 'Assist · Ad';
+  String get adForAssist => _ur
+      ? 'اس لیول کی مفت گرڈ مدد استعمال ہو چکی۔ مختصر اشتہار دیکھ کر دوبارہ آن کریں؟'
+      : 'Free Grid assist is used up on this level. Watch a short ad to turn it on again?';
+  String get assistAdded => _ur ? 'گرڈ مدد آن ہو گئی!' : 'Grid assist is on!';
   String get bossLevel => _ur ? 'باس لیول' : 'BOSS LEVEL';
   String get synced => _ur ? 'کلاؤڈ محفوظ' : 'Cloud save synced';
   String get syncing => _ur ? 'ہم وقت ہو رہا ہے' : 'Syncing progress';
