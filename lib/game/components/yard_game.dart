@@ -15,6 +15,8 @@ typedef VehicleTap = void Function(Vehicle vehicle);
 
 /// Flame owns the board drawing, hit testing and short vehicle feedback.
 final class YardGame extends FlameGame with TapCallbacks {
+  static const _minColumns = 7;
+
   YardGame({
     required this.level,
     required this.onVehicleTap,
@@ -132,9 +134,13 @@ final class YardGame extends FlameGame with TapCallbacks {
     super.render(canvas);
     if (size.x <= 0 || size.y <= 0) return;
 
-    // The board takes almost the whole play area.
+    // The board takes almost the whole play area, but a cell never grows past
+    // 1/7 of the screen width, so small early boards keep slim arrows.
     final cellSize = math
-        .min(size.x * 0.96 / level.width, size.y * 0.97 / level.height)
+        .min(
+          math.min(size.x * 0.96 / level.width, size.y * 0.97 / level.height),
+          size.x / _minColumns,
+        )
         .toDouble();
     final width = cellSize * level.width;
     final height = cellSize * level.height;
@@ -269,6 +275,8 @@ final class YardGame extends FlameGame with TapCallbacks {
       );
       return;
     }
+    // A full rectangle gets no backing box: arrows sit on the screen itself.
+    if (shape.length == level.width * level.height) return;
     final key = '$_cellSize:${_boardRect.left}:${_boardRect.top}';
     if (_silhouette == null || _silhouetteKey != key) {
       final path = ui.Path();
