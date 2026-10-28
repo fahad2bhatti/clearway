@@ -165,12 +165,9 @@ final class YardGame extends FlameGame with TapCallbacks {
       _shapesBoard = _boardRect;
     }
 
-    // Anything that moves or pulses is drawn live; a still board is cached.
-    final live =
-        _feedbackRemaining > 0 ||
-        _exiting.isNotEmpty ||
-        _suggestedVehicleId != null ||
-        _assistedVehicleIds.isNotEmpty;
+    // Anything that moves is drawn live; a still board is cached, including
+    // its hint and assist highlights, which are static.
+    final live = _feedbackRemaining > 0 || _exiting.isNotEmpty;
     if (live) {
       _scene?.dispose();
       _scene = null;
@@ -516,11 +513,10 @@ final class YardGame extends FlameGame with TapCallbacks {
   }
 
   void _drawHint(ui.Canvas canvas, ui.Path path) {
-    final pulse = 0.42 + 0.18 * math.sin(nowSeconds * 7);
     canvas.drawPath(
       path,
       _stroke
-        ..color = themePack.ivory.withValues(alpha: pulse)
+        ..color = themePack.ivory.withValues(alpha: .5)
         ..strokeWidth = _cellSize * 0.5,
     );
   }
@@ -569,8 +565,6 @@ final class YardGame extends FlameGame with TapCallbacks {
     }
     if (nearest != null) onVehicleTap(nearest);
   }
-
-  double get nowSeconds => DateTime.now().millisecondsSinceEpoch / 1000;
 }
 
 final class _ExitingVehicle {
