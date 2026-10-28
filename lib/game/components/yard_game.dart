@@ -27,9 +27,40 @@ final class YardGame extends FlameGame with TapCallbacks {
   final ThemePack themePack;
   final bool colorblindMode;
 
-  List<Vehicle> vehicles = [];
-  String? suggestedVehicleId;
-  Set<String> assistedVehicleIds = const {};
+  List<Vehicle> _vehicles = [];
+  List<Vehicle> get vehicles => _vehicles;
+  set vehicles(List<Vehicle> value) {
+    _vehicles = value;
+    _invalidateScene();
+  }
+
+  String? _suggestedVehicleId;
+  String? get suggestedVehicleId => _suggestedVehicleId;
+  set suggestedVehicleId(String? value) {
+    _suggestedVehicleId = value;
+    _invalidateScene();
+  }
+
+  Set<String> _assistedVehicleIds = const {};
+  Set<String> get assistedVehicleIds => _assistedVehicleIds;
+  set assistedVehicleIds(Set<String> value) {
+    _assistedVehicleIds = value;
+    _invalidateScene();
+  }
+
+  // The still board is recorded once and replayed as one picture, so idle
+  // frames cost almost nothing even with hundreds of vehicles.
+  ui.Picture? _scene;
+  bool _sceneDirty = true;
+
+  void _invalidateScene() => _sceneDirty = true;
+
+  @override
+  void onRemove() {
+    _scene?.dispose();
+    _scene = null;
+    super.onRemove();
+  }
   String? blockerVehicleId;
   GridPoint? blockerCell;
   String? _bumpedVehicleId;
@@ -101,23 +132,53 @@ final class YardGame extends FlameGame with TapCallbacks {
     super.render(canvas);
     if (size.x <= 0 || size.y <= 0) return;
 
-    _cellSize = math
-        .min(size.x * 0.9 / level.width, size.y * 0.88 / level.height)
+    // The board takes almost the whole play area.
+    final cellSize = math
+        .min(size.x * 0.96 / level.width, size.y * 0.97 / level.height)
         .toDouble();
-    final width = _cellSize * level.width;
-    final height = _cellSize * level.height;
-    _boardRect = ui.Rect.fromLTWH(
+    final width = cellSize * level.width;
+    final height = cellSize * level.height;
+    final boardRect = ui.Rect.fromLTWH(
       (size.x - width) / 2,
       (size.y - height) / 2,
       width,
       height,
     );
+    if (cellSize != _cellSize || boardRect != _boardRect) {
+      _cellSize = cellSize;
+      _boardRect = boardRect;
+      _sceneDirty = true;
+    }
     if (_cellSize != _shapesCellSize || _boardRect != _shapesBoard) {
       _shapes.clear();
       _shapesCellSize = _cellSize;
       _shapesBoard = _boardRect;
     }
 
+    // Anything that moves or pulses is drawn live; a still board is cached.
+    final live =
+        _feedbackRemaining > 0 ||
+        _exiting.isNotEmpty ||
+        _suggestedVehicleId != null ||
+        _assistedVehicleIds.isNotEmpty;
+    if (live) {
+      _scene?.dispose();
+      _scene = null;
+      _sceneDirty = true;
+      _paintScene(canvas);
+      return;
+    }
+    if (_sceneDirty || _scene == null) {
+      _scene?.dispose();
+      final recorder = ui.PictureRecorder();
+      _paintScene(ui.Canvas(recorder));
+      _scene = recorder.endRecording();
+      _sceneDirty = false;
+    }
+    canvas.drawPicture(_scene!);
+  }
+
+  void _paintScene(ui.Canvas canvas) {
     _drawBoard(canvas);
     _drawObstacles(canvas);
     if (_feedbackRemaining > 0 && blockerCell != null) {
@@ -128,8 +189,7 @@ final class YardGame extends FlameGame with TapCallbacks {
       );
     }
     for (var index = 0; index < vehicles.length; index++) {
-      final vehicle = vehicles[index];
-      _drawVehicle(canvas, vehicle, index);
+      _drawVehicle(canvas, vehicles[index], index);
     }
     for (final exiting in _exiting.values) {
       _drawVehicle(canvas, exiting.vehicle, 0, exitProgress: exiting.progress);
@@ -202,7 +262,7 @@ final class YardGame extends FlameGame with TapCallbacks {
     if (shape == null) {
       canvas.drawRRect(
         ui.RRect.fromRectAndRadius(
-          _boardRect.inflate(8),
+          _boardRect.inflate(5),
           const ui.Radius.circular(26),
         ),
         surface,

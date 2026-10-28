@@ -48,21 +48,34 @@ abstract final class MoveValidator {
     Vehicle moving,
   ) {
     final present = remaining.toList(growable: false);
-    final group = _groupOf(present, moving);
-    final groupIds = group.map((vehicle) => vehicle.id).toList(growable: false);
-    final ignore = groupIds.toSet();
+    return _check(level, present, _occupancy(present), moving);
+  }
 
+  /// Every occupied cell -> id of the vehicle on it. Built once per board
+  /// state, so checking all vehicles stays linear in the number of cells.
+  static Map<GridPoint, String> _occupancy(List<Vehicle> present) {
     final occupied = <GridPoint, String>{};
     for (final vehicle in present) {
-      if (ignore.contains(vehicle.id)) continue;
       for (final cell in vehicle.cells) {
         occupied[cell] = vehicle.id;
       }
     }
+    return occupied;
+  }
+
+  static MoveCheck _check(
+    GameLevel level,
+    List<Vehicle> present,
+    Map<GridPoint, String> occupied,
+    Vehicle moving,
+  ) {
+    final group = _groupOf(present, moving);
+    final groupIds = group.map((vehicle) => vehicle.id).toList(growable: false);
+    final ignore = groupIds.toSet();
 
     // The tapped vehicle is checked first so its own blocker wins the message.
     for (final member in group) {
-      final block = _firstBlock(level, occupied, member);
+      final block = _firstBlock(level, occupied, ignore, member);
       if (block == null) continue;
       final isPartner = member.id != moving.id;
       return MoveCheck.blocked(
@@ -80,8 +93,9 @@ abstract final class MoveValidator {
     Iterable<Vehicle> remaining,
   ) {
     final vehicles = remaining.toList(growable: false);
+    final occupied = _occupancy(vehicles);
     return vehicles
-        .where((vehicle) => check(level, vehicles, vehicle).canEscape)
+        .where((vehicle) => _check(level, vehicles, occupied, vehicle).canEscape)
         .toList(growable: false);
   }
 
@@ -98,12 +112,15 @@ abstract final class MoveValidator {
   static _Block? _firstBlock(
     GameLevel level,
     Map<GridPoint, String> occupied,
+    Set<String> ignore,
     Vehicle vehicle,
   ) {
     var cursor = vehicle.head + vehicle.direction.step;
     while (level.contains(cursor)) {
       final blocker = occupied[cursor];
-      if (blocker != null) return _Block(blocker, BlockKind.vehicle, cursor);
+      if (blocker != null && !ignore.contains(blocker)) {
+        return _Block(blocker, BlockKind.vehicle, cursor);
+      }
       if (level.hasCone(cursor)) return _Block(null, BlockKind.cone, cursor);
       final gate = level.gateAt(cursor);
       if (gate != null && gate.direction != vehicle.direction) {

@@ -151,12 +151,13 @@ abstract final class MazeLevelGenerator {
     required int seedBase,
     required String chapter,
   }) {
-    final baseSide = _sideFor(spec);
+    final baseCols = _colsFor(spec);
     _Layout? best;
     var bestScore = -1000000000;
     for (var attempt = 0; attempt < _attempts; attempt++) {
       final rng = SeededRandom(seedBase * 31 + attempt);
-      final layout = _Builder(spec, baseSide + attempt ~/ 2, rng).build();
+      final cols = baseCols + attempt ~/ 2;
+      final layout = _Builder(spec, cols, _rowsFor(spec, cols), rng).build();
       if (layout.buses.length < math.min(2, spec.buses)) continue;
       final complete = layout.buses.length >= spec.buses;
       final deepEnough = layout.rounds >= _minRounds(number, spec);
@@ -211,14 +212,22 @@ abstract final class MazeLevelGenerator {
     return math.min(spec.buses ~/ 2 + 1, math.min(20, 3 + (number - 4) ~/ 2));
   }
 
-  /// Smallest square box whose shape has room for all buses.
-  static int _sideFor(MazeSpec spec) {
+  /// Boards are taller than wide so they fill a portrait phone screen.
+  static double _aspect(BoardShapeKind shape) =>
+      shape == BoardShapeKind.rectangle ? 1.45 : 1.25;
+
+  static int _rowsFor(MazeSpec spec, int cols) =>
+      (cols * _aspect(spec.shape)).round();
+
+  /// Smallest board width whose (taller) shape has room for all buses.
+  static int _colsFor(MazeSpec spec) {
     final averageLength =
         spec.minLength + (spec.maxLength - spec.minLength) * 0.25;
     final needed = spec.buses * averageLength / _density;
-    for (var side = 3; side < 90; side++) {
-      if (BoardShapes.cells(spec.shape, side, side).length >= needed) {
-        return side;
+    for (var cols = 3; cols < 90; cols++) {
+      final rows = _rowsFor(spec, cols);
+      if (BoardShapes.cells(spec.shape, cols, rows).length >= needed) {
+        return cols;
       }
     }
     return 90;
@@ -234,8 +243,8 @@ abstract final class MazeLevelGenerator {
     return GameLevel(
       number: number,
       title: title,
-      width: layout.side,
-      height: layout.side,
+      width: layout.cols,
+      height: layout.rows,
       chapter: chapter,
       boss: spec.boss,
       shape: layout.mask,
@@ -263,9 +272,17 @@ final class _Bus {
 }
 
 final class _Layout {
-  const _Layout(this.side, this.mask, this.buses, this.empty, this.rounds);
+  const _Layout(
+    this.cols,
+    this.rows,
+    this.mask,
+    this.buses,
+    this.empty,
+    this.rounds,
+  );
 
-  final int side;
+  final int cols;
+  final int rows;
   final Set<GridPoint> mask;
   final List<_Bus> buses;
 
@@ -277,13 +294,14 @@ final class _Layout {
 }
 
 final class _Builder {
-  _Builder(this.spec, this.side, this.rng)
-    : mask = BoardShapes.cells(spec.shape, side, side) {
+  _Builder(this.spec, this.cols, this.rows, this.rng)
+    : mask = BoardShapes.cells(spec.shape, cols, rows) {
     maskList = mask.toList(growable: false);
   }
 
   final MazeSpec spec;
-  final int side;
+  final int cols;
+  final int rows;
   final SeededRandom rng;
   final Set<GridPoint> mask;
   late final List<GridPoint> maskList;
@@ -324,7 +342,7 @@ final class _Builder {
     }
     if (spec.fillGaps) _fillGaps();
     final empty = _countEmpty();
-    return _Layout(side, mask, List.unmodifiable(buses), empty, _rounds());
+    return _Layout(cols, rows, mask, List.unmodifiable(buses), empty, _rounds());
   }
 
   /// Longest chain of "must leave first" links: the number of waves.
@@ -703,7 +721,7 @@ final class _Builder {
     final exitLength = _ray(bus.cells.first, bus.direction).length;
     return newlyBlocked * (spec.tanglePercent ~/ 4 + 2) +
         blocked.length * 2 +
-        math.min(exitLength, side ~/ 2) * (spec.tanglePercent ~/ 20 + 1) +
+        math.min(exitLength, (cols + rows) ~/ 4) * (spec.tanglePercent ~/ 20 + 1) +
         bus.cells.length;
   }
 
@@ -725,9 +743,9 @@ final class _Builder {
     final cells = <GridPoint>[];
     var cursor = head + direction.step;
     while (cursor.row >= 0 &&
-        cursor.row < side &&
+        cursor.row < rows &&
         cursor.column >= 0 &&
-        cursor.column < side) {
+        cursor.column < cols) {
       cells.add(cursor);
       cursor += direction.step;
     }

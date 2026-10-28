@@ -52,7 +52,7 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  static const _levelLayoutVersion = 6;
+  static const _levelLayoutVersion = 7;
   final _themePack = ThemePack.truckArt;
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
   late int _levelIndex;
@@ -88,6 +88,8 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    if (_saveTimer?.isActive ?? false) _flushSave();
+    _saveTimer?.cancel();
     _zoom.dispose();
     super.dispose();
   }
@@ -181,7 +183,7 @@ class _GameScreenState extends State<GameScreen> {
 
   String get _dailyDayKey => widget.dailyDayKey ?? DailyClock.dayKey();
 
-  bool get _zoomable => _level.width >= 9;
+  bool get _zoomable => _level.width >= 9 || _level.height >= 12;
 
   /// Marks the chapter card as shown (the save that follows in
   /// [_persistActiveBoard] records it) and opens it after the first frame.
@@ -224,6 +226,16 @@ class _GameScreenState extends State<GameScreen> {
     return MoveValidator.safeVehicles(_level, _remaining).firstOrNull?.id;
   }
 
+  Timer? _saveTimer;
+
+  /// Writing the save to disk on every tap is slow late in a big level, so
+  /// taps are grouped into one write.
+  void _flushSave() {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    unawaited(widget.save.save(notify: false));
+  }
+
   void _persistActiveBoard() {
     widget.save.activeBoard = {
       'layoutVersion': _levelLayoutVersion,
@@ -241,7 +253,8 @@ class _GameScreenState extends State<GameScreen> {
       'assistEnabled': _assistEnabled,
       'revived': _revived,
     };
-    unawaited(widget.save.save(notify: false));
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 400), _flushSave);
   }
 
   void _clearActiveBoard() {
@@ -680,75 +693,75 @@ class _GameScreenState extends State<GameScreen> {
       bottomNavigationBar: const ClearwayBanner(),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+          padding: const EdgeInsets.only(top: 6, bottom: 8),
           child: Column(
             children: [
-              _TopBar(
-                level: _level,
-                lives: _lives,
-                onPause: _showPauseDialog,
-                daily: widget.daily,
-                coins: widget.save.coins,
-                strings: strings,
-              ),
-              if (tutorialTip != null) ...[
-                const SizedBox(height: 9),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xff38554f),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Text(
-                    tutorialTip,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xfffff3d8),
-                    ),
-                  ),
+              Padding(
+                padding: _sidePad,
+                child: _TopBar(
+                  level: _level,
+                  lives: _lives,
+                  onPause: _showPauseDialog,
+                  daily: widget.daily,
+                  coins: widget.save.coins,
+                  strings: strings,
                 ),
-              ],
-              const SizedBox(height: 18),
-              Expanded(
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(25),
-                      child: InteractiveViewer(
-                        transformationController: _zoom,
-                        panEnabled: _zoomable && !_zoomLocked,
-                        scaleEnabled: _zoomable && !_zoomLocked,
-                        minScale: 1,
-                        maxScale: (_level.width / 5).clamp(2.2, 8.0).toDouble(),
-                        boundaryMargin: const EdgeInsets.all(48),
-                        child: _board,
+              ),
+              if (tutorialTip != null)
+                Padding(
+                  padding: _sidePad.copyWith(top: 6),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff38554f),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Text(
+                      tutorialTip,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xfffff3d8),
                       ),
                     ),
                   ),
                 ),
+              const SizedBox(height: 6),
+              // The board owns all the space between the bars.
+              Expanded(
+                child: InteractiveViewer(
+                  transformationController: _zoom,
+                  panEnabled: _zoomable && !_zoomLocked,
+                  scaleEnabled: _zoomable && !_zoomLocked,
+                  minScale: 1,
+                  maxScale: (_level.height / 5).clamp(2.2, 8.0).toDouble(),
+                  boundaryMargin: const EdgeInsets.all(48),
+                  child: _board,
+                ),
               ),
-              const SizedBox(height: 18),
-              _ActionBar(
-                onHint: _useHint,
-                hintCount: widget.save.hints,
-                onUndo: _undo,
-                undoCount: widget.save.undos,
-                undoEnabled: !_undoUsed && _undoSnapshot != null,
-                assistEnabled: _assistEnabled,
-                safeCount: safeCount,
-                onAssistChanged: _toggleAssist,
-                zoomAvailable: _zoomable,
-                zoomLocked: _zoomLocked,
-                onZoomLockChanged: (value) =>
-                    setState(() => _zoomLocked = value),
-                strings: strings,
+              const SizedBox(height: 6),
+              Padding(
+                padding: _sidePad,
+                child: _ActionBar(
+                  onHint: _useHint,
+                  hintCount: widget.save.hints,
+                  onUndo: _undo,
+                  undoCount: widget.save.undos,
+                  undoEnabled: !_undoUsed && _undoSnapshot != null,
+                  assistEnabled: _assistEnabled,
+                  safeCount: safeCount,
+                  onAssistChanged: _toggleAssist,
+                  zoomAvailable: _zoomable,
+                  zoomLocked: _zoomLocked,
+                  onZoomLockChanged: (value) =>
+                      setState(() => _zoomLocked = value),
+                  strings: strings,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 _remaining.isEmpty
                     ? _themePack.emptyYardMessage
@@ -765,6 +778,8 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
+
+  static const _sidePad = EdgeInsets.symmetric(horizontal: 14);
 
   String? get _tutorialTip {
     if (widget.daily) return null;
