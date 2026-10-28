@@ -86,13 +86,13 @@ class AdService {
     final done = Completer<void>();
     ConsentInformation.instance.requestConsentInfoUpdate(
       ConsentRequestParameters(),
-          () {
+      () {
         ConsentForm.loadAndShowConsentFormIfRequired((FormError? error) {
           if (error != null) debugPrint('Consent form: ${error.message}');
           if (!done.isCompleted) done.complete();
         });
       },
-          (FormError error) {
+      (FormError error) {
         debugPrint('Consent info: ${error.message}');
         if (!done.isCompleted) done.complete();
       },

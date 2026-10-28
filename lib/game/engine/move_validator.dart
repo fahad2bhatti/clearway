@@ -95,7 +95,9 @@ abstract final class MoveValidator {
     final vehicles = remaining.toList(growable: false);
     final occupied = _occupancy(vehicles);
     return vehicles
-        .where((vehicle) => _check(level, vehicles, occupied, vehicle).canEscape)
+        .where(
+          (vehicle) => _check(level, vehicles, occupied, vehicle).canEscape,
+        )
         .toList(growable: false);
   }
 

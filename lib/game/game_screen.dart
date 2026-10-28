@@ -272,28 +272,28 @@ class _GameScreenState extends State<GameScreen> {
       SoundService.clear(enabled: widget.save.sound);
       if (widget.save.haptics) HapticFeedback.selectionClick();
       setState(() {
-        _phase = GamePhase.animating;
         _undoSnapshot = List.of(_remaining);
         for (final id in result.groupIds) {
           final member = _remaining.where((item) => item.id == id).firstOrNull;
           if (member != null) _yardGame.showExit(member);
         }
         _remaining.removeWhere((item) => result.groupIds.contains(item.id));
+        // Taps stay open while exit animations play; only the last arrow
+        // locks the board until the win dialog opens.
+        if (_remaining.isEmpty) _phase = GamePhase.animating;
         _yardGame
           ..vehicles = List.of(_remaining)
           ..suggestedVehicleId = null
           ..assistedVehicleIds = const {};
       });
       _persistActiveBoard();
-      Future<void>.delayed(const Duration(milliseconds: 250), () {
-        if (!mounted) return;
-        if (_remaining.isEmpty) {
+      if (_remaining.isEmpty) {
+        Future<void>.delayed(const Duration(milliseconds: 250), () {
+          if (!mounted || _phase == GamePhase.won) return;
           setState(() => _phase = GamePhase.won);
           _showWinDialog();
-        } else {
-          setState(() => _phase = GamePhase.ready);
-        }
-      });
+        });
+      }
       return;
     }
 
@@ -439,6 +439,7 @@ class _GameScreenState extends State<GameScreen> {
       _undoSnapshot = null;
       _undoUsed = true;
       _yardGame
+        ..clearExits()
         ..vehicles = _remaining
         ..suggestedVehicleId = null
         ..assistedVehicleIds = const {};

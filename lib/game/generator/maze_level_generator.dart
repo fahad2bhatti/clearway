@@ -342,7 +342,14 @@ final class _Builder {
     }
     if (spec.fillGaps) _fillGaps();
     final empty = _countEmpty();
-    return _Layout(cols, rows, mask, List.unmodifiable(buses), empty, _rounds());
+    return _Layout(
+      cols,
+      rows,
+      mask,
+      List.unmodifiable(buses),
+      empty,
+      _rounds(),
+    );
   }
 
   /// Longest chain of "must leave first" links: the number of waves.
@@ -721,7 +728,8 @@ final class _Builder {
     final exitLength = _ray(bus.cells.first, bus.direction).length;
     return newlyBlocked * (spec.tanglePercent ~/ 4 + 2) +
         blocked.length * 2 +
-        math.min(exitLength, (cols + rows) ~/ 4) * (spec.tanglePercent ~/ 20 + 1) +
+        math.min(exitLength, (cols + rows) ~/ 4) *
+            (spec.tanglePercent ~/ 20 + 1) +
         bus.cells.length;
   }
 

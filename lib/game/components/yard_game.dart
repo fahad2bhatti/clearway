@@ -63,6 +63,7 @@ final class YardGame extends FlameGame with TapCallbacks {
     _scene = null;
     super.onRemove();
   }
+
   String? blockerVehicleId;
   GridPoint? blockerCell;
   String? _bumpedVehicleId;
@@ -100,6 +101,9 @@ final class YardGame extends FlameGame with TapCallbacks {
   void showExit(Vehicle vehicle) {
     _exiting[vehicle.id] = _ExitingVehicle(vehicle);
   }
+
+  /// Drops running exit animations, e.g. when an undo brings the arrows back.
+  void clearExits() => _exiting.clear();
 
   void showBlocked(String movingId, String blockerId, {GridPoint? cell}) {
     _bumpedVehicleId = movingId;
@@ -578,7 +582,11 @@ final class _ExitingVehicle {
 
 /// Cached drawing geometry of one bus at the current board size.
 final class _VehicleShape {
-  _VehicleShape({required this.path, required this.shadow, required this.arrow});
+  _VehicleShape({
+    required this.path,
+    required this.shadow,
+    required this.arrow,
+  });
 
   final ui.Path path;
   final ui.Path shadow;
