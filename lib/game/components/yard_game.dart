@@ -9,6 +9,7 @@ import '../../app/theme_pack.dart';
 import '../engine/game_level.dart';
 import '../engine/grid_point.dart';
 import '../engine/vehicle.dart';
+import 'hold_preview.dart';
 import 'tap_gate.dart';
 
 typedef VehicleTap = void Function(Vehicle vehicle);
@@ -63,6 +64,7 @@ final class YardGame extends FlameGame with TapCallbacks {
   double _feedbackRemaining = 0;
   final Map<String, _ExitingVehicle> _exiting = {};
   final TapGate _tapGate = TapGate();
+  final HoldPreview _hold = HoldPreview();
 
   ui.Rect _boardRect = ui.Rect.zero;
   double _cellSize = 0;
@@ -108,6 +110,7 @@ final class YardGame extends FlameGame with TapCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
+    if (_hold.tick(dt)) _invalidateScene();
     if (_feedbackRemaining > 0) {
       _feedbackRemaining = math.max(0, _feedbackRemaining - dt).toDouble();
       if (_feedbackRemaining == 0) {
@@ -194,6 +197,42 @@ final class YardGame extends FlameGame with TapCallbacks {
     for (final exiting in _exiting.values) {
       _drawVehicle(canvas, exiting.vehicle, 0, exitProgress: exiting.progress);
     }
+    _drawBeam(canvas);
+  }
+
+  /// A straight laser line from the held arrow's head to the board edge, so
+  /// its direction is clear even where other arrows cross the line.
+  void _drawBeam(ui.Canvas canvas) {
+    final id = _hold.vehicleId;
+    if (!_hold.active || id == null) return;
+    final vehicle = vehicles.where((item) => item.id == id).firstOrNull;
+    if (vehicle == null) return;
+    final head = _cellRect(vehicle.head).center;
+    final step = vehicle.direction.step;
+    final start = head.translate(
+      step.column * _cellSize * 0.5,
+      step.row * _cellSize * 0.5,
+    );
+    final end = switch (vehicle.direction) {
+      TravelDirection.up => ui.Offset(head.dx, _boardRect.top),
+      TravelDirection.down => ui.Offset(head.dx, _boardRect.bottom),
+      TravelDirection.left => ui.Offset(_boardRect.left, head.dy),
+      TravelDirection.right => ui.Offset(_boardRect.right, head.dy),
+    };
+    canvas.drawLine(
+      start,
+      end,
+      _stroke
+        ..color = themePack.coral.withValues(alpha: .35)
+        ..strokeWidth = _cellSize * 0.2,
+    );
+    canvas.drawLine(
+      start,
+      end,
+      _stroke
+        ..color = themePack.ivory
+        ..strokeWidth = _cellSize * 0.06,
+    );
   }
 
   void _drawObstacles(ui.Canvas canvas) {
@@ -522,40 +561,61 @@ final class YardGame extends FlameGame with TapCallbacks {
 
   // A touch only counts once the finger lifts, and only when it was a quick,
   // still, single-finger tap. Panning, pinching and long presses on the board
-  // must not move a bus (and cost a life).
+  // must not move a bus (and cost a life). Holding an arrow shows its beam.
   @override
-  void onTapDown(TapDownEvent event) => _tapGate.down(
-    event.pointerId,
-    event.devicePosition.x,
-    event.devicePosition.y,
-  );
+  void onTapDown(TapDownEvent event) {
+    _tapGate.down(
+      event.pointerId,
+      event.devicePosition.x,
+      event.devicePosition.y,
+    );
+    final vehicle = _vehicleAt(
+      ui.Offset(event.canvasPosition.x, event.canvasPosition.y),
+    );
+    if (vehicle != null) _hold.start(vehicle.id);
+  }
 
   @override
-  void onTapCancel(TapCancelEvent event) => _tapGate.cancel(event.pointerId);
+  void onTapCancel(TapCancelEvent event) {
+    _tapGate.cancel(event.pointerId);
+    _endHold();
+  }
 
   @override
   void onTapUp(TapUpEvent event) {
+    final held = _hold.active;
+    _endHold();
     final isTap = _tapGate.up(
       event.pointerId,
       event.devicePosition.x,
       event.devicePosition.y,
     );
-    if (!isTap) return;
-    final point = ui.Offset(event.canvasPosition.x, event.canvasPosition.y);
-    if (!_boardRect.contains(point)) return;
+    if (held || !isTap) return;
+    final vehicle = _vehicleAt(
+      ui.Offset(event.canvasPosition.x, event.canvasPosition.y),
+    );
+    if (vehicle != null) onVehicleTap(vehicle);
+  }
+
+  void _endHold() {
+    if (_hold.active) _invalidateScene();
+    _hold.end();
+  }
+
+  Vehicle? _vehicleAt(ui.Offset point) {
+    if (!_boardRect.contains(point)) return null;
     Vehicle? nearest;
     var nearestDistance = _cellSize * 0.68;
     for (final vehicle in vehicles) {
       for (final cell in vehicle.cells) {
-        final center = _cellRect(cell).center;
-        final distance = (center - point).distance;
+        final distance = (_cellRect(cell).center - point).distance;
         if (distance < nearestDistance) {
           nearest = vehicle;
           nearestDistance = distance;
         }
       }
     }
-    if (nearest != null) onVehicleTap(nearest);
+    return nearest;
   }
 }
 
