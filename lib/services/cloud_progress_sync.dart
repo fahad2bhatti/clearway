@@ -22,6 +22,7 @@ final class CloudProgressSync extends ChangeNotifier {
   bool _emulatorConfigured = false;
   bool _syncAgain = false;
   bool _syncAgainForce = false;
+  bool _legacyRulesOnly = false;
   ProgressSyncSignature? _lastSyncedSignature;
   final Map<String, int> _dailySeedCache = {};
 
@@ -229,19 +230,39 @@ final class CloudProgressSync extends ChangeNotifier {
       if (!snapshot.exists ||
           needsFormatMigration ||
           (!remoteIsAhead && mergedSignature != remoteSignature)) {
-        await ref.set({
-          'highestLevel': local.level,
-          'starsCode': localStarsCode,
-          'arrowSkins': local.ownedArrowSkins.toList()..sort(),
-          'selectedArrowSkin': local.selectedArrowSkin,
-          'claimedMilestones': local.claimedMilestones.toList()..sort(),
-          'achievementProgress': local.achievementProgress,
-          'claimedAchievements': local.claimedAchievements.toList()..sort(),
-          if (local.dailyMissions != null)
-            'dailyMissions': _encodeDailyMissions(local.dailyMissions!),
-          'schemaVersion': 3,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+        if (_legacyRulesOnly) {
+          await _writeLegacyProgress(
+            ref,
+            local: local,
+            starsCode: localStarsCode,
+          );
+        } else {
+          try {
+            await ref.set({
+              'highestLevel': local.level,
+              'starsCode': localStarsCode,
+              'arrowSkins': local.ownedArrowSkins.toList()..sort(),
+              'selectedArrowSkin': local.selectedArrowSkin,
+              'claimedMilestones': local.claimedMilestones.toList()..sort(),
+              'achievementProgress': local.achievementProgress,
+              'claimedAchievements': local.claimedAchievements.toList()..sort(),
+              if (local.dailyMissions != null)
+                'dailyMissions': _encodeDailyMissions(local.dailyMissions!),
+              'schemaVersion': 3,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          } on FirebaseException catch (error) {
+            if (error.code != 'permission-denied') rethrow;
+            // Supports app rollout before the updated Firestore rules deploy.
+            // Phase 9 state remains local until schema 3 rules are live.
+            _legacyRulesOnly = true;
+            await _writeLegacyProgress(
+              ref,
+              local: local,
+              starsCode: localStarsCode,
+            );
+          }
+        }
       }
       _lastSyncedSignature = mergedSignature;
       status = CloudSyncStatus.synced;
@@ -265,6 +286,20 @@ final class CloudProgressSync extends ChangeNotifier {
     }
     return null;
   }
+
+  Future<void> _writeLegacyProgress(
+    DocumentReference<Map<String, dynamic>> ref, {
+    required LocalSave local,
+    required String starsCode,
+  }) => ref.set({
+    'highestLevel': local.level,
+    'starsCode': starsCode,
+    'arrowSkins': local.ownedArrowSkins.toList()..sort(),
+    'selectedArrowSkin': local.selectedArrowSkin,
+    'claimedMilestones': local.claimedMilestones.toList()..sort(),
+    'schemaVersion': 2,
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
 
   DailyMissionState? _decodeDailyMissions(Object? raw) {
     if (raw is! Map<String, dynamic>) return null;
