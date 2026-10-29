@@ -8,6 +8,7 @@ import '../../app/app_identity.dart';
 import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import '../../services/cloud_progress_sync.dart';
+import '../../services/notification_service.dart';
 
 const _privacyUrl = 'https://fahad2bhatti.github.io/clearway/privacy-policy.html';
 const _termsUrl = 'https://fahad2bhatti.github.io/clearway/terms.html';
@@ -84,7 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _toggle(strings.sound, widget.save.sound, (value) => _update(() => widget.save.sound = value)),
             _toggle(strings.music, widget.save.music, (value) => _update(() => widget.save.music = value)),
             _toggle(strings.haptics, widget.save.haptics, (value) => _update(() => widget.save.haptics = value)),
-            _toggle(strings.notifications, widget.save.notifications, (value) => _update(() => widget.save.notifications = value)),
+            _toggle(strings.notifications, widget.save.notifications, _toggleNotifications),
             ListTile(
               title: Text(strings.languageLabel),
               trailing: SegmentedButton<String>(
@@ -124,6 +125,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _update(VoidCallback update) async {
     setState(update);
     await widget.save.save();
+  }
+
+  Future<void> _toggleNotifications(bool enabled) async {
+    if (!enabled) {
+      await NotificationService.instance.disable();
+      await _update(() => widget.save.notifications = false);
+      return;
+    }
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.notificationPermissionTitle),
+        content: Text(strings.notificationPermissionMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(strings.notificationPermissionNotNow),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(strings.notificationPermissionEnable),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final granted = await NotificationService.instance.requestPermission();
+    await _update(() => widget.save.notifications = granted);
+    if (!granted) await NotificationService.instance.disable();
   }
 
   Future<void> _confirmLogout() async {

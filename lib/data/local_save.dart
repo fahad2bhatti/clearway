@@ -54,6 +54,7 @@ final class LocalSave extends ChangeNotifier {
   bool darkTheme = true;
   bool colorblind = false;
   bool notifications = true;
+  bool notificationPermissionAsked = false;
   String language = 'en';
   bool tutorialDone = false;
   final Set<int> chaptersSeen = {};
@@ -107,6 +108,8 @@ final class LocalSave extends ChangeNotifier {
     darkTheme = (data['theme'] as String? ?? 'dark') == 'dark';
     colorblind = data['colorblind'] as bool? ?? false;
     notifications = data['notifications'] as bool? ?? true;
+    notificationPermissionAsked =
+        data['notificationPermissionAsked'] as bool? ?? false;
     language = data['lang'] as String? ?? 'en';
     ownedArrowSkins
       ..clear()
@@ -209,6 +212,7 @@ final class LocalSave extends ChangeNotifier {
     darkTheme = true;
     colorblind = false;
     notifications = true;
+    notificationPermissionAsked = false;
     language = 'en';
     tutorialDone = false;
     chaptersSeen.clear();
@@ -266,6 +270,7 @@ final class LocalSave extends ChangeNotifier {
         'theme': darkTheme ? 'dark' : 'light',
         'colorblind': colorblind,
         'notifications': notifications,
+        'notificationPermissionAsked': notificationPermissionAsked,
         'lang': language,
         'arrowSkins': ownedArrowSkins.toList()..sort(),
         'selectedArrowSkin': selectedArrowSkin,

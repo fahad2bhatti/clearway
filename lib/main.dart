@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/app_identity.dart';
+import 'core/clearway_strings.dart';
 import 'core/daily_clock.dart';
 import 'features/home/home_screen.dart';
 import 'features/shop/shop_screen.dart';
@@ -20,6 +21,7 @@ import 'services/ad_service.dart';
 import 'services/cloud_progress_sync.dart';
 import 'services/progress_sync_debouncer.dart';
 import 'services/sound_service.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +64,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
   var _screen = _AppScreen.home;
   var _level = 1;
   var _daily = false;
+  var _lastNotifications = true;
   String? _dailyDayKey;
   int? _dailyServerSeed;
 
@@ -81,6 +84,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
 
   Future<void> _initializeServices() async {
     await _save.load();
+    _lastNotifications = _save.notifications;
     _save.ensureDailyMissions();
     await _save.save(notify: false);
     unawaited(LevelCatalog.prefetch(_save.level));
@@ -103,6 +107,9 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     }
     if (mounted) setState(() {});
     try {
+      await NotificationService.instance.initialize(
+        strings: ClearwayStrings(_save.language),
+      );
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
@@ -113,6 +120,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       if (_daily && dailyKey != null) {
         unawaited(_refreshDailySeed(dailyKey));
       }
+      unawaited(_refreshDailyNotification());
     } catch (_) {
       // Keep the whole game playable when Firebase is unavailable or offline.
     }
@@ -150,6 +158,45 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
   void _onSaveChanged() {
     _refresh();
     _progressSync.request(ProgressSyncSignature.fromSave(_save));
+    if (_save.notifications != _lastNotifications) {
+      _lastNotifications = _save.notifications;
+      if (_save.notifications) {
+        unawaited(_refreshDailyNotification());
+      } else {
+        unawaited(NotificationService.instance.disable());
+      }
+
+      Future<void> _maybeRequestNotificationPermission() async {
+        if (!_save.notifications || _save.notificationPermissionAsked || !mounted) {
+          return;
+        }
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(ClearwayStrings(_save.language).notificationPermissionTitle),
+            content: Text(ClearwayStrings(_save.language).notificationPermissionMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(ClearwayStrings(_save.language).notificationPermissionNotNow),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(ClearwayStrings(_save.language).notificationPermissionEnable),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        _save.notificationPermissionAsked = true;
+        if (confirmed == true) {
+          _save.notifications = await NotificationService.instance.requestPermission();
+        } else {
+          _save.notifications = false;
+        }
+        await _save.save();
+      }
+    }
   }
 
   Future<void> _retryCloudSync() async {
@@ -157,14 +204,49 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     await _progressSync.flush(force: true);
   }
 
-  void _onLevelWon() => unawaited(_progressSync.flush());
+  void _onLevelWon() {
+    unawaited(NotificationService.instance.cancelMidLevel());
+    unawaited(_progressSync.flush());
+  }
+
+  Future<void> _refreshDailyNotification() async {
+    if (!_save.notifications) {
+      await NotificationService.instance.disable();
+      return;
+    }
+    final dayKey = DailyClock.dayKey();
+    final seed = await _cloud.readDailySeed(dayKey);
+    await NotificationService.instance.scheduleDaily(
+      strings: ClearwayStrings(_save.language),
+      enabled: _save.notifications,
+      dayKey: dayKey,
+      contentAvailable: seed != null,
+      alreadyPlayed: _save.completedDailies.contains(dayKey),
+    );
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       unawaited(_progressSync.flush());
+      if (_save.notifications && _save.activeBoard != null) {
+        unawaited(
+          NotificationService.instance.scheduleMidLevel(
+            strings: ClearwayStrings(_save.language),
+            enabled: true,
+          ),
+        );
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(_handleResume());
     }
+  }
+
+  Future<void> _handleResume() async {
+    await NotificationService.instance.cancelMidLevel();
+    await NotificationService.instance.refreshTimezone();
+    await _refreshDailyNotification();
   }
 
   void _refresh() {
@@ -202,6 +284,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
             save: _save,
             onLevelWon: _onLevelWon,
             onHome: (level) => setState(() {
+              unawaited(NotificationService.instance.disable());
               _level = level;
               _playing = false;
               _daily = false;
@@ -223,14 +306,20 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
             save: _save,
             cloudStatus: _cloud.status,
             onSyncNow: () => unawaited(_retryCloudSync()),
-            onPlay: (level) => setState(() {
-              _level = level;
-              _playing = true;
-              _daily = false;
-              _dailyDayKey = null;
-              _dailyServerSeed = null;
-            }),
-            onDaily: () => unawaited(_startDaily()),
+            onPlay: (level) {
+              setState(() {
+                _level = level;
+                _playing = true;
+                _daily = false;
+                _dailyDayKey = null;
+                _dailyServerSeed = null;
+              });
+              unawaited(_maybeRequestNotificationPermission());
+            },
+            onDaily: () {
+              unawaited(_startDaily());
+              unawaited(_maybeRequestNotificationPermission());
+            },
             onShop: () => setState(() => _screen = _AppScreen.shop),
             onSettings: () => setState(() => _screen = _AppScreen.settings),
           ),

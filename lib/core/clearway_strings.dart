@@ -72,6 +72,29 @@ final class ClearwayStrings {
   String get linkAccount => _ur ? 'پیش رفت محفوظ کرنے کے لیے اکاؤنٹ لنک کریں' : 'Link account to save your progress';
   String get linkedAccount => _ur ? 'اکاؤنٹ لنک ہے' : 'Account linked';
   String get notifications => _ur ? 'اطلاعات' : 'Notifications';
+  String get notificationPermissionTitle =>
+      _ur ? 'یاد دہانیاں آن کریں؟' : 'Turn on reminders?';
+  String get notificationPermissionMessage => _ur
+      ? 'ہم صرف زیر التوا لیول اور روزانہ چیلنج کی یاد دہانی بھیجیں گے۔ آپ یہ اختیار کبھی بھی ترتیبات میں بند کر سکتے ہیں۔'
+      : 'We will only remind you about an unfinished level and the daily challenge. You can turn reminders off anytime in Settings.';
+  String get notificationPermissionEnable =>
+      _ur ? 'یاد دہانیاں آن کریں' : 'Turn on reminders';
+  String get notificationPermissionNotNow => _ur ? 'ابھی نہیں' : 'Not now';
+  String get midLevelReminderTitle =>
+      _ur ? 'آپ کا لیول ابھی باقی ہے' : 'Your level is waiting';
+  String get midLevelReminderBody => _ur
+      ? 'واپس آئیں اور اپنا لیول مکمل کریں۔'
+      : 'Come back and finish your level.';
+  String get dailyReminderTitle =>
+      _ur ? 'روزانہ چیلنج تیار ہے' : 'Daily challenge ready';
+  String get dailyReminderBody => _ur
+      ? 'آج کا چیلنج مکمل کرنے کے لیے واپس آئیں۔'
+      : 'Come back for today’s challenge.';
+  String get notificationChannelName =>
+      _ur ? 'Clearway یاد دہانیاں' : 'Clearway reminders';
+  String get notificationChannelDescription => _ur
+      ? 'زیر التوا لیول اور روزانہ چیلنج کی اختیاری یاد دہانیاں۔'
+      : 'Optional reminders for unfinished levels and daily challenges.';
   String get rateUs => _ur ? 'ہمیں ریٹ کریں' : 'Rate Us';
   String get sendFeedback => _ur ? 'رائے بھیجیں' : 'Send Feedback';
   String get privacyPolicy => _ur ? 'رازداری کی پالیسی' : 'Privacy Policy';
