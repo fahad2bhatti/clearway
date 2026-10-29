@@ -38,7 +38,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
             <meta-data
-            name="io.flutter.embedding.android.EnableImpeller"
+            android:name="io.flutter.embedding.android.EnableImpeller"
             android:value="false" />
         <receiver
             android:exported="false"
