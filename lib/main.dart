@@ -81,6 +81,8 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
 
   Future<void> _initializeServices() async {
     await _save.load();
+    _save.ensureDailyMissions();
+    await _save.save(notify: false);
     unawaited(LevelCatalog.prefetch(_save.level));
     unawaited(LevelCatalog.prefetchDaily(DailyClock.dayKey()));
     final activeBoard = _save.activeBoard;

@@ -8,6 +8,7 @@ import '../game/data/level_catalog.dart';
 import '../game/tutorial.dart';
 import '../game/skins/arrow_skin.dart';
 import '../game/milestones/milestone_config.dart';
+import '../game/achievements/achievement_models.dart';
 
 /// Offline-first progress matching the original browser game's local save.
 final class LocalSave extends ChangeNotifier {
@@ -62,6 +63,9 @@ final class LocalSave extends ChangeNotifier {
   final Set<String> ownedArrowSkins = {'classic'};
   String selectedArrowSkin = 'classic';
   final Set<String> claimedMilestones = {};
+  final Map<String, int> achievementProgress = {};
+  final Set<String> claimedAchievements = {};
+  DailyMissionState? dailyMissions;
 
   Future<void> load() async {
     try {
@@ -127,6 +131,21 @@ final class LocalSave extends ChangeNotifier {
               (id) => MilestoneConfig.rewards.any((reward) => reward.id == id),
             ),
       );
+    achievementProgress
+      ..clear()
+      ..addAll(
+        (data['achievementProgress'] as Map<String, dynamic>? ?? {}).map(
+          (key, value) => MapEntry(key, (value as num).toInt().clamp(0, 1000)),
+        ),
+      );
+    claimedAchievements
+      ..clear()
+      ..addAll(
+        (data['claimedAchievements'] as List<dynamic>? ?? [])
+            .whereType<String>()
+            .where((id) => AchievementCatalog.byId(id) != null),
+      );
+    dailyMissions = _decodeDailyMissions(data['dailyMissions']);
     // Saves from before this flag existed carry no value: anyone who has
     // already unlocked level 4 must have won the guided levels.
     tutorialDone = data['tutorialDone'] == true || Tutorial.finishedBy(level);
@@ -201,6 +220,9 @@ final class LocalSave extends ChangeNotifier {
       ..add('classic');
     selectedArrowSkin = 'classic';
     claimedMilestones.clear();
+    achievementProgress.clear();
+    claimedAchievements.clear();
+    dailyMissions = null;
   }
 
   /// Chapters the player has already moved past never show their intro card:
@@ -248,6 +270,9 @@ final class LocalSave extends ChangeNotifier {
         'arrowSkins': ownedArrowSkins.toList()..sort(),
         'selectedArrowSkin': selectedArrowSkin,
         'claimedMilestones': claimedMilestones.toList()..sort(),
+        'achievementProgress': achievementProgress,
+        'claimedAchievements': claimedAchievements.toList()..sort(),
+        'dailyMissions': _encodeDailyMissions(dailyMissions),
         'tutorialDone': tutorialDone,
         'chaptersSeen': (chaptersSeen.toList()..sort()),
         'streak': streak,
@@ -269,6 +294,9 @@ final class LocalSave extends ChangeNotifier {
     Set<String> cloudArrowSkins = const {'classic'},
     String cloudSelectedArrowSkin = 'classic',
     Set<String> cloudClaimedMilestones = const {},
+    Map<String, int> cloudAchievementProgress = const {},
+    Set<String> cloudClaimedAchievements = const {},
+    DailyMissionState? cloudDailyMissions,
     }
   ) async {
     final mergedLevel = highestLevel > level ? highestLevel : level;
@@ -304,6 +332,48 @@ final class LocalSave extends ChangeNotifier {
           MilestoneConfig.rewards.any((reward) => reward.id == milestone) &&
           claimedMilestones.add(milestone)) {
         changed = true;
+      }
+    }
+    for (final entry in cloudAchievementProgress.entries) {
+      final definition = AchievementCatalog.byId(entry.key);
+      if (definition == null) continue;
+      final value = entry.value.clamp(0, definition.target);
+      if (value > (achievementProgress[entry.key] ?? 0)) {
+        achievementProgress[entry.key] = value;
+        changed = true;
+      }
+    }
+    for (final achievement in cloudClaimedAchievements) {
+      if (AchievementCatalog.byId(achievement) != null &&
+          claimedAchievements.add(achievement)) {
+        changed = true;
+      }
+    }
+    if (cloudDailyMissions != null) {
+      final localMissions = dailyMissions;
+      if (localMissions == null ||
+          cloudDailyMissions.dayKey.compareTo(localMissions.dayKey) > 0) {
+        dailyMissions = cloudDailyMissions;
+        changed = true;
+      } else if (cloudDailyMissions.dayKey == localMissions.dayKey) {
+        final mergedProgress = Map<String, int>.of(localMissions.progress);
+        for (final mission in cloudDailyMissions.missions) {
+          final remoteValue = cloudDailyMissions.progress[mission.id] ?? 0;
+          final localValue = mergedProgress[mission.id] ?? 0;
+          if (remoteValue > localValue) mergedProgress[mission.id] = remoteValue;
+        }
+        final mergedClaimed = {...localMissions.claimed, ...cloudDailyMissions.claimed};
+        if (mergedProgress.length != localMissions.progress.length ||
+            mergedClaimed.length != localMissions.claimed.length ||
+            mergedProgress.entries.any(
+              (entry) => entry.value != localMissions.progress[entry.key],
+            )) {
+          dailyMissions = localMissions.copyWith(
+            progress: mergedProgress,
+            claimed: mergedClaimed,
+          );
+          changed = true;
+        }
       }
     }
     if (level >= ArrowSkinCatalog.spectrum.unlockLevel! &&
@@ -343,6 +413,106 @@ final class LocalSave extends ChangeNotifier {
       ..add('classic');
     selectedArrowSkin = 'classic';
     claimedMilestones.clear();
+    achievementProgress.clear();
+    claimedAchievements.clear();
+    dailyMissions = null;
     notifyListeners();
+  }
+
+  void ensureDailyMissions() {
+    final today = DailyMissionCatalog.today();
+    if (dailyMissions?.dayKey != today.dayKey) {
+      dailyMissions = today;
+    }
+  }
+
+  void recordGameplayEvent(GameplayEvent event) {
+    ensureDailyMissions();
+    achievementProgress
+      ..clear()
+      ..addAll(AchievementTracker.apply(achievementProgress, event));
+    final state = dailyMissions!;
+    final progress = Map<String, int>.of(state.progress);
+    for (final mission in state.missions) {
+      final increment = switch (mission.objective) {
+        DailyMissionObjective.clearLevels => event.isDaily ? 0 : 1,
+        DailyMissionObjective.clearWithoutHints =>
+          !event.isDaily && !event.usedHint ? 1 : 0,
+        DailyMissionObjective.clearBoss =>
+          !event.isDaily && event.isBoss ? 1 : 0,
+      };
+      if (increment > 0) {
+        progress[mission.id] = (progress[mission.id] ?? 0) + increment;
+      }
+    }
+    dailyMissions = state.copyWith(progress: progress);
+  }
+
+  DailyMissionState? _decodeDailyMissions(Object? raw) {
+    if (raw is! Map<String, dynamic>) return null;
+    final dayKey = raw['dayKey'];
+    final definitions = raw['missions'];
+    if (dayKey is! String || definitions is! List) return null;
+    final missions = <DailyMissionDefinition>[];
+    for (final item in definitions) {
+      if (item is! Map<String, dynamic>) continue;
+      final objective = switch (item['objective']) {
+        'clearLevels' => DailyMissionObjective.clearLevels,
+        'clearWithoutHints' => DailyMissionObjective.clearWithoutHints,
+        'clearBoss' => DailyMissionObjective.clearBoss,
+        _ => null,
+      };
+      if (objective == null ||
+          item['id'] is! String ||
+          item['target'] is! num ||
+          item['coins'] is! num) {
+        continue;
+      }
+      missions.add(
+        DailyMissionDefinition(
+          id: item['id'] as String,
+          objective: objective,
+          target: (item['target'] as num).toInt().clamp(1, 100),
+          coins: (item['coins'] as num).toInt().clamp(1, 500),
+        ),
+      );
+    }
+    if (missions.length != 3) return null;
+    final progress = <String, int>{};
+    final rawProgress = raw['progress'];
+    if (rawProgress is Map<String, dynamic>) {
+      for (final mission in missions) {
+        final value = (rawProgress[mission.id] as num?)?.toInt();
+        if (value != null) progress[mission.id] = value.clamp(0, mission.target);
+      }
+    }
+    final claimed = (raw['claimed'] as List<dynamic>? ?? [])
+        .whereType<String>()
+        .where((id) => missions.any((mission) => mission.id == id))
+        .toSet();
+    return DailyMissionState(
+      dayKey: dayKey,
+      missions: missions,
+      progress: progress,
+      claimed: claimed,
+    );
+  }
+
+  Map<String, dynamic>? _encodeDailyMissions(DailyMissionState? state) {
+    if (state == null) return null;
+    return {
+      'dayKey': state.dayKey,
+      'missions': [
+        for (final mission in state.missions)
+          {
+            'id': mission.id,
+            'objective': mission.objective.name,
+            'target': mission.target,
+            'coins': mission.coins,
+          },
+      ],
+      'progress': state.progress,
+      'claimed': state.claimed.toList()..sort(),
+    };
   }
 }

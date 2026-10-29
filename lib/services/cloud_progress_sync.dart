@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/local_save.dart';
 import '../data/progress_codec.dart';
+import '../game/achievements/achievement_models.dart';
 import 'progress_sync_debouncer.dart';
 
 enum CloudSyncStatus { notConfigured, offline, syncing, synced, failed }
@@ -183,12 +184,24 @@ final class CloudProgressSync extends ChangeNotifier {
           (remote?['claimedMilestones'] as List<dynamic>? ?? [])
               .whereType<String>()
               .toSet();
+      final remoteAchievementProgress =
+          (remote?['achievementProgress'] as Map<String, dynamic>? ?? {}).map(
+            (key, value) => MapEntry(key, (value as num).toInt()),
+          );
+      final remoteClaimedAchievements =
+          (remote?['claimedAchievements'] as List<dynamic>? ?? [])
+              .whereType<String>()
+              .toSet();
+      final remoteDailyMissions = _decodeDailyMissions(remote?['dailyMissions']);
       final remoteSignature = ProgressSyncSignature.fromProgress(
         remoteLevel,
         remoteStars,
         arrowSkins: remoteArrowSkins,
         selectedArrowSkin: remoteSelectedArrowSkin,
         claimedMilestones: remoteClaimedMilestones,
+        achievementProgress: remoteAchievementProgress,
+        claimedAchievements: remoteClaimedAchievements,
+        dailyMissions: remoteDailyMissions,
       );
       if (remote != null) {
         await local.mergeCloudProgress(
@@ -197,6 +210,9 @@ final class CloudProgressSync extends ChangeNotifier {
           cloudArrowSkins: remoteArrowSkins,
           cloudSelectedArrowSkin: remoteSelectedArrowSkin,
           cloudClaimedMilestones: remoteClaimedMilestones,
+          cloudAchievementProgress: remoteAchievementProgress,
+          cloudClaimedAchievements: remoteClaimedAchievements,
+          cloudDailyMissions: remoteDailyMissions,
         );
       }
       final mergedSignature = ProgressSyncSignature.fromSave(local);
@@ -219,7 +235,11 @@ final class CloudProgressSync extends ChangeNotifier {
           'arrowSkins': local.ownedArrowSkins.toList()..sort(),
           'selectedArrowSkin': local.selectedArrowSkin,
           'claimedMilestones': local.claimedMilestones.toList()..sort(),
-          'schemaVersion': 2,
+          'achievementProgress': local.achievementProgress,
+          'claimedAchievements': local.claimedAchievements.toList()..sort(),
+          if (local.dailyMissions != null)
+            'dailyMissions': _encodeDailyMissions(local.dailyMissions!),
+          'schemaVersion': 3,
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
@@ -245,4 +265,71 @@ final class CloudProgressSync extends ChangeNotifier {
     }
     return null;
   }
+
+  DailyMissionState? _decodeDailyMissions(Object? raw) {
+    if (raw is! Map<String, dynamic>) return null;
+    final dayKey = raw['dayKey'];
+    final missions = raw['missions'];
+    if (dayKey is! String || missions is! List) return null;
+    final definitions = <DailyMissionDefinition>[];
+    for (final item in missions) {
+      if (item is! Map<String, dynamic>) continue;
+      final objective = switch (item['objective']) {
+        'clearLevels' => DailyMissionObjective.clearLevels,
+        'clearWithoutHints' => DailyMissionObjective.clearWithoutHints,
+        'clearBoss' => DailyMissionObjective.clearBoss,
+        _ => null,
+      };
+      if (objective == null ||
+          item['id'] is! String ||
+          item['target'] is! num ||
+          item['coins'] is! num) {
+        continue;
+      }
+      definitions.add(
+        DailyMissionDefinition(
+          id: item['id'] as String,
+          objective: objective,
+          target: (item['target'] as num).toInt(),
+          coins: (item['coins'] as num).toInt(),
+        ),
+      );
+    }
+    if (definitions.length != 3) return null;
+    final progress = <String, int>{};
+    final rawProgress = raw['progress'];
+    if (rawProgress is Map<String, dynamic>) {
+      for (final definition in definitions) {
+        final value = (rawProgress[definition.id] as num?)?.toInt();
+        if (value != null) {
+          progress[definition.id] = value.clamp(0, definition.target);
+        }
+      }
+    }
+    final claimed = (raw['claimed'] as List<dynamic>? ?? [])
+        .whereType<String>()
+        .where((id) => definitions.any((definition) => definition.id == id))
+        .toSet();
+    return DailyMissionState(
+      dayKey: dayKey,
+      missions: definitions,
+      progress: progress,
+      claimed: claimed,
+    );
+  }
+
+  Map<String, dynamic> _encodeDailyMissions(DailyMissionState state) => {
+    'dayKey': state.dayKey,
+    'missions': [
+      for (final mission in state.missions)
+        {
+          'id': mission.id,
+          'objective': mission.objective.name,
+          'target': mission.target,
+          'coins': mission.coins,
+        },
+    ],
+    'progress': state.progress,
+    'claimed': state.claimed.toList()..sort(),
+  };
 }

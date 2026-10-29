@@ -12,6 +12,8 @@ import '../../data/local_save.dart';
 import '../../game/data/level_catalog.dart';
 import '../../services/ad_service.dart';
 import '../../services/cloud_progress_sync.dart';
+import '../../game/achievements/achievement_models.dart';
+import '../../services/economy_repository.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -216,6 +218,8 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () => showCalendar(context, save),
                       icon: const Icon(Icons.calendar_view_month_rounded),
                     ),
+                    const SizedBox(width: 5),
+                    _GoalsButton(save: save, onTap: () => _showGoals(context)),
                   ],
                 ),
                 const SizedBox(height: 5),
@@ -267,11 +271,22 @@ class HomeScreen extends StatelessWidget {
       messenger.showSnackBar(SnackBar(content: Text(strings.adNotReady)));
       return;
     }
+
     save.giftDay = today;
     save.coins += LocalSave.dailyGiftCoins;
     await save.save();
     messenger.showSnackBar(
       SnackBar(content: Text(strings.giftClaimed(LocalSave.dailyGiftCoins))),
+    );
+  }
+
+  void _showGoals(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xff25343a),
+      showDragHandle: true,
+      builder: (context) => _GoalsSheet(save: save, strings: strings),
     );
   }
 
@@ -492,6 +507,157 @@ class HomeScreen extends StatelessWidget {
 
 /// "Rush Hour" button label. Owns its own once-a-minute timer so only this
 /// label rebuilds for the countdown, and the timer is cancelled on dispose.
+class _GoalsButton extends StatelessWidget {
+  const _GoalsButton({required this.save, required this.onTap});
+
+  final LocalSave save;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasClaimableAchievement = AchievementCatalog.definitions.any(
+      (definition) =>
+          !save.claimedAchievements.contains(definition.id) &&
+          (save.achievementProgress[definition.id] ?? 0) >= definition.target,
+    );
+    final missions = save.dailyMissions;
+    final hasClaimableMission = missions?.missions.any(
+          (mission) =>
+              !missions.claimed.contains(mission.id) &&
+              (missions.progress[mission.id] ?? 0) >= mission.target,
+        ) ??
+        false;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton.filledTonal(
+          tooltip: ClearwayStrings(save.language).achievements,
+          onPressed: onTap,
+          icon: const Icon(Icons.emoji_events_rounded),
+        ),
+        if (hasClaimableAchievement || hasClaimableMission)
+          const Positioned(
+            right: 4,
+            top: 4,
+            child: CircleAvatar(radius: 4, backgroundColor: Color(0xffff5c8d)),
+          ),
+      ],
+    );
+  }
+}
+
+class _GoalsSheet extends StatefulWidget {
+  const _GoalsSheet({required this.save, required this.strings});
+
+  final LocalSave save;
+  final ClearwayStrings strings;
+
+  @override
+  State<_GoalsSheet> createState() => _GoalsSheetState();
+}
+
+class _GoalsSheetState extends State<_GoalsSheet> {
+  @override
+  void initState() {
+    super.initState();
+    widget.save.ensureDailyMissions();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final daily = widget.save.dailyMissions!;
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
+        shrinkWrap: true,
+        children: [
+          Text(
+            widget.strings.achievements,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
+          for (final definition in AchievementCatalog.definitions)
+            _goalTile(
+              title: widget.strings.achievementName(definition.id),
+              progress: widget.save.achievementProgress[definition.id] ?? 0,
+              target: definition.target,
+              claimed: widget.save.claimedAchievements.contains(definition.id),
+              onClaim: () => _claimAchievement(definition.id),
+            ),
+          const SizedBox(height: 18),
+          Text(
+            widget.strings.missions,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
+          for (final mission in daily.missions)
+            _goalTile(
+              title: widget.strings.missionName(mission.id),
+              subtitle: widget.strings.coinsReward(mission.coins),
+              progress: daily.progress[mission.id] ?? 0,
+              target: mission.target,
+              claimed: daily.claimed.contains(mission.id),
+              onClaim: () => _claimMission(mission.id),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _goalTile({
+    required String title,
+    String? subtitle,
+    required int progress,
+    required int target,
+    required bool claimed,
+    required VoidCallback onClaim,
+  }) {
+    final complete = progress >= target;
+    return Card(
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(
+          '${widget.strings.progressLabel(progress.clamp(0, target), target)}'
+          '${subtitle == null ? '' : '  •  $subtitle'}',
+        ),
+        trailing: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          transitionBuilder: (child, animation) =>
+              ScaleTransition(scale: animation, child: child),
+          child: claimed
+              ? Text(
+                  widget.strings.claimed,
+                  key: const ValueKey('claimed'),
+                )
+              : complete
+              ? FilledButton(
+                  key: const ValueKey('claim'),
+                  onPressed: onClaim,
+                  child: Text(widget.strings.claim),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _claimAchievement(String id) async {
+    if (await EconomyRepository(widget.save).claimAchievement(id) && mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.strings.achievementComplete)),
+      );
+    }
+  }
+
+  Future<void> _claimMission(String id) async {
+    if (await EconomyRepository(widget.save).claimDailyMission(id) && mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.strings.missionComplete)),
+      );
+    }
+  }
+}
+
 class _DailyRushLabel extends StatefulWidget {
   const _DailyRushLabel({required this.strings, required this.streak});
 

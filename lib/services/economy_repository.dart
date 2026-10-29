@@ -1,6 +1,7 @@
 import '../data/local_save.dart';
 import '../game/milestones/milestone_config.dart';
 import '../game/skins/arrow_skin.dart';
+import '../game/achievements/achievement_models.dart';
 
 final class PurchaseResult {
   const PurchaseResult({
@@ -28,10 +29,47 @@ final class MilestoneGrant {
   bool get isEmpty => coins == 0 && hints == 0 && !skinUnlocked;
 }
 
-final class EconomyRepository {
+abstract interface class RewardRepository {
+  Future<bool> claimAchievement(String achievementId);
+  Future<bool> claimDailyMission(String missionId);
+}
+
+final class EconomyRepository implements RewardRepository {
   EconomyRepository(this.save);
 
   final LocalSave save;
+
+  @override
+  Future<bool> claimAchievement(String achievementId) async {
+    final definition = AchievementCatalog.byId(achievementId);
+    if (definition == null ||
+        save.claimedAchievements.contains(achievementId) ||
+        (save.achievementProgress[achievementId] ?? 0) < definition.target) {
+      return false;
+    }
+    save.claimedAchievements.add(achievementId);
+    save.coins += 25;
+    await save.save();
+    return true;
+  }
+
+  @override
+  Future<bool> claimDailyMission(String missionId) async {
+    save.ensureDailyMissions();
+    final state = save.dailyMissions!;
+    final mission = state.missions
+        .where((candidate) => candidate.id == missionId)
+        .firstOrNull;
+    if (mission == null ||
+        state.claimed.contains(missionId) ||
+        (state.progress[missionId] ?? 0) < mission.target) {
+      return false;
+    }
+    state.claimed.add(missionId);
+    save.coins += mission.coins;
+    await save.save();
+    return true;
+  }
 
   Future<PurchaseResult> buySkin(ArrowSkin skin) async {
     if (save.ownedArrowSkins.contains(skin.id)) {

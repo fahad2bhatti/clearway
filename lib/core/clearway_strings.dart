@@ -16,6 +16,42 @@ final class ClearwayStrings {
   String get dailyChallenge => _ur ? 'روزانہ کا چیلنج' : 'Daily challenge';
   String streak(int days) => _ur ? '$days دن کا سلسلہ' : '$days day streak';
   String get dailyCalendar => _ur ? 'روزانہ کیلنڈر' : 'Daily calendar';
+  String get achievements => _ur ? 'کامیابیاں' : 'Achievements';
+  String get missions => _ur ? 'روزانہ مشن' : 'Daily missions';
+  String get claim => _ur ? 'حاصل کریں' : 'Claim';
+  String get claimed => _ur ? 'حاصل ہو گیا' : 'Claimed';
+  String get missionComplete => _ur ? 'مشن مکمل!' : 'Mission complete!';
+  String get achievementComplete => _ur ? 'کامیابی مکمل!' : 'Achievement complete!';
+  String achievementName(String id) => _ur
+      ? switch (id) {
+          'clear-10-no-hints' => 'اشارے کے بغیر ۱۰ لیول',
+          'clear-boss' => 'باس لیول صاف کریں',
+          'daily-streak-7' => '۷ دن کا سلسلہ',
+          'reach-level-80' => 'لیول ۸۰ تک پہنچیں',
+          _ => id,
+        }
+      : switch (id) {
+          'clear-10-no-hints' => 'Clear 10 levels without hints',
+          'clear-boss' => 'Clear a boss level',
+          'daily-streak-7' => 'Reach a 7-day streak',
+          'reach-level-80' => 'Reach level 80',
+          _ => id,
+        };
+  String missionName(String id) => _ur
+      ? (id.contains('clear-levels')
+            ? 'لیول مکمل کریں'
+            : id.contains('no-hints')
+            ? 'اشارے کے بغیر مکمل کریں'
+            : 'باس لیول صاف کریں')
+      : (id.contains('clear-levels')
+            ? 'Complete levels'
+            : id.contains('no-hints')
+            ? 'Clear without hints'
+            : 'Clear a boss level');
+  String progressLabel(int value, int target) =>
+      _ur ? '${_digits(value)} / ${_digits(target)}' : '$value / $target';
+  String coinsReward(int coins) =>
+      _ur ? '+🪙${_digits(coins)}' : '+🪙$coins';
   String get yardShop => _ur ? 'دکان' : 'Shop';
   String get settings => _ur ? 'ترتیبات' : 'Settings';
   String get shopTitle => _ur ? 'دکان' : 'Shop';

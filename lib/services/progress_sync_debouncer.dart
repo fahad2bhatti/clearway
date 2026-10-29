@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../data/progress_codec.dart';
 import '../data/local_save.dart';
+import '../game/achievements/achievement_models.dart';
 
 /// Stable identity for exactly the progress fields stored in Firestore.
 final class ProgressSyncSignature {
@@ -14,6 +15,9 @@ final class ProgressSyncSignature {
         arrowSkins: save.ownedArrowSkins,
         selectedArrowSkin: save.selectedArrowSkin,
         claimedMilestones: save.claimedMilestones,
+        achievementProgress: save.achievementProgress,
+        claimedAchievements: save.claimedAchievements,
+        dailyMissions: save.dailyMissions,
       );
 
   factory ProgressSyncSignature.fromProgress(
@@ -23,13 +27,19 @@ final class ProgressSyncSignature {
     Set<String> arrowSkins = const {'classic'},
     String selectedArrowSkin = 'classic',
     Set<String> claimedMilestones = const {},
+    Map<String, int> achievementProgress = const {},
+    Set<String> claimedAchievements = const {},
+    DailyMissionState? dailyMissions,
     }
   ) {
     return ProgressSyncSignature._(
       '$highestLevel|${ProgressCodec.encode(stars, throughLevel: highestLevel)}'
       '|${(arrowSkins.toList()..sort()).join(",")}'
       '|$selectedArrowSkin'
-      '|${(claimedMilestones.toList()..sort()).join(",")}',
+      '|${(claimedMilestones.toList()..sort()).join(",")}'
+      '|${achievementProgress.entries.toList()..sort((a, b) => a.key.compareTo(b.key))}'
+      '|${(claimedAchievements.toList()..sort()).join(",")}'
+      '|${dailyMissions?.dayKey ?? ""}|${dailyMissions?.progress}',
     );
   }
 

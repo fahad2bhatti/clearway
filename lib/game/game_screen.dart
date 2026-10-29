@@ -25,6 +25,7 @@ import '../services/sound_service.dart';
 import 'revive.dart';
 import 'tutorial.dart';
 import 'skins/arrow_skin.dart';
+import 'achievements/achievement_models.dart';
 
 enum GamePhase { ready, animating, paused, won, lost }
 
@@ -73,6 +74,7 @@ class _GameScreenState extends State<GameScreen> {
   var _phase = GamePhase.ready;
   final _blockedTaps = BlockedTapGuard();
   var _dailyTouched = false;
+  var _hintUsed = false;
   var _revived = false;
   var _zoomLocked = false;
   final _zoom = TransformationController();
@@ -108,6 +110,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _loadLevel({bool restore = false}) {
     _dailyTouched = false;
+    _hintUsed = false;
     _level = widget.daily
         ? LevelCatalog.daily(_dailyDayKey, serverSeed: widget.dailyServerSeed)
         : LevelCatalog.getLevel(_levelIndex + 1);
@@ -177,6 +180,7 @@ class _GameScreenState extends State<GameScreen> {
     _dailyTouched =
         widget.daily &&
         (_remaining.length != _level.vehicles.length || _mistakes > 0);
+    _hintUsed = saved['hintUsed'] == true;
     _revived = saved['revived'] == true;
     if (_lives == 0) _phase = GamePhase.lost;
   }
@@ -250,6 +254,7 @@ class _GameScreenState extends State<GameScreen> {
       'undoUsed': _undoUsed,
       'lives': _lives,
       'mistakes': _mistakes,
+      'hintUsed': _hintUsed,
       'revived': _revived,
     };
     _saveTimer?.cancel();
@@ -352,6 +357,7 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     if (widget.daily) _dailyTouched = true;
+    _hintUsed = true;
     final safe = MoveValidator.safeVehicles(_level, _remaining);
     if (safe.isEmpty) return;
     widget.save.hints--;
@@ -478,6 +484,17 @@ class _GameScreenState extends State<GameScreen> {
         milestoneNote = '${strings.rewardSummary}: ${parts.join(', ')}';
       }
     }
+    widget.save.recordGameplayEvent(
+      GameplayEvent(
+        type: widget.daily
+            ? GameplayEventType.dailyCleared
+            : GameplayEventType.levelCleared,
+        level: _level.number,
+        usedHint: _hintUsed,
+        isBoss: _level.boss,
+        streak: widget.save.streak,
+      ),
+    );
     _clearActiveBoard();
     await widget.save.save();
     widget.onLevelWon();

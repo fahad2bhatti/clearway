@@ -1,4 +1,6 @@
 import 'package:clearway/data/local_save.dart';
+import 'package:clearway/game/achievements/achievement_models.dart';
+import 'package:clearway/services/economy_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,6 +52,31 @@ void main() {
     expect(restored.notifications, isFalse);
     expect(restored.ownedArrowSkins, contains('sunset'));
     expect(restored.selectedArrowSkin, 'sunset');
+    save.dispose();
+    restored.dispose();
+  });
+
+  test('gameplay events persist progress and claims are idempotent', () async {
+    final save = LocalSave();
+    for (var i = 0; i < 10; i++) {
+      save.recordGameplayEvent(
+        const GameplayEvent(
+          type: GameplayEventType.levelCleared,
+          level: 2,
+          usedHint: false,
+          isBoss: false,
+          streak: 0,
+        ),
+      );
+    }
+    await save.save();
+
+    final economy = EconomyRepository(save);
+    expect(await economy.claimAchievement('clear-10-no-hints'), isTrue);
+    expect(await economy.claimAchievement('clear-10-no-hints'), isFalse);
+    final restored = LocalSave();
+    await restored.load();
+    expect(restored.claimedAchievements, contains('clear-10-no-hints'));
     save.dispose();
     restored.dispose();
   });

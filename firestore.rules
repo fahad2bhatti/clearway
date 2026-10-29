@@ -16,7 +16,8 @@ service cloud.firestore {
     function validProgress(data) {
       return data.keys().hasOnly([
         'highestLevel', 'starsCode', 'arrowSkins', 'selectedArrowSkin',
-        'claimedMilestones', 'schemaVersion', 'updatedAt'
+        'claimedMilestones', 'achievementProgress', 'claimedAchievements',
+        'dailyMissions', 'schemaVersion', 'updatedAt'
       ])
         && data.highestLevel is int
         && data.highestLevel >= 1
@@ -24,7 +25,7 @@ service cloud.firestore {
         && data.starsCode is string
         && data.starsCode.size() <= maxLevel()
         && data.starsCode.matches('[0-3]*')
-        && data.schemaVersion == 2
+        && data.schemaVersion in [2, 3]
         && data.updatedAt is timestamp
         && data.updatedAt == request.time
         && data.get('arrowSkins', ['classic']) is list
@@ -43,7 +44,18 @@ service cloud.firestore {
         && data.get('claimedMilestones', []).hasOnly([
           'level-10', 'level-20', 'level-30', 'level-40',
           'level-50', 'level-60', 'level-70', 'level-80'
-        ]);
+        ])
+        && data.get('achievementProgress', {}) is map
+        && data.get('achievementProgress', {}).keys().hasOnly([
+          'clear-10-no-hints', 'clear-boss', 'daily-streak-7', 'reach-level-80'
+        ])
+        && data.get('achievementProgress', {}).size() <= 4
+        && data.get('claimedAchievements', []) is list
+        && data.get('claimedAchievements', []).size() <= 4
+        && data.get('claimedAchievements', []).hasOnly([
+          'clear-10-no-hints', 'clear-boss', 'daily-streak-7', 'reach-level-80'
+        ])
+        && data.get('dailyMissions', {}) is map;
     }
 
     match /users/{uid} {
@@ -64,7 +76,11 @@ service cloud.firestore {
           && request.resource.data.get('arrowSkins', [])
             .size() >= resource.data.get('arrowSkins', []).size()
           && request.resource.data.get('claimedMilestones', [])
-            .size() >= resource.data.get('claimedMilestones', []).size();
+            .size() >= resource.data.get('claimedMilestones', []).size()
+          && request.resource.data.get('achievementProgress', {})
+            .size() >= resource.data.get('achievementProgress', {}).size()
+          && request.resource.data.get('claimedAchievements', [])
+            .size() >= resource.data.get('claimedAchievements', []).size();
         allow delete: if false;
       }
 
