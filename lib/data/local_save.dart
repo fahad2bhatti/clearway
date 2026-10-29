@@ -428,9 +428,13 @@ final class LocalSave extends ChangeNotifier {
 
   void recordGameplayEvent(GameplayEvent event) {
     ensureDailyMissions();
+    final nextAchievementProgress = AchievementTracker.apply(
+      achievementProgress,
+      event,
+    );
     achievementProgress
       ..clear()
-      ..addAll(AchievementTracker.apply(achievementProgress, event));
+      ..addAll(nextAchievementProgress);
     final state = dailyMissions!;
     final progress = Map<String, int>.of(state.progress);
     for (final mission in state.missions) {
