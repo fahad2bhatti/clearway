@@ -163,7 +163,9 @@ final class AchievementTracker {
         case AchievementObjective.dailyStreak:
           increment = event.isDaily ? event.streak : 0;
         case AchievementObjective.reachLevel:
-          increment = event.isDaily ? 0 : event.level;
+          increment = !event.isDaily && event.level >= definition.target
+              ? event.level
+              : 0;
       }
       if (increment == 0) continue;
       final old = next[definition.id] ?? 0;

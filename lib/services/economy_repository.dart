@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import '../data/local_save.dart';
 import '../game/milestones/milestone_config.dart';
@@ -40,7 +41,8 @@ final class EconomyRepository implements RewardRepository {
   EconomyRepository(this.save);
 
   final LocalSave save;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  FirebaseFunctions get _functions => FirebaseFunctions.instance;
+  bool get _firebaseUnavailable => Firebase.apps.isEmpty;
   static int _requestSequence = 0;
 
   String _requestId(String operation, String subject) {
@@ -82,6 +84,7 @@ final class EconomyRepository implements RewardRepository {
   }
 
   Future<PurchaseResult> _purchase(String itemId) async {
+    if (_firebaseUnavailable) return _localPurchase(itemId);
     try {
       final result = await _functions.httpsCallable('purchaseEconomyItem').call({
         'itemId': itemId,
@@ -97,6 +100,27 @@ final class EconomyRepository implements RewardRepository {
     }
   }
 
+  Future<PurchaseResult> _localPurchase(String itemId) async {
+    final item = switch (itemId) {
+      'hint-pack' => (cost: 50, hints: 2, undos: 0, skin: null),
+      'undo-pack' => (cost: 30, hints: 0, undos: 3, skin: null),
+      'sunset-skin' => (cost: 150, hints: 0, undos: 0, skin: 'sunset'),
+      _ => null,
+    };
+    if (item == null || save.coins < item.cost) {
+      return const PurchaseResult(success: false, reason: 'insufficient');
+    }
+    if (item.skin != null && save.ownedArrowSkins.contains(item.skin)) {
+      return const PurchaseResult(success: false, reason: 'owned');
+    }
+    save.coins -= item.cost;
+    save.hints += item.hints;
+    save.undos += item.undos;
+    if (item.skin != null) save.ownedArrowSkins.add(item.skin!);
+    await save.save();
+    return const PurchaseResult(success: true);
+  }
+
   Future<PurchaseResult> buyOffer(String offerId) {
     if (offerId != 'hint-pack' && offerId != 'undo-pack') {
       return Future.value(
@@ -109,6 +133,19 @@ final class EconomyRepository implements RewardRepository {
   Future<PurchaseResult> spend(String action) async {
     if (action != 'hint' && action != 'undo' && action != 'revive') {
       return const PurchaseResult(success: false, reason: 'unavailable');
+    }
+    if (_firebaseUnavailable) {
+      if (action == 'hint' && save.hints > 0) {
+        save.hints--;
+      } else if (action == 'undo' && save.undos > 0) {
+        save.undos--;
+      } else if (action == 'revive' && save.coins >= 30) {
+        save.coins -= 30;
+      } else {
+        return const PurchaseResult(success: false, reason: 'insufficient');
+      }
+      await save.save();
+      return const PurchaseResult(success: true);
     }
     try {
       final result =
@@ -183,6 +220,7 @@ final class EconomyRepository implements RewardRepository {
   }
 
   Future<MilestoneGrant> grantMilestonesThrough(int level) async {
+    if (_firebaseUnavailable) return _grantMilestonesLocally(level);
     var coins = 0;
     var hints = 0;
     var skinUnlocked = false;
@@ -190,6 +228,32 @@ final class EconomyRepository implements RewardRepository {
       if (reward.level > level ||
           save.claimedMilestones.contains(reward.id)) {
         continue;
+      }
+
+      Future<MilestoneGrant> _grantMilestonesLocally(int level) async {
+        var coins = 0;
+        var hints = 0;
+        for (final reward in MilestoneConfig.rewards) {
+          if (reward.level > level || !save.claimedMilestones.add(reward.id)) {
+            continue;
+          }
+          save.coins += reward.coins;
+          save.hints += reward.hints;
+          coins += reward.coins;
+          hints += reward.hints;
+        }
+        var skinUnlocked = false;
+        if (level >= ArrowSkinCatalog.spectrum.unlockLevel! &&
+            save.ownedArrowSkins.add(ArrowSkinCatalog.spectrum.id)) {
+          skinUnlocked = true;
+        }
+        if (coins > 0 || hints > 0 || skinUnlocked) await save.save();
+        return MilestoneGrant(
+          coins: coins,
+          hints: hints,
+          level: level,
+          skinUnlocked: skinUnlocked,
+        );
       }
       final claimed = await _claim(
         claimId: 'milestone-${reward.id}',
@@ -212,6 +276,11 @@ final class EconomyRepository implements RewardRepository {
     required String claimId,
     required void Function() onSuccess,
   }) async {
+    if (_firebaseUnavailable) {
+      onSuccess();
+      await save.save();
+      return true;
+    }
     try {
       final result =
           await _functions.httpsCallable('claimEconomyReward').call({
