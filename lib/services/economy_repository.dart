@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import '../data/local_save.dart';
@@ -42,7 +43,8 @@ final class EconomyRepository implements RewardRepository {
 
   final LocalSave save;
   FirebaseFunctions get _functions => FirebaseFunctions.instance;
-  bool get _firebaseUnavailable => Firebase.apps.isEmpty;
+  bool get _firebaseUnavailable =>
+      Firebase.apps.isEmpty || FirebaseAuth.instance.currentUser == null;
   static int _requestSequence = 0;
 
   String _requestId(String operation, String subject) {
