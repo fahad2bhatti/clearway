@@ -1,3 +1,5 @@
+import 'package:cloud_functions/cloud_functions.dart';
+
 import '../data/local_save.dart';
 import '../game/milestones/milestone_config.dart';
 import '../game/skins/arrow_skin.dart';
@@ -38,6 +40,91 @@ final class EconomyRepository implements RewardRepository {
   EconomyRepository(this.save);
 
   final LocalSave save;
+  final CloudFunctions _functions = FirebaseFunctions.instance;
+  static int _requestSequence = 0;
+
+  String _requestId(String operation, String subject) {
+    final sequence = _requestSequence++;
+    return '$operation-$subject-${DateTime.now().microsecondsSinceEpoch}-$sequence';
+  }
+
+  void _applyState(Object? raw) {
+    if (raw is! Map) return;
+    final state = raw['state'];
+    if (state is! Map) return;
+    final coins = state['coins'];
+    final hints = state['hints'];
+    final undos = state['undos'];
+    final skins = state['ownedSkins'];
+    if (coins is! num ||
+        hints is! num ||
+        undos is! num ||
+        skins is! List ||
+        coins < 0 ||
+        hints < 0 ||
+        undos < 0 ||
+        !coins.isFinite ||
+        !hints.isFinite ||
+        !undos.isFinite) {
+      return;
+    }
+    save
+      ..coins = coins.toInt()
+      ..hints = hints.toInt()
+      ..undos = undos.toInt()
+      ..ownedArrowSkins
+        ..clear()
+        ..addAll(skins.whereType<String>().where(ArrowSkinCatalog.contains));
+    save.ownedArrowSkins.add('classic');
+    if (!save.ownedArrowSkins.contains(save.selectedArrowSkin)) {
+      save.selectedArrowSkin = 'classic';
+    }
+  }
+
+  Future<PurchaseResult> _purchase(String itemId) async {
+    try {
+      final result = await _functions.httpsCallable('purchaseEconomyItem').call({
+        'itemId': itemId,
+        'requestId': _requestId('purchase', itemId),
+      });
+      _applyState(result.data);
+      await save.save();
+      return const PurchaseResult(success: true);
+    } on FirebaseFunctionsException catch (error) {
+      return PurchaseResult(success: false, reason: error.code);
+    } catch (_) {
+      return const PurchaseResult(success: false, reason: 'offline');
+    }
+  }
+
+  Future<PurchaseResult> buyOffer(String offerId) {
+    if (offerId != 'hint-pack' && offerId != 'undo-pack') {
+      return Future.value(
+        const PurchaseResult(success: false, reason: 'unavailable'),
+      );
+    }
+    return _purchase(offerId);
+  }
+
+  Future<PurchaseResult> spend(String action) async {
+    if (action != 'hint' && action != 'undo' && action != 'revive') {
+      return const PurchaseResult(success: false, reason: 'unavailable');
+    }
+    try {
+      final result =
+          await _functions.httpsCallable('spendEconomyResource').call({
+        'action': action,
+        'requestId': _requestId('spend', action),
+      });
+      _applyState(result.data);
+      await save.save();
+      return const PurchaseResult(success: true);
+    } on FirebaseFunctionsException catch (error) {
+      return PurchaseResult(success: false, reason: error.code);
+    } catch (_) {
+      return const PurchaseResult(success: false, reason: 'offline');
+    }
+  }
 
   @override
   Future<bool> claimAchievement(String achievementId) async {
@@ -47,10 +134,10 @@ final class EconomyRepository implements RewardRepository {
         (save.achievementProgress[achievementId] ?? 0) < definition.target) {
       return false;
     }
-    save.claimedAchievements.add(achievementId);
-    save.coins += 25;
-    await save.save();
-    return true;
+    return _claim(
+      claimId: 'achievement-$achievementId',
+      onSuccess: () => save.claimedAchievements.add(achievementId),
+    );
   }
 
   @override
@@ -65,10 +152,10 @@ final class EconomyRepository implements RewardRepository {
         (state.progress[missionId] ?? 0) < mission.target) {
       return false;
     }
-    state.claimed.add(missionId);
-    save.coins += mission.coins;
-    await save.save();
-    return true;
+    return _claim(
+      claimId: 'mission-${state.dayKey}-$missionId',
+      onSuccess: () => state.claimed.add(missionId),
+    );
   }
 
   Future<PurchaseResult> buySkin(ArrowSkin skin) async {
@@ -79,13 +166,10 @@ final class EconomyRepository implements RewardRepository {
         (skin.unlockLevel != null && save.level < skin.unlockLevel!)) {
       return const PurchaseResult(success: false, reason: 'unavailable');
     }
-    if (save.coins < skin.price) {
-      return const PurchaseResult(success: false, reason: 'insufficient');
+    if (skin.id != 'sunset') {
+      return const PurchaseResult(success: false, reason: 'unavailable');
     }
-    save.coins -= skin.price;
-    save.ownedArrowSkins.add(skin.id);
-    await save.save();
-    return const PurchaseResult(success: true);
+    return _purchase('sunset-skin');
   }
 
   Future<bool> equipSkin(String skinId) async {
@@ -103,24 +187,45 @@ final class EconomyRepository implements RewardRepository {
     var hints = 0;
     var skinUnlocked = false;
     for (final reward in MilestoneConfig.rewards) {
-      if (reward.level > level || !save.claimedMilestones.add(reward.id)) {
+      if (reward.level > level ||
+          save.claimedMilestones.contains(reward.id)) {
         continue;
       }
-      save.coins += reward.coins;
-      save.hints += reward.hints;
-      coins += reward.coins;
-      hints += reward.hints;
+      final claimed = await _claim(
+        claimId: 'milestone-${reward.id}',
+        onSuccess: () => save.claimedMilestones.add(reward.id),
+      );
+      if (claimed) {
+        coins += reward.coins;
+        hints += reward.hints;
+      }
     }
-    if (level >= ArrowSkinCatalog.spectrum.unlockLevel! &&
-        save.ownedArrowSkins.add(ArrowSkinCatalog.spectrum.id)) {
-      skinUnlocked = true;
-    }
-    if (coins > 0 || hints > 0 || skinUnlocked) await save.save();
     return MilestoneGrant(
       coins: coins,
       hints: hints,
       level: level,
       skinUnlocked: skinUnlocked,
     );
+  }
+
+  Future<bool> _claim({
+    required String claimId,
+    required void Function() onSuccess,
+  }) async {
+    try {
+      final result =
+          await _functions.httpsCallable('claimEconomyReward').call({
+        'claimId': claimId,
+        'requestId': _requestId('claim', claimId),
+      });
+      _applyState(result.data);
+      onSuccess();
+      await save.save();
+      return true;
+    } on FirebaseFunctionsException {
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 }

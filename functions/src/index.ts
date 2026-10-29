@@ -57,6 +57,15 @@ type EconomyState = {
   ownedSkins: string[];
 };
 
+function economyResponse(state: EconomyState): EconomyState {
+  return {
+    coins: state.coins,
+    hints: state.hints,
+    undos: state.undos,
+    ownedSkins: state.ownedSkins,
+  };
+}
+
 function readEconomyState(snapshot: DocumentSnapshot): EconomyState {
   try {
     const rawSkins = snapshot.get('ownedSkins');
@@ -226,7 +235,65 @@ export const purchaseEconomyItem = onCall(callableOptions, async (request) => {
     });
     return { alreadyApplied: false, balance };
   });
-  return { ...result, itemId: item.id };
+  const economy = await economyRef.get();
+  return {
+    ...result,
+    itemId: item.id,
+    state: economyResponse(readEconomyState(economy)),
+  };
+});
+
+export const spendEconomyResource = onCall(callableOptions, async (request) => {
+  const uid = uidFrom(request);
+  await assertNotBanned(uid);
+  await enforceRateLimit(uid, 'spendEconomyResource', 250);
+  const data = dataFrom(request);
+  const action = data.action;
+  if (action !== 'hint' && action !== 'undo' && action !== 'revive') {
+    invalidArgument('invalid-action');
+  }
+  let idempotencyKey: string;
+  try {
+    idempotencyKey = requestId(data.requestId);
+  } catch (error) {
+    invalidArgument(error instanceof Error ? error.message : 'invalid-request');
+  }
+  const economyRef = db.collection('users').doc(uid).collection('economy').doc('state');
+  const ledgerRef = db.collection('users').doc(uid).collection('ledger').doc(idempotencyKey);
+  const result = await db.runTransaction(async (transaction) => {
+    const [economy, ledger] = await Promise.all([
+      transaction.get(economyRef),
+      transaction.get(ledgerRef),
+    ]);
+    const state = readEconomyState(economy);
+    if (ledger.exists) return { alreadyApplied: true, state };
+    const next = { ...state };
+    if (action === 'hint') {
+      if (next.hints < 1) throw new HttpsError('failed-precondition', 'insufficient-hints');
+      next.hints--;
+    } else if (action === 'undo') {
+      if (next.undos < 1) throw new HttpsError('failed-precondition', 'insufficient-undos');
+      next.undos--;
+    } else {
+      if (next.coins < 30) throw new HttpsError('failed-precondition', 'insufficient-coins');
+      next.coins -= 30;
+    }
+    transaction.set(economyRef, {
+      ...next,
+      schemaVersion: 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    transaction.create(ledgerRef, {
+      type: 'spend',
+      action,
+      amount: action === 'revive' ? 30 : 1,
+      idempotencyKey,
+      createdAt: FieldValue.serverTimestamp(),
+      schemaVersion: 1,
+    });
+    return { alreadyApplied: false, state: next };
+  });
+  return { ...result, state: economyResponse(result.state) };
 });
 
 export const claimEconomyReward = onCall(callableOptions, async (request) => {
@@ -291,7 +358,12 @@ export const claimEconomyReward = onCall(callableOptions, async (request) => {
     });
     return { alreadyApplied: false, balance };
   });
-  return { ...result, claimId };
+  const economy = await economyRef.get();
+  return {
+    ...result,
+    claimId,
+    state: economyResponse(readEconomyState(economy)),
+  };
 });
 
 /** Exports a signed-in player's own account data for a privacy request. */

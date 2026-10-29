@@ -357,15 +357,21 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     if (widget.daily) _dailyTouched = true;
-    _hintUsed = true;
     final safe = MoveValidator.safeVehicles(_level, _remaining);
     if (safe.isEmpty) return;
-    widget.save.hints--;
-    widget.save.save();
-    setState(() {
-      _yardGame.suggestedVehicleId = safe.first.id;
-    });
-    _persistActiveBoard();
+    unawaited(() async {
+      final result = await EconomyRepository(widget.save).spend('hint');
+      if (!mounted) return;
+      if (!result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.cloudError)),
+        );
+        return;
+      }
+      _hintUsed = true;
+      setState(() => _yardGame.suggestedVehicleId = safe.first.id);
+      _persistActiveBoard();
+    }());
   }
 
   Future<void> _offerRewardedAd({
@@ -427,18 +433,27 @@ class _GameScreenState extends State<GameScreen> {
       );
       return;
     }
-    widget.save.undos--;
-    _blockedTaps.reset();
-    setState(() {
-      _remaining = List.of(_undoSnapshot!);
-      _undoSnapshot = null;
-      _undoUsed = true;
-      _yardGame
-        ..clearExits()
-        ..vehicles = _remaining
-        ..suggestedVehicleId = null;
-    });
-    _persistActiveBoard();
+    unawaited(() async {
+      final result = await EconomyRepository(widget.save).spend('undo');
+      if (!mounted) return;
+      if (!result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.cloudError)),
+        );
+        return;
+      }
+      _blockedTaps.reset();
+      setState(() {
+        _remaining = List.of(_undoSnapshot!);
+        _undoSnapshot = null;
+        _undoUsed = true;
+        _yardGame
+          ..clearExits()
+          ..vehicles = _remaining
+          ..suggestedVehicleId = null;
+      });
+      _persistActiveBoard();
+    }());
   }
 
   Future<void> _showWinDialog() async {
@@ -565,14 +580,22 @@ class _GameScreenState extends State<GameScreen> {
         !Revive.canAfford(widget.save.coins)) {
       return;
     }
-    widget.save.coins -= Revive.cost;
-    unawaited(widget.save.save());
-    setState(() {
-      _revived = true;
-      _lives = Revive.livesRestored;
-      _phase = GamePhase.ready;
-    });
-    _persistActiveBoard();
+    unawaited(() async {
+      final result = await EconomyRepository(widget.save).spend('revive');
+      if (!mounted) return;
+      if (!result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.cloudError)),
+        );
+        return;
+      }
+      setState(() {
+        _revived = true;
+        _lives = Revive.livesRestored;
+        _phase = GamePhase.ready;
+      });
+      _persistActiveBoard();
+    }());
   }
 
   void _reviveFromAd() {

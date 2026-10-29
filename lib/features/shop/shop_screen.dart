@@ -181,13 +181,14 @@ class _ShopScreenState extends State<ShopScreen> {
     if (_busy || widget.save.coins < (offer.coinCost ?? 0)) return;
     setState(() => _busy = true);
     try {
-      widget.save.coins -= offer.coinCost!;
-      if (offer.id == 'hint-pack') {
-        widget.save.hints += offer.hintReward;
-      } else {
-        widget.save.undos += 3;
+      final result = await economy.buyOffer(offer.id);
+      if (mounted && !result.success) {
+        _message(
+          result.reason == 'failed-precondition'
+              ? strings.insufficientCoins
+              : strings.cloudError,
+        );
       }
-      await widget.save.save();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
