@@ -229,32 +229,6 @@ final class EconomyRepository implements RewardRepository {
           save.claimedMilestones.contains(reward.id)) {
         continue;
       }
-
-      Future<MilestoneGrant> _grantMilestonesLocally(int level) async {
-        var coins = 0;
-        var hints = 0;
-        for (final reward in MilestoneConfig.rewards) {
-          if (reward.level > level || !save.claimedMilestones.add(reward.id)) {
-            continue;
-          }
-          save.coins += reward.coins;
-          save.hints += reward.hints;
-          coins += reward.coins;
-          hints += reward.hints;
-        }
-        var skinUnlocked = false;
-        if (level >= ArrowSkinCatalog.spectrum.unlockLevel! &&
-            save.ownedArrowSkins.add(ArrowSkinCatalog.spectrum.id)) {
-          skinUnlocked = true;
-        }
-        if (coins > 0 || hints > 0 || skinUnlocked) await save.save();
-        return MilestoneGrant(
-          coins: coins,
-          hints: hints,
-          level: level,
-          skinUnlocked: skinUnlocked,
-        );
-      }
       final claimed = await _claim(
         claimId: 'milestone-${reward.id}',
         onSuccess: () => save.claimedMilestones.add(reward.id),
@@ -264,6 +238,32 @@ final class EconomyRepository implements RewardRepository {
         hints += reward.hints;
       }
     }
+    return MilestoneGrant(
+      coins: coins,
+      hints: hints,
+      level: level,
+      skinUnlocked: skinUnlocked,
+    );
+  }
+
+  Future<MilestoneGrant> _grantMilestonesLocally(int level) async {
+    var coins = 0;
+    var hints = 0;
+    for (final reward in MilestoneConfig.rewards) {
+      if (reward.level > level || !save.claimedMilestones.add(reward.id)) {
+        continue;
+      }
+      save.coins += reward.coins;
+      save.hints += reward.hints;
+      coins += reward.coins;
+      hints += reward.hints;
+    }
+    var skinUnlocked = false;
+    if (level >= ArrowSkinCatalog.spectrum.unlockLevel! &&
+        save.ownedArrowSkins.add(ArrowSkinCatalog.spectrum.id)) {
+      skinUnlocked = true;
+    }
+    if (coins > 0 || hints > 0 || skinUnlocked) await save.save();
     return MilestoneGrant(
       coins: coins,
       hints: hints,
