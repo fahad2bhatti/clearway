@@ -40,7 +40,7 @@ final class EconomyRepository implements RewardRepository {
   EconomyRepository(this.save);
 
   final LocalSave save;
-  final CloudFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
   static int _requestSequence = 0;
 
   String _requestId(String operation, String subject) {
@@ -71,10 +71,10 @@ final class EconomyRepository implements RewardRepository {
     save
       ..coins = coins.toInt()
       ..hints = hints.toInt()
-      ..undos = undos.toInt()
-      ..ownedArrowSkins
-        ..clear()
-        ..addAll(skins.whereType<String>().where(ArrowSkinCatalog.contains));
+      ..undos = undos.toInt();
+    save.ownedArrowSkins
+      ..clear()
+      ..addAll(skins.whereType<String>().where(ArrowSkinCatalog.contains));
     save.ownedArrowSkins.add('classic');
     if (!save.ownedArrowSkins.contains(save.selectedArrowSkin)) {
       save.selectedArrowSkin = 'classic';
