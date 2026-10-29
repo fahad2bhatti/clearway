@@ -183,31 +183,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _sendFeedback() async {
-    final controller = TextEditingController();
     final text = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(strings.sendFeedback),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 2000,
-          maxLines: 5,
-          decoration: InputDecoration(hintText: strings.feedbackPrompt),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(strings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: Text(strings.confirm),
-          ),
-        ],
-      ),
+      builder: (context) => _FeedbackDialog(strings: strings),
     );
-    controller.dispose();
     final value = text?.trim() ?? '';
     if (value.isEmpty) {
       if (text != null) _message(strings.feedbackEmpty);
@@ -230,4 +209,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _message(String message) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+final class _FeedbackDialog extends StatefulWidget {
+  const _FeedbackDialog({required this.strings});
+
+  final ClearwayStrings strings;
+
+  @override
+  State<_FeedbackDialog> createState() => _FeedbackDialogState();
+}
+
+final class _FeedbackDialogState extends State<_FeedbackDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.strings.sendFeedback),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      maxLength: 2000,
+      maxLines: 5,
+      decoration: InputDecoration(hintText: widget.strings.feedbackPrompt),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text(widget.strings.cancel),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, _controller.text),
+        child: Text(widget.strings.confirm),
+      ),
+    ],
+  );
 }
