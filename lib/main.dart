@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import 'app/app_identity.dart';
 import 'core/daily_clock.dart';
 import 'features/home/home_screen.dart';
+import 'features/shop/shop_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'game/data/level_catalog.dart';
 import 'game/game_screen.dart';
 import 'data/local_save.dart';
@@ -57,6 +59,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     operation: (force) => force ? _cloud.retry(_save) : _cloud.sync(_save),
   );
   var _playing = false;
+  var _screen = _AppScreen.home;
   var _level = 1;
   var _daily = false;
   String? _dailyDayKey;
@@ -205,6 +208,14 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
             }),
             onLevelChanged: (level) => setState(() => _level = level),
           )
+        : _screen == _AppScreen.shop
+        ? ShopScreen(save: _save, onBack: () => setState(() => _screen = _AppScreen.home))
+        : _screen == _AppScreen.settings
+        ? SettingsScreen(
+            save: _save,
+            cloud: _cloud,
+            onBack: () => setState(() => _screen = _AppScreen.home),
+          )
         : HomeScreen(
             currentLevel: _save.level,
             save: _save,
@@ -218,9 +229,13 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
               _dailyServerSeed = null;
             }),
             onDaily: () => unawaited(_startDaily()),
+            onShop: () => setState(() => _screen = _AppScreen.shop),
+            onSettings: () => setState(() => _screen = _AppScreen.settings),
           ),
   );
 }
+
+enum _AppScreen { home, shop, settings }
 
 // Built once (top-level finals are lazy) instead of on every app rebuild.
 final _darkTheme = _buildTheme(dark: true);

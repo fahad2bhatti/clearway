@@ -18,6 +18,120 @@ final class ClearwayStrings {
   String get dailyCalendar => _ur ? 'روزانہ کیلنڈر' : 'Daily calendar';
   String get yardShop => _ur ? 'دکان' : 'Shop';
   String get settings => _ur ? 'ترتیبات' : 'Settings';
+  String get shopTitle => _ur ? 'دکان' : 'Shop';
+  String get shopCoins => _ur ? 'سکے اور اشارے' : 'Coins and hints';
+  String get shopSkins => _ur ? 'تیر کی کھالیں' : 'Arrow skins';
+  String get shopAds => _ur ? 'روزانہ اشتہاری انعامات' : 'Daily ad offers';
+  String get shopRemoveAds => _ur ? 'اشتہارات ہٹائیں' : 'Remove Ads';
+  String get comingSoon => _ur ? 'جلد آ رہا ہے' : 'Coming soon';
+  String get owned => _ur ? 'ملکیت میں' : 'Owned';
+  String get selected => _ur ? 'منتخب' : 'Selected';
+  String get select => _ur ? 'منتخب کریں' : 'Select';
+  String get buy => _ur ? 'خریدیں' : 'Buy';
+  String get insufficientCoins => _ur ? 'سکے کم ہیں' : 'Not enough coins';
+  String get unavailableOffline => _ur ? 'آف لائن دستیاب نہیں' : 'Unavailable offline';
+  String get settingsAccount => _ur ? 'اکاؤنٹ' : 'Account';
+  String get username => _ur ? 'صارف نام' : 'Username';
+  String get anonymousAccount => _ur ? 'گمنام اکاؤنٹ' : 'Anonymous account';
+  String get linkAccount => _ur ? 'پیش رفت محفوظ کرنے کے لیے اکاؤنٹ لنک کریں' : 'Link account to save your progress';
+  String get linkedAccount => _ur ? 'اکاؤنٹ لنک ہے' : 'Account linked';
+  String get notifications => _ur ? 'اطلاعات' : 'Notifications';
+  String get rateUs => _ur ? 'ہمیں ریٹ کریں' : 'Rate Us';
+  String get sendFeedback => _ur ? 'رائے بھیجیں' : 'Send Feedback';
+  String get privacyPolicy => _ur ? 'رازداری کی پالیسی' : 'Privacy Policy';
+  String get terms => _ur ? 'شرائط و ضوابط' : 'Terms & Conditions';
+  String get appVersion => _ur ? 'ایپ ورژن' : 'App version';
+  String get logout => _ur ? 'لاگ آؤٹ' : 'Logout';
+  String get deleteAccount => _ur ? 'اکاؤنٹ حذف کریں' : 'Delete Account';
+  String get cancel => _ur ? 'منسوخ' : 'Cancel';
+  String get confirm => _ur ? 'تصدیق کریں' : 'Confirm';
+  String get logoutConfirm => _ur ? 'کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟' : 'Are you sure you want to log out?';
+  String get deleteAccountConfirm => _ur
+      ? 'یہ کارروائی واپس نہیں ہو سکتی۔ اکاؤنٹ اور اس سے منسلک آن لائن ڈیٹا حذف ہو جائے گا۔'
+      : 'This cannot be undone. Your account and associated online data will be deleted.';
+  String get accountActionUnavailable => _ur
+      ? 'اکاؤنٹ لنک کرنے کا عمل اگلے مرحلے میں دستیاب ہوگا۔ آپ کی مقامی پیش رفت محفوظ ہے۔'
+      : 'Account linking will be available in a later phase. Your local progress remains safe.';
+  String get accountDeleted => _ur ? 'اکاؤنٹ حذف ہو گیا' : 'Account deleted';
+  String get accountDeleteFailed => _ur ? 'اکاؤنٹ حذف نہیں ہو سکا۔ دوبارہ کوشش کریں۔' : 'Account deletion failed. Please retry.';
+  String get feedbackUnavailable => _ur ? 'رائے بھیجنے کے لیے آن لائن کنکشن درکار ہے۔' : 'An online connection is required to send feedback.';
+  String get feedbackSent => _ur ? 'رائے بھیج دی گئی۔' : 'Feedback sent.';
+  String get feedbackPrompt => _ur ? 'اپنی رائے لکھیں' : 'Write your feedback';
+  String get feedbackEmpty => _ur ? 'رائے خالی نہیں ہو سکتی۔' : 'Feedback cannot be empty.';
+  String get linkPrivacy => _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
+  String get rateUnavailable => _ur ? 'ریٹنگ ابھی دستیاب نہیں۔' : 'Rating is not available yet.';
+  String skinName(String id) => _ur
+      ? switch (id) {
+          'classic' => 'کلاسک',
+          'sunset' => 'غروب آفتاب',
+          'spectrum' => 'اسپیکٹرم',
+          _ => id,
+        }
+      : switch (id) {
+          'classic' => 'Classic',
+          'sunset' => 'Sunset',
+          'spectrum' => 'Spectrum',
+          _ => id,
+        };
+  String skinDescription(String id) => _ur
+      ? switch (id) {
+          'classic' => 'صاف یک رنگ تیر',
+          'sunset' => 'گرم رنگوں کا مجموعہ',
+          'spectrum' => 'لیول ۸۰ پر مفت کھلتا ہے',
+          _ => '',
+        }
+      : switch (id) {
+          'classic' => 'Clean monochrome arrows',
+          'sunset' => 'A warm color palette',
+          'spectrum' => 'Free at level 80',
+          _ => '',
+        };
+  String get unlockAt80 => _ur ? 'لیول ۸۰ پر کھلے گا' : 'Unlocks at level 80';
+  String get skinPurchased => _ur ? 'اسکن خرید لیا گیا' : 'Skin purchased';
+  String get skinEquipped => _ur ? 'اسکن منتخب ہے' : 'Skin equipped';
+  String get skinUnlocked => _ur ? 'نیا اسکن مفت کھل گیا!' : 'New skin unlocked for free!';
+  String get rewardSummary => _ur ? 'سنگ میل کا انعام' : 'Milestone reward';
+  String milestoneReward(int level, int coins, int hints) => _ur
+      ? 'لیول ${_digits(level)}: +🪙${_digits(coins)}، +${_digits(hints)} اشارے'
+      : 'Level $level: +🪙$coins, +$hints hints';
+  String shopOfferTitle(String id) => _ur
+      ? switch (id) {
+          'hint-pack' => '۲ اشارے',
+          'undo-pack' => '۳ واپسی کے مواقع',
+          'ad-coins' => '+۳۰ سکے',
+          'classic' => 'کلاسک',
+          'sunset' => 'غروب آفتاب',
+          'remove-ads' => 'اشتہارات ہٹائیں',
+          _ => id,
+        }
+      : switch (id) {
+          'hint-pack' => '2 hints',
+          'undo-pack' => '3 undos',
+          'ad-coins' => '+30 coins',
+          'classic' => 'Classic',
+          'sunset' => 'Sunset',
+          'remove-ads' => 'Remove Ads',
+          _ => id,
+        };
+  String shopOfferDescription(String id) => _ur
+      ? switch (id) {
+          'hint-pack' => 'ابھی نکلنے والی سواری دیکھیں',
+          'undo-pack' => 'آخری نکلی سواری واپس لائیں',
+          'ad-coins' => 'انعامی اشتہار دیکھیں',
+          'classic' => 'اصل Clearway تیر کا انداز',
+          'sunset' => 'صرف UI اور ملکیت کی تیاری؛ مرحلہ ۷ میں آئے گا',
+          'remove-ads' => 'ایک بار کی خریداری',
+          _ => '',
+        }
+      : switch (id) {
+          'hint-pack' => 'Find a vehicle that can leave now',
+          'undo-pack' => 'Bring back your last cleared vehicle',
+          'ad-coins' => 'Watch a rewarded ad',
+          'classic' => 'The original Clearway arrow style',
+          'sunset' => 'UI and ownership wiring only; arrives in Phase 7',
+          'remove-ads' => 'One-time purchase',
+          _ => '',
+        };
   String get sound => _ur ? 'آواز' : 'Sound effects';
   String get music => _ur ? 'موسیقی' : 'Music';
   String get haptics => _ur ? 'وائبریشن' : 'Haptics';

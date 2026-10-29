@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -24,6 +25,13 @@ final class CloudProgressSync extends ChangeNotifier {
   final Map<String, int> _dailySeedCache = {};
 
   bool get isReady => _ready;
+
+  bool get hasLinkedProvider =>
+      (_auth?.currentUser?.providerData ?? const []).isNotEmpty;
+
+  String? get accountEmail => _auth?.currentUser?.email;
+
+  String? get accountUid => _auth?.currentUser?.uid;
 
   ProgressSyncSignature? get lastSyncedSignature => _lastSyncedSignature;
 
@@ -68,6 +76,7 @@ final class CloudProgressSync extends ChangeNotifier {
       if (Firebase.apps.isEmpty) {
         throw StateError('Firebase has not been initialized.');
       }
+
       _auth ??= FirebaseAuth.instance;
       _firestore ??= FirebaseFirestore.instance;
       if (_useEmulators && !_emulatorConfigured) {
@@ -85,6 +94,43 @@ final class CloudProgressSync extends ChangeNotifier {
       status = CloudSyncStatus.offline;
     }
     notifyListeners();
+  }
+
+  Future<bool> deleteAccount() async {
+    if (!_ready) return false;
+    await FirebaseFunctions.instance.httpsCallable('deleteAccount').call();
+    await _auth?.signOut();
+    _ready = false;
+    status = CloudSyncStatus.offline;
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> signOut() async {
+    if (!hasLinkedProvider) {
+      throw StateError('Anonymous accounts cannot be signed out safely.');
+    }
+    await _auth?.signOut();
+    _ready = false;
+    status = CloudSyncStatus.offline;
+    notifyListeners();
+  }
+
+  Future<void> sendFeedback({
+    required String text,
+    required String appVersion,
+  }) async {
+    final uid = _auth?.currentUser?.uid;
+    if (!_ready || _firestore == null || uid == null) {
+      throw StateError('Feedback is unavailable offline.');
+    }
+    await _firestore!.collection('reports').add({
+      'uid': uid,
+      'type': 'feedback',
+      'text': text.trim(),
+      'appVersion': appVersion,
+      'device': defaultTargetPlatform.name,
+    });
   }
 
   Future<ProgressSyncSignature?> sync(
@@ -128,12 +174,30 @@ final class CloudProgressSync extends ChangeNotifier {
       final remoteStars = remoteStarsCode == null
           ? oldStars
           : ProgressCodec.decode(remoteStarsCode);
+      final remoteArrowSkins = (remote?['arrowSkins'] as List<dynamic>? ?? [])
+          .whereType<String>()
+          .toSet();
+      final remoteSelectedArrowSkin =
+          remote?['selectedArrowSkin'] as String? ?? 'classic';
+      final remoteClaimedMilestones =
+          (remote?['claimedMilestones'] as List<dynamic>? ?? [])
+              .whereType<String>()
+              .toSet();
       final remoteSignature = ProgressSyncSignature.fromProgress(
         remoteLevel,
         remoteStars,
+        arrowSkins: remoteArrowSkins,
+        selectedArrowSkin: remoteSelectedArrowSkin,
+        claimedMilestones: remoteClaimedMilestones,
       );
       if (remote != null) {
-        await local.mergeCloudProgress(remoteLevel, remoteStars);
+        await local.mergeCloudProgress(
+          remoteLevel,
+          remoteStars,
+          cloudArrowSkins: remoteArrowSkins,
+          cloudSelectedArrowSkin: remoteSelectedArrowSkin,
+          cloudClaimedMilestones: remoteClaimedMilestones,
+        );
       }
       final mergedSignature = ProgressSyncSignature.fromSave(local);
       final localStarsCode = ProgressCodec.encode(
@@ -152,6 +216,9 @@ final class CloudProgressSync extends ChangeNotifier {
         await ref.set({
           'highestLevel': local.level,
           'starsCode': localStarsCode,
+          'arrowSkins': local.ownedArrowSkins.toList()..sort(),
+          'selectedArrowSkin': local.selectedArrowSkin,
+          'claimedMilestones': local.claimedMilestones.toList()..sort(),
           'schemaVersion': 2,
           'updatedAt': FieldValue.serverTimestamp(),
         });

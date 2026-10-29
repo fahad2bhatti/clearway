@@ -22,6 +22,8 @@ class HomeScreen extends StatelessWidget {
     required this.onSyncNow,
     required this.onPlay,
     required this.onDaily,
+    required this.onShop,
+    required this.onSettings,
   });
 
   final int currentLevel;
@@ -30,6 +32,8 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onSyncNow;
   final ValueChanged<int> onPlay;
   final VoidCallback onDaily;
+  final VoidCallback onShop;
+  final VoidCallback onSettings;
 
   ClearwayStrings get strings => ClearwayStrings(save.language);
 
@@ -98,7 +102,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 7),
                     IconButton.filledTonal(
-                      onPressed: () => _showSettings(context, save),
+                      onPressed: onSettings,
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xff25343a),
                         foregroundColor: const Color(0xfffff3d8),
@@ -227,7 +231,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     const Spacer(),
                     TextButton.icon(
-                      onPressed: () => _showShop(context, save),
+                      onPressed: onShop,
                       icon: const Icon(Icons.storefront_rounded, size: 18),
                       label: Text(strings.yardShop),
                     ),
@@ -268,184 +272,6 @@ class HomeScreen extends StatelessWidget {
     await save.save();
     messenger.showSnackBar(
       SnackBar(content: Text(strings.giftClaimed(LocalSave.dailyGiftCoins))),
-    );
-  }
-
-  void _showSettings(BuildContext context, LocalSave save) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xff25343a),
-      showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 8, 22, 30),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.settings,
-                  style: const TextStyle(
-                    color: Color(0xfffff3d8),
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SwitchListTile(
-                  title: Text(strings.sound),
-                  value: save.sound,
-                  onChanged: (v) {
-                    save.sound = v;
-                    save.save();
-                    update(() {});
-                  },
-                ),
-                SwitchListTile(
-                  title: Text(strings.music),
-                  value: save.music,
-                  onChanged: (v) {
-                    save.music = v;
-                    save.save();
-                    update(() {});
-                  },
-                ),
-                SwitchListTile(
-                  title: Text(strings.haptics),
-                  value: save.haptics,
-                  onChanged: (v) {
-                    save.haptics = v;
-                    save.save();
-                    update(() {});
-                  },
-                ),
-                SwitchListTile(
-                  title: Text(strings.darkTheme),
-                  value: save.darkTheme,
-                  onChanged: (v) {
-                    save.darkTheme = v;
-                    save.save();
-                    update(() {});
-                  },
-                ),
-                SwitchListTile(
-                  title: Text(strings.colorblind),
-                  value: save.colorblind,
-                  onChanged: (v) {
-                    save.colorblind = v;
-                    save.save();
-                    update(() {});
-                  },
-                ),
-                ListTile(
-                  title: Text(strings.languageLabel),
-                  trailing: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'en', label: Text('EN')),
-                      ButtonSegment(value: 'ur', label: Text('اردو')),
-                    ],
-                    selected: {save.language},
-                    onSelectionChanged: (v) {
-                      save.language = v.first;
-                      save.save();
-                      update(() {});
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showShop(BuildContext context, LocalSave save) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xff25343a),
-      showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 8, 22, 25),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      strings.yardShop,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text('🪙 ${save.coins}'),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ListTile(
-                  leading: const Icon(
-                    Icons.lightbulb,
-                    color: Color(0xffffb347),
-                  ),
-                  title: Text(strings.hintPack(LocalSave.hintPackSize)),
-                  subtitle: Text(strings.hintDescription),
-                  trailing: Text('${LocalSave.hintPackCost} 🪙'),
-                  onTap: () {
-                    if (save.coins < LocalSave.hintPackCost) return;
-                    save.coins -= LocalSave.hintPackCost;
-                    save.hints += LocalSave.hintPackSize;
-                    save.save();
-                    update(() {});
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.undo, color: Color(0xff4ecac1)),
-                  title: Text(strings.undos3),
-                  subtitle: Text(strings.undoDescription),
-                  trailing: const Text('30 🪙'),
-                  onTap: () {
-                    if (save.coins < 30) return;
-                    save.coins -= 30;
-                    save.undos += 3;
-                    save.save();
-                    update(() {});
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(
-                    Icons.card_giftcard,
-                    color: Color(0xffed6ca7),
-                  ),
-                  title: Text(strings.freeCoinsAd),
-                  subtitle: Text(strings.freeCoinsLeft(save.adCoinsLeft)),
-                  trailing: Text('+${LocalSave.adCoinsReward} 🪙'),
-                  enabled: save.adCoinsLeft > 0,
-                  onTap: () async {
-                    if (save.adCoinsLeft <= 0) return;
-                    final messenger = ScaffoldMessenger.of(context);
-                    AdService.preload();
-                    final rewarded = await AdService.showRewarded();
-                    if (!rewarded) {
-                      messenger.showSnackBar(
-                        SnackBar(content: Text(strings.adNotReady)),
-                      );
-                      return;
-                    }
-                    save.recordAdCoins();
-                    save.coins += LocalSave.adCoinsReward;
-                    await save.save();
-                    if (context.mounted) update(() {});
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 

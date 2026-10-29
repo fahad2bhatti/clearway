@@ -36,4 +36,21 @@ void main() {
     expect(notifications, 2);
     save.dispose();
   });
+
+  test('settings and arrow skin ownership survive reload', () async {
+    final save = LocalSave()
+      ..notifications = false
+      ..selectedArrowSkin = 'sunset'
+      ..ownedArrowSkins.add('sunset');
+    await save.save();
+
+    final restored = LocalSave();
+    await restored.load();
+
+    expect(restored.notifications, isFalse);
+    expect(restored.ownedArrowSkins, contains('sunset'));
+    expect(restored.selectedArrowSkin, 'sunset');
+    save.dispose();
+    restored.dispose();
+  });
 }

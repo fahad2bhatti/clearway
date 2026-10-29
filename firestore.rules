@@ -15,8 +15,9 @@ service cloud.firestore {
 
     function validProgress(data) {
       return data.keys().hasOnly([
-          'highestLevel', 'starsCode', 'schemaVersion', 'updatedAt'
-        ])
+        'highestLevel', 'starsCode', 'arrowSkins', 'selectedArrowSkin',
+        'claimedMilestones', 'schemaVersion', 'updatedAt'
+      ])
         && data.highestLevel is int
         && data.highestLevel >= 1
         && data.highestLevel <= maxLevel()
@@ -25,7 +26,24 @@ service cloud.firestore {
         && data.starsCode.matches('[0-3]*')
         && data.schemaVersion == 2
         && data.updatedAt is timestamp
-        && data.updatedAt == request.time;
+        && data.updatedAt == request.time
+        && data.get('arrowSkins', ['classic']) is list
+        && data.get('arrowSkins', ['classic']).size() <= 20
+        && data.get('selectedArrowSkin', 'classic') is string
+        && data.get('selectedArrowSkin', 'classic').size() <= 40
+        && data.get('selectedArrowSkin', 'classic')
+          in data.get('arrowSkins', ['classic'])
+        && data.get('claimedMilestones', []) is list
+        && data.get('claimedMilestones', []).size() <= 20
+        // Keep these rule lists synchronized with arrow_skin.dart and
+        // milestone_config.dart whenever either catalog changes.
+        && data.get('arrowSkins', ['classic']).hasOnly([
+          'classic', 'sunset', 'spectrum'
+        ])
+        && data.get('claimedMilestones', []).hasOnly([
+          'level-10', 'level-20', 'level-30', 'level-40',
+          'level-50', 'level-60', 'level-70', 'level-80'
+        ]);
     }
 
     match /users/{uid} {
@@ -42,7 +60,11 @@ service cloud.firestore {
           && validProgress(request.resource.data)
           && request.resource.data.highestLevel >= resource.data.highestLevel
           && request.resource.data.starsCode.size()
-            >= resource.data.get('starsCode', '').size();
+            >= resource.data.get('starsCode', '').size()
+          && request.resource.data.get('arrowSkins', [])
+            .size() >= resource.data.get('arrowSkins', []).size()
+          && request.resource.data.get('claimedMilestones', [])
+            .size() >= resource.data.get('claimedMilestones', []).size();
         allow delete: if false;
       }
 

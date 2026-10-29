@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/daily_clock.dart';
 import '../game/data/level_catalog.dart';
 import '../game/tutorial.dart';
+import '../game/skins/arrow_skin.dart';
+import '../game/milestones/milestone_config.dart';
 
 /// Offline-first progress matching the original browser game's local save.
 final class LocalSave extends ChangeNotifier {
@@ -50,12 +52,16 @@ final class LocalSave extends ChangeNotifier {
   bool haptics = true;
   bool darkTheme = true;
   bool colorblind = false;
+  bool notifications = true;
   String language = 'en';
   bool tutorialDone = false;
   final Set<int> chaptersSeen = {};
   Map<String, dynamic>? activeBoard;
   final Map<int, int> stars = {};
   final Set<String> completedDailies = {};
+  final Set<String> ownedArrowSkins = {'classic'};
+  String selectedArrowSkin = 'classic';
+  final Set<String> claimedMilestones = {};
 
   Future<void> load() async {
     try {
@@ -96,7 +102,31 @@ final class LocalSave extends ChangeNotifier {
     haptics = data['haptics'] as bool? ?? true;
     darkTheme = (data['theme'] as String? ?? 'dark') == 'dark';
     colorblind = data['colorblind'] as bool? ?? false;
+    notifications = data['notifications'] as bool? ?? true;
     language = data['lang'] as String? ?? 'en';
+    ownedArrowSkins
+      ..clear()
+      ..addAll(
+        (data['arrowSkins'] as List<dynamic>? ?? ['classic'])
+            .whereType<String>()
+            .where(ArrowSkinCatalog.contains),
+      );
+    if (ownedArrowSkins.isEmpty) ownedArrowSkins.add('classic');
+    if (level >= ArrowSkinCatalog.spectrum.unlockLevel!) {
+      ownedArrowSkins.add(ArrowSkinCatalog.spectrum.id);
+    }
+    selectedArrowSkin = ownedArrowSkins.contains(data['selectedArrowSkin'])
+        ? data['selectedArrowSkin'] as String
+        : 'classic';
+    claimedMilestones
+      ..clear()
+      ..addAll(
+        (data['claimedMilestones'] as List<dynamic>? ?? [])
+            .whereType<String>()
+            .where(
+              (id) => MilestoneConfig.rewards.any((reward) => reward.id == id),
+            ),
+      );
     // Saves from before this flag existed carry no value: anyone who has
     // already unlocked level 4 must have won the guided levels.
     tutorialDone = data['tutorialDone'] == true || Tutorial.finishedBy(level);
@@ -159,12 +189,18 @@ final class LocalSave extends ChangeNotifier {
     haptics = true;
     darkTheme = true;
     colorblind = false;
+    notifications = true;
     language = 'en';
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;
     stars.clear();
     completedDailies.clear();
+    ownedArrowSkins
+      ..clear()
+      ..add('classic');
+    selectedArrowSkin = 'classic';
+    claimedMilestones.clear();
   }
 
   /// Chapters the player has already moved past never show their intro card:
@@ -207,7 +243,11 @@ final class LocalSave extends ChangeNotifier {
         'haptics': haptics,
         'theme': darkTheme ? 'dark' : 'light',
         'colorblind': colorblind,
+        'notifications': notifications,
         'lang': language,
+        'arrowSkins': ownedArrowSkins.toList()..sort(),
+        'selectedArrowSkin': selectedArrowSkin,
+        'claimedMilestones': claimedMilestones.toList()..sort(),
         'tutorialDone': tutorialDone,
         'chaptersSeen': (chaptersSeen.toList()..sort()),
         'streak': streak,
@@ -225,6 +265,11 @@ final class LocalSave extends ChangeNotifier {
   Future<void> mergeCloudProgress(
     int highestLevel,
     Map<int, int> cloudStars,
+    {
+    Set<String> cloudArrowSkins = const {'classic'},
+    String cloudSelectedArrowSkin = 'classic',
+    Set<String> cloudClaimedMilestones = const {},
+    }
   ) async {
     final mergedLevel = highestLevel > level ? highestLevel : level;
     var changed = mergedLevel != level;
@@ -242,6 +287,28 @@ final class LocalSave extends ChangeNotifier {
         stars[entry.key] = bounded;
         changed = true;
       }
+    }
+    for (final skinId in cloudArrowSkins) {
+      if (ArrowSkinCatalog.contains(skinId) &&
+          ownedArrowSkins.add(skinId)) {
+        changed = true;
+      }
+    }
+    if (ownedArrowSkins.contains(cloudSelectedArrowSkin) &&
+        selectedArrowSkin != cloudSelectedArrowSkin) {
+      selectedArrowSkin = cloudSelectedArrowSkin;
+      changed = true;
+    }
+    for (final milestone in cloudClaimedMilestones) {
+      if (milestone.startsWith('level-') &&
+          MilestoneConfig.rewards.any((reward) => reward.id == milestone) &&
+          claimedMilestones.add(milestone)) {
+        changed = true;
+      }
+    }
+    if (level >= ArrowSkinCatalog.spectrum.unlockLevel! &&
+        ownedArrowSkins.add(ArrowSkinCatalog.spectrum.id)) {
+      changed = true;
     }
     if (changed) await save();
   }
@@ -266,10 +333,16 @@ final class LocalSave extends ChangeNotifier {
     haptics = true;
     darkTheme = true;
     colorblind = false;
+    notifications = true;
     language = 'en';
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;
+    ownedArrowSkins
+      ..clear()
+      ..add('classic');
+    selectedArrowSkin = 'classic';
+    claimedMilestones.clear();
     notifyListeners();
   }
 }

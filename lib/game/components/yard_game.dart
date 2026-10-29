@@ -9,6 +9,7 @@ import '../../app/theme_pack.dart';
 import '../engine/game_level.dart';
 import '../engine/grid_point.dart';
 import '../engine/vehicle.dart';
+import '../skins/arrow_skin.dart';
 import 'hold_preview.dart';
 import 'tap_gate.dart';
 
@@ -22,12 +23,14 @@ final class YardGame extends FlameGame with TapCallbacks {
     required this.level,
     required this.onVehicleTap,
     this.themePack = ThemePack.truckArt,
+    this.skin = ArrowSkinCatalog.classic,
     this.colorblindMode = false,
   });
 
   final GameLevel level;
   final VehicleTap onVehicleTap;
   final ThemePack themePack;
+  ArrowSkin skin;
   final bool colorblindMode;
 
   List<Vehicle> _vehicles = [];
@@ -50,6 +53,12 @@ final class YardGame extends FlameGame with TapCallbacks {
   bool _sceneDirty = true;
 
   void _invalidateScene() => _sceneDirty = true;
+
+  set equippedSkin(ArrowSkin value) {
+    if (skin.id == value.id) return;
+    skin = value;
+    _invalidateScene();
+  }
 
   @override
   void onRemove() {
@@ -330,11 +339,7 @@ final class YardGame extends FlameGame with TapCallbacks {
   }) {
     final flash = blockerVehicleId == vehicle.id && _feedbackRemaining > 0;
     final bumped = _bumpedVehicleId == vehicle.id && _feedbackRemaining > 0;
-    // Colour follows the bus id, so it stays the same while others leave.
-    final colorIndex = int.tryParse(vehicle.id.split('-').last) ?? index;
-    final color = flash
-        ? themePack.coral
-        : themePack.vehicleColors[colorIndex % themePack.vehicleColors.length];
+    final color = flash ? themePack.coral : skin.colorFor(index);
 
     final _VehicleShape? shape;
     if (exitProgress > 0) {
@@ -376,7 +381,7 @@ final class YardGame extends FlameGame with TapCallbacks {
     );
     canvas.drawPath(shape.arrow, _fill..color = color);
     if (colorblindMode) {
-      _drawPattern(canvas, shape.path, shape, colorIndex % 5, exitProgress > 0);
+      _drawPattern(canvas, shape.path, shape, index % 5, exitProgress > 0);
     }
     canvas.restore();
 

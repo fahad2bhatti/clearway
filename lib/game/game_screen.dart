@@ -20,9 +20,11 @@ import 'engine/game_level.dart';
 import 'engine/move_validator.dart';
 import 'engine/vehicle.dart';
 import '../services/ad_service.dart';
+import '../services/economy_repository.dart';
 import '../services/sound_service.dart';
 import 'revive.dart';
 import 'tutorial.dart';
+import 'skins/arrow_skin.dart';
 
 enum GamePhase { ready, animating, paused, won, lost }
 
@@ -125,6 +127,7 @@ class _GameScreenState extends State<GameScreen> {
             level: _level,
             onVehicleTap: _onVehicleTap,
             themePack: _themePack,
+            skin: ArrowSkinCatalog.byId(widget.save.selectedArrowSkin),
             colorblindMode: widget.save.colorblind,
           )
           ..vehicles = _remaining
@@ -441,6 +444,8 @@ class _GameScreenState extends State<GameScreen> {
         : 1;
     final isLast = widget.daily || _levelIndex == LevelCatalog.totalLevels - 1;
     final coinsBefore = widget.save.coins;
+    final economy = EconomyRepository(widget.save);
+    var milestoneNote = '';
     if (!widget.daily) AdService.registerLevelCleared();
     if (widget.daily) {
       final key = _dailyDayKey;
@@ -463,6 +468,15 @@ class _GameScreenState extends State<GameScreen> {
       final unlocked = (_level.number + 1).clamp(1, LevelCatalog.totalLevels);
       if (unlocked > widget.save.level) widget.save.level = unlocked;
       if (_level.number >= Tutorial.levels) widget.save.tutorialDone = true;
+      final milestone = await economy.grantMilestonesThrough(widget.save.level);
+      if (!milestone.isEmpty) {
+        final parts = <String>[
+          if (milestone.coins > 0) '🪙${milestone.coins}',
+          if (milestone.hints > 0) '${milestone.hints} hints',
+          if (milestone.skinUnlocked) strings.skinUnlocked,
+        ];
+        milestoneNote = '${strings.rewardSummary}: ${parts.join(', ')}';
+      }
     }
     _clearActiveBoard();
     await widget.save.save();
@@ -478,6 +492,7 @@ class _GameScreenState extends State<GameScreen> {
         title: strings.wayClear,
         message: strings.allVehiclesOut,
         stars: stars,
+        note: milestoneNote.isEmpty ? null : milestoneNote,
         adLabel: earned > 0 ? strings.watchAdDouble(earned) : null,
         adDoneLabel: strings.rewardDoubled,
         adFailedMessage: strings.adNotReady,

@@ -63,22 +63,51 @@ test('client cannot create ledger or purchase records', async () => {
 });
 
 test('progress rejects invalid star characters and excessive data', async () => {
-  const db = environment.authenticatedContext('player-a').firestore();
-  await assertFails(setDoc(doc(db, 'users/player-a/progress/state'), {
+  const invalidStarsRef = doc(
+    environment.authenticatedContext('player-stars').firestore(),
+    'users/player-stars/progress/state',
+  );
+  await assertFails(setDoc(invalidStarsRef, {
     highestLevel: 12,
     starsCode: '30x2',
     schemaVersion: 2,
     updatedAt: serverTimestamp(),
   }));
-  await assertFails(setDoc(doc(db, 'users/player-a/progress/state'), {
+  await assertSucceeds(setDoc(invalidStarsRef, {
+    highestLevel: 12,
+    starsCode: '3022',
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  }));
+  const excessiveLevelRef = doc(
+    environment.authenticatedContext('player-level').firestore(),
+    'users/player-level/progress/state',
+  );
+  await assertFails(setDoc(excessiveLevelRef, {
     highestLevel: 1001,
     starsCode: '0',
     schemaVersion: 2,
     updatedAt: serverTimestamp(),
   }));
-  await assertFails(setDoc(doc(db, 'users/player-a/progress/state'), {
+  await assertSucceeds(setDoc(excessiveLevelRef, {
+    highestLevel: 100,
+    starsCode: '0',
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  }));
+  const excessiveStarsRef = doc(
+    environment.authenticatedContext('player-stars-length').firestore(),
+    'users/player-stars-length/progress/state',
+  );
+  await assertFails(setDoc(excessiveStarsRef, {
     highestLevel: 1,
     starsCode: '0'.repeat(1001),
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(setDoc(excessiveStarsRef, {
+    highestLevel: 1,
+    starsCode: '0'.repeat(1000),
     schemaVersion: 2,
     updatedAt: serverTimestamp(),
   }));
@@ -93,12 +122,37 @@ test('progress rejects the legacy map format and unexpected fields', async () =>
     schemaVersion: 1,
     updatedAt: serverTimestamp(),
   }));
+  await assertSucceeds(setDoc(ref, {
+    highestLevel: 12,
+    starsCode: '3',
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  }));
   await assertFails(setDoc(ref, {
     highestLevel: 12,
     starsCode: '3',
     schemaVersion: 2,
     updatedAt: serverTimestamp(),
     coins: 999,
+  }));
+  await assertSucceeds(setDoc(ref, {
+    highestLevel: 12,
+    starsCode: '3',
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(setDoc(ref, {
+    highestLevel: 12,
+    starsCode: '3',
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+    hints: 1,
+  }));
+  await assertSucceeds(setDoc(ref, {
+    highestLevel: 12,
+    starsCode: '3',
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
   }));
 });
 
@@ -130,6 +184,85 @@ test('progress updates cannot lower the level or shorten starsCode', async () =>
   await assertFails(setDoc(ref, {
     highestLevel: 50,
     starsCode: '3'.repeat(49),
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  }));
+});
+
+test('progress accepts synchronized skin and milestone state', async () => {
+  const db = environment.authenticatedContext('player-a').firestore();
+  await assertSucceeds(setDoc(doc(db, 'users/player-a/progress/state'), {
+    highestLevel: 80,
+    starsCode: '3'.repeat(80),
+    arrowSkins: ['classic', 'spectrum'],
+    selectedArrowSkin: 'spectrum',
+    claimedMilestones: ['level-10', 'level-80'],
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  }));
+});
+
+test('progress rejects invalid skin and selection state', async () => {
+  const db = environment.authenticatedContext('player-a').firestore();
+  const ref = doc(db, 'users/player-a/progress/state');
+  const base = {
+    highestLevel: 80,
+    starsCode: '3'.repeat(80),
+    schemaVersion: 2,
+    updatedAt: serverTimestamp(),
+  };
+  await assertFails(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic', 42],
+    selectedArrowSkin: 'classic',
+  }));
+  await assertSucceeds(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic'],
+    selectedArrowSkin: 'classic',
+  }));
+  await assertFails(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic', 'x'.repeat(41)],
+    selectedArrowSkin: 'classic',
+  }));
+  await assertSucceeds(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic'],
+    selectedArrowSkin: 'classic',
+  }));
+  await assertFails(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic'],
+    selectedArrowSkin: 'spectrum',
+  }));
+  await assertSucceeds(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic'],
+    selectedArrowSkin: 'classic',
+  }));
+  await assertFails(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic'],
+    claimedMilestones: ['level-999'],
+    selectedArrowSkin: 'classic',
+  }));
+  await assertSucceeds(setDoc(ref, {
+    ...base,
+    arrowSkins: ['classic'],
+    claimedMilestones: [],
+    selectedArrowSkin: 'classic',
+  }));
+});
+
+test('progress accepts a valid synchronized payload without economy fields', async () => {
+  const db = environment.authenticatedContext('player-a').firestore();
+  await assertSucceeds(setDoc(doc(db, 'users/player-a/progress/state'), {
+    highestLevel: 80,
+    starsCode: '3'.repeat(80),
+    arrowSkins: ['classic', 'spectrum'],
+    selectedArrowSkin: 'spectrum',
+    claimedMilestones: ['level-10', 'level-80'],
     schemaVersion: 2,
     updatedAt: serverTimestamp(),
   }));

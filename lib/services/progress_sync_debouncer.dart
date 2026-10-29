@@ -8,14 +8,28 @@ final class ProgressSyncSignature {
   const ProgressSyncSignature._(this.value);
 
   factory ProgressSyncSignature.fromSave(LocalSave save) =>
-      ProgressSyncSignature.fromProgress(save.level, save.stars);
+      ProgressSyncSignature.fromProgress(
+        save.level,
+        save.stars,
+        arrowSkins: save.ownedArrowSkins,
+        selectedArrowSkin: save.selectedArrowSkin,
+        claimedMilestones: save.claimedMilestones,
+      );
 
   factory ProgressSyncSignature.fromProgress(
     int highestLevel,
     Map<int, int> stars,
+    {
+    Set<String> arrowSkins = const {'classic'},
+    String selectedArrowSkin = 'classic',
+    Set<String> claimedMilestones = const {},
+    }
   ) {
     return ProgressSyncSignature._(
-      '$highestLevel|${ProgressCodec.encode(stars, throughLevel: highestLevel)}',
+      '$highestLevel|${ProgressCodec.encode(stars, throughLevel: highestLevel)}'
+      '|${(arrowSkins.toList()..sort()).join(",")}'
+      '|$selectedArrowSkin'
+      '|${(claimedMilestones.toList()..sort()).join(",")}',
     );
   }
 

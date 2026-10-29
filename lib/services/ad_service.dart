@@ -9,6 +9,9 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 class AdService {
   AdService._();
 
+  /// Central entitlement hook. Billing is intentionally not implemented yet.
+  static const adsRemoved = false;
+
   // Google ke official test IDs (Android).
   static const _testBannerId = 'ca-app-pub-3940256099942544/6300978111';
   static const _testInterstitialId = 'ca-app-pub-3940256099942544/1033173712';
@@ -190,6 +193,7 @@ class AdService {
   /// Rewarded ad dikhata hai. Sirf tab true deta hai jab user ne ad poora
   /// dekh kar reward kamaya.
   static Future<bool> showRewarded() async {
+    if (adsRemoved) return false;
     final ad = _rewarded;
     if (ad == null) {
       _loadRewarded();

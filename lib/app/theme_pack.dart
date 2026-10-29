@@ -19,7 +19,6 @@ final class ThemePack {
     required this.emerald,
     required this.turquoise,
     required this.coral,
-    required this.vehicleColors,
     required this.showFloralMotifs,
     required this.vehicleNoun,
     required this.emptyYardMessage,
@@ -48,7 +47,6 @@ final class ThemePack {
   final Color emerald;
   final Color turquoise;
   final Color coral;
-  final List<Color> vehicleColors;
   final bool showFloralMotifs;
   final String vehicleNoun;
   final String emptyYardMessage;
@@ -74,13 +72,6 @@ final class ThemePack {
     emerald: Color(0xff61c69a),
     turquoise: Color(0xff4ecac1),
     coral: Color(0xffff796c),
-    vehicleColors: [
-      Color(0xffffb347),
-      Color(0xffed6ca7),
-      Color(0xff61c69a),
-      Color(0xff4ecac1),
-      Color(0xffff796c),
-    ],
     showFloralMotifs: true,
     vehicleNoun: 'vehicle',
     emptyYardMessage: 'All clear!',
