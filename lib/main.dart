@@ -165,38 +165,40 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       } else {
         unawaited(NotificationService.instance.disable());
       }
-
-      Future<void> _maybeRequestNotificationPermission() async {
-        if (!_save.notifications || _save.notificationPermissionAsked || !mounted) {
-          return;
-        }
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(ClearwayStrings(_save.language).notificationPermissionTitle),
-            content: Text(ClearwayStrings(_save.language).notificationPermissionMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(ClearwayStrings(_save.language).notificationPermissionNotNow),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(ClearwayStrings(_save.language).notificationPermissionEnable),
-              ),
-            ],
-          ),
-        );
-        if (!mounted) return;
-        _save.notificationPermissionAsked = true;
-        if (confirmed == true) {
-          _save.notifications = await NotificationService.instance.requestPermission();
-        } else {
-          _save.notifications = false;
-        }
-        await _save.save();
-      }
     }
+  }
+
+  Future<void> _maybeRequestNotificationPermission() async {
+    if (!_save.notifications || _save.notificationPermissionAsked || !mounted) {
+      return;
+    }
+    final strings = ClearwayStrings(_save.language);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.notificationPermissionTitle),
+        content: Text(strings.notificationPermissionMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(strings.notificationPermissionNotNow),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(strings.notificationPermissionEnable),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    _save.notificationPermissionAsked = true;
+    if (confirmed == true) {
+      _save.notifications =
+          await NotificationService.instance.requestPermission();
+    } else {
+      _save.notifications = false;
+    }
+    await _save.save();
   }
 
   Future<void> _retryCloudSync() async {

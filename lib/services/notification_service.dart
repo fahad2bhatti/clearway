@@ -55,9 +55,9 @@ final class NotificationService {
   Future<bool> _refreshTimezone() async {
     try {
       final info = await FlutterTimezone.getLocalTimezone();
-      final changed = _timezoneName != info.name;
-      _timezoneName = info.name;
-      tz.setLocalLocation(tz.getLocation(info.name));
+      final changed = _timezoneName != info.identifier;
+      _timezoneName = info.identifier;
+      tz.setLocalLocation(tz.getLocation(info.identifier));
       return changed;
     } catch (_) {
       final changed = _timezoneName != 'UTC';
@@ -79,18 +79,18 @@ final class NotificationService {
 
   Future<void> disable() async {
     await initialize();
-    await _plugin.cancel(midLevelId);
-    await _plugin.cancel(dailyId);
+    await _plugin.cancel(id: midLevelId);
+    await _plugin.cancel(id: dailyId);
   }
 
   Future<void> cancelMidLevel() async {
     await initialize();
-    await _plugin.cancel(midLevelId);
+    await _plugin.cancel(id: midLevelId);
   }
 
   Future<void> cancelDaily() async {
     await initialize();
-    await _plugin.cancel(dailyId);
+    await _plugin.cancel(id: dailyId);
   }
 
   Future<void> scheduleMidLevel({
@@ -98,7 +98,7 @@ final class NotificationService {
     required bool enabled,
   }) async {
     await initialize();
-    await _plugin.cancel(midLevelId);
+    await _plugin.cancel(id: midLevelId);
     if (!enabled) return;
     final now = tz.TZDateTime.now(tz.local);
     var when = now.add(const Duration(hours: 2));
@@ -123,7 +123,7 @@ final class NotificationService {
     required bool alreadyPlayed,
   }) async {
     await initialize();
-    await _plugin.cancel(dailyId);
+    await _plugin.cancel(id: dailyId);
     if (!enabled || !contentAvailable || alreadyPlayed) return;
     final now = tz.TZDateTime.now(tz.local);
     final when = tz.TZDateTime(tz.local, now.year, now.month, now.day, 19);
