@@ -5,12 +5,20 @@ import {
   getFirestore,
   Timestamp,
   type DocumentData,
+  type DocumentSnapshot,
   type QuerySnapshot,
 } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { dailySeed } from './daily.js';
+import {
+  boundedAmount,
+  economyItem,
+  requestId,
+  safeBalance,
+  type EconomyItem,
+} from './economy.js';
 
 initializeApp();
 
@@ -23,10 +31,54 @@ const callableOptions = {
   enforceAppCheck: appCheckRequired,
 };
 
+type CallableRequest = {
+  auth?: { uid: string } | null;
+  data?: Record<string, unknown>;
+};
+
 function uidFrom(request: { auth?: { uid: string } | null }): string {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in to continue.');
   return uid;
+}
+
+function dataFrom(request: CallableRequest): Record<string, unknown> {
+  return request.data ?? {};
+}
+
+function invalidArgument(message: string): never {
+  throw new HttpsError('invalid-argument', message);
+}
+
+type EconomyState = {
+  coins: number;
+  hints: number;
+  undos: number;
+  ownedSkins: string[];
+};
+
+function readEconomyState(snapshot: DocumentSnapshot): EconomyState {
+  try {
+    const rawSkins = snapshot.get('ownedSkins');
+    const ownedSkins =
+      rawSkins === undefined
+        ? ['classic']
+        : Array.isArray(rawSkins) &&
+            rawSkins.every((skin): skin is string => typeof skin === 'string')
+          ? rawSkins
+          : null;
+    if (ownedSkins === null || ownedSkins.length > 20) {
+      throw new Error('invalid-skins');
+    }
+    return {
+      coins: safeBalance(snapshot.get('coins')),
+      hints: safeBalance(snapshot.get('hints')),
+      undos: safeBalance(snapshot.get('undos')),
+      ownedSkins: [...new Set(ownedSkins)],
+    };
+  } catch {
+    throw new HttpsError('data-loss', 'The economy state is invalid.');
+  }
 }
 
 async function assertNotBanned(uid: string): Promise<void> {
@@ -61,36 +113,38 @@ export const claimDailyReward = onCall(callableOptions, async (request) => {
   await enforceRateLimit(uid, 'claimDailyReward', 1500);
 
   const now = new Date();
-  const dayKey = now.toISOString().slice(0, 10);
   const userRef = db.collection('users').doc(uid);
+  const dayKey = now.toISOString().slice(0, 10);
+  const economyRef = db.collection('users').doc(uid).collection('economy').doc('state');
   const configRef = db.doc('config/public');
   const claimRef = userRef.collection('daily').doc(dayKey);
-  const ledgerRef = userRef.collection('ledger').doc(`${dayKey}-daily-reward`);
+  const ledgerRef = db.collection('users').doc(uid).collection('ledger').doc(`${dayKey}-daily-reward`);
   const reward = 20;
 
   const result = await db.runTransaction(async (transaction) => {
-    const [claim, user, config] = await Promise.all([
+    const [claim, economy, config] = await Promise.all([
       transaction.get(claimRef),
-      transaction.get(userRef),
+      transaction.get(economyRef),
       transaction.get(configRef),
     ]);
     if (claim.exists) {
       throw new HttpsError('already-exists', 'Daily reward already claimed.');
     }
-    const oldBalance = Number(user.get('coins') ?? 0);
-    if (!Number.isSafeInteger(oldBalance) || oldBalance < 0) {
-      throw new HttpsError('data-loss', 'The coin balance is invalid.');
-    }
+    const state = readEconomyState(economy);
+    const oldBalance = state.coins;
     const configuredReward = Number(config.get('dailyRewardCoins') ?? reward);
     if (!Number.isSafeInteger(configuredReward) || configuredReward < 1 || configuredReward > 500) {
       throw new HttpsError('failed-precondition', 'Daily rewards are not configured.');
     }
     const balance = oldBalance + configuredReward;
-    transaction.set(userRef, {
+    transaction.set(economyRef, {
       coins: balance,
+      hints: state.hints,
+      undos: state.undos,
+      ownedSkins: state.ownedSkins,
       schemaVersion: 1,
       updatedAt: FieldValue.serverTimestamp(),
-      ...(!user.exists ? { createdAt: FieldValue.serverTimestamp() } : {}),
+      ...(!economy.exists ? { createdAt: FieldValue.serverTimestamp() } : {}),
     }, { merge: true });
     transaction.create(claimRef, {
       completed: true,
@@ -114,6 +168,130 @@ export const claimDailyReward = onCall(callableOptions, async (request) => {
     coinsGranted: result.reward,
     newBalance: result.balance,
   };
+});
+
+export const purchaseEconomyItem = onCall(callableOptions, async (request) => {
+  const uid = uidFrom(request);
+  await assertNotBanned(uid);
+  await enforceRateLimit(uid, 'purchaseEconomyItem', 500);
+  const data = dataFrom(request);
+  let item: EconomyItem;
+  let idempotencyKey: string;
+  try {
+    item = economyItem(data.itemId);
+    idempotencyKey = requestId(data.requestId);
+  } catch (error) {
+    invalidArgument(error instanceof Error ? error.message : 'invalid-request');
+  }
+  const economyRef = db.collection('users').doc(uid).collection('economy').doc('state');
+  const ledgerRef = db.collection('users').doc(uid).collection('ledger').doc(idempotencyKey);
+  const result = await db.runTransaction(async (transaction) => {
+    const [economy, ledger] = await Promise.all([
+      transaction.get(economyRef),
+      transaction.get(ledgerRef),
+    ]);
+    const state = readEconomyState(economy);
+    if (ledger.exists) return { alreadyApplied: true, balance: state.coins };
+    const coins = state.coins;
+    const hints = state.hints;
+    const undos = state.undos;
+    const ownedSkins = new Set(state.ownedSkins);
+    if (coins < item.cost) {
+      throw new HttpsError('failed-precondition', 'insufficient-coins');
+    }
+    if (item.skinId && ownedSkins.has(item.skinId)) {
+      throw new HttpsError('already-exists', 'item-already-owned');
+    }
+    if (item.skinId) ownedSkins.add(item.skinId);
+    const balance = coins - item.cost;
+    transaction.set(
+      economyRef,
+      {
+        coins: balance,
+        hints: hints + item.hints,
+        undos: undos + item.undos,
+        ownedSkins: [...ownedSkins].sort(),
+        schemaVersion: 1,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    transaction.create(ledgerRef, {
+      type: 'purchase',
+      itemId: item.id,
+      amount: item.cost,
+      idempotencyKey,
+      createdAt: FieldValue.serverTimestamp(),
+      schemaVersion: 1,
+    });
+    return { alreadyApplied: false, balance };
+  });
+  return { ...result, itemId: item.id };
+});
+
+export const claimEconomyReward = onCall(callableOptions, async (request) => {
+  const uid = uidFrom(request);
+  await assertNotBanned(uid);
+  await enforceRateLimit(uid, 'claimEconomyReward', 500);
+  const data = dataFrom(request);
+  let claimId: string;
+  let idempotencyKey: string;
+  try {
+    claimId = requestId(data.claimId);
+    idempotencyKey = requestId(data.requestId);
+  } catch (error) {
+    invalidArgument(error instanceof Error ? error.message : 'invalid-request');
+  }
+  const claimRef = db.collection('users').doc(uid).collection('claimables').doc(claimId);
+  const economyRef = db.collection('users').doc(uid).collection('economy').doc('state');
+  const ledgerRef = db.collection('users').doc(uid).collection('ledger').doc(idempotencyKey);
+  const result = await db.runTransaction(async (transaction) => {
+    const [claim, economy, ledger] = await Promise.all([
+      transaction.get(claimRef),
+      transaction.get(economyRef),
+      transaction.get(ledgerRef),
+    ]);
+    const state = readEconomyState(economy);
+    if (ledger.exists) return { alreadyApplied: true, balance: state.coins };
+    if (!claim.exists || claim.get('uid') !== uid || claim.get('claimed') === true) {
+      throw new HttpsError('failed-precondition', 'reward-not-claimable');
+    }
+    const amount = (() => {
+      try {
+        return boundedAmount(claim.get('coins'));
+      } catch {
+        throw new HttpsError('data-loss', 'reward-configuration-invalid');
+      }
+    })();
+    const balance = state.coins + amount;
+    transaction.set(
+      economyRef,
+      {
+        coins: balance,
+        hints: state.hints,
+        undos: state.undos,
+        ownedSkins: state.ownedSkins,
+        schemaVersion: 1,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    transaction.update(claimRef, {
+      claimed: true,
+      claimedAt: FieldValue.serverTimestamp(),
+    });
+    transaction.create(ledgerRef, {
+      type: 'earn',
+      amount,
+      reason: claim.get('reason') ?? 'reward',
+      claimId,
+      idempotencyKey,
+      createdAt: FieldValue.serverTimestamp(),
+      schemaVersion: 1,
+    });
+    return { alreadyApplied: false, balance };
+  });
+  return { ...result, claimId };
 });
 
 /** Exports a signed-in player's own account data for a privacy request. */

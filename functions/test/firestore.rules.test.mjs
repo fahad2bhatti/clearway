@@ -62,6 +62,21 @@ test('client cannot create ledger or purchase records', async () => {
   }));
 });
 
+test('economy state and claimables are server-owned', async () => {
+  const db = environment.authenticatedContext('player-a').firestore();
+  await assertFails(setDoc(doc(db, 'users/player-a/economy/state'), {
+    coins: 999999,
+    hints: 999,
+    undos: 999,
+    schemaVersion: 1,
+  }));
+  await assertFails(setDoc(doc(db, 'users/player-a/claimables/claim-1'), {
+    uid: 'player-a',
+    coins: 100,
+    claimed: false,
+  }));
+});
+
 test('progress rejects invalid star characters and excessive data', async () => {
   const invalidStarsRef = doc(
     environment.authenticatedContext('player-stars').firestore(),

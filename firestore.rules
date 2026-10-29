@@ -89,6 +89,16 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      match /economy/{economyId} {
+        allow get: if owns(uid) && economyId == 'state';
+        allow list, write: if false;
+      }
+
+      match /claimables/{claimId} {
+        allow get, list: if owns(uid);
+        allow write: if false;
+      }
+
       match /purchases/{transactionId} {
         allow get, list: if owns(uid);
         allow write: if false;
