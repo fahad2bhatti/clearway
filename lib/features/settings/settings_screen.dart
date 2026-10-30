@@ -5,13 +5,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_identity.dart';
+import '../../app/legal_links.dart';
 import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import '../../services/cloud_progress_sync.dart';
 import '../../services/notification_service.dart';
 
-const _privacyUrl = 'https://fahad2bhatti.github.io/clearway/privacy-policy.html';
-const _termsUrl = 'https://fahad2bhatti.github.io/clearway/terms.html';
 const _playStoreUrl = 'https://play.google.com/store/apps/details?id=${AppIdentity.applicationId}';
 
 class SettingsScreen extends StatefulWidget {
@@ -100,8 +99,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _heading(''),
             ListTile(leading: const Icon(Icons.star_rate_rounded), title: Text(strings.rateUs), onTap: _rateUs),
             ListTile(leading: const Icon(Icons.feedback_rounded), title: Text(strings.sendFeedback), onTap: _sendFeedback),
-            ListTile(leading: const Icon(Icons.privacy_tip_rounded), title: Text(strings.privacyPolicy), onTap: () => _open(_privacyUrl)),
-            ListTile(leading: const Icon(Icons.gavel_rounded), title: Text(strings.terms), onTap: () => _open(_termsUrl)),
+            ListTile(leading: const Icon(Icons.privacy_tip_rounded), title: Text(strings.privacyPolicy), onTap: () => _open(LegalLinks.privacyUrl)),
+            ListTile(leading: const Icon(Icons.gavel_rounded), title: Text(strings.terms), onTap: () => _open(LegalLinks.termsUrl)),
             ListTile(
               leading: const Icon(Icons.info_outline_rounded),
               title: Text(strings.appVersion),
