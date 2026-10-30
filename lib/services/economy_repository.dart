@@ -124,6 +124,9 @@ final class EconomyRepository implements RewardRepository {
   }
 
   Future<PurchaseResult> claimAdCoins() async {
+    if (save.adCoinsLeft == 0) {
+      return const PurchaseResult(success: false, reason: 'failed-precondition');
+    }
     if (_firebaseUnavailable) {
       save.recordAdCoins();
       save.coins += LocalSave.adCoinsReward;
