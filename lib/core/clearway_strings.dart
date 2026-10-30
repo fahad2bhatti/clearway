@@ -126,7 +126,7 @@ final class ClearwayStrings {
   String get feedbackSent => _ur ? 'رائے بھیج دی گئی۔' : 'Feedback sent.';
   String get feedbackPrompt => _ur ? 'اپنی رائے لکھیں' : 'Write your feedback';
   String get feedbackEmpty => _ur ? 'رائے خالی نہیں ہو سکتی۔' : 'Feedback cannot be empty.';
-  String get linkPrivacy => _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
+  String get linkOpenError => _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
   String get rateUnavailable => _ur ? 'ریٹنگ ابھی دستیاب نہیں۔' : 'Rating is not available yet.';
   String skinName(String id) => _ur
       ? switch (id) {

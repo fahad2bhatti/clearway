@@ -231,9 +231,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _open(String url) async {
-    if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
-      _message(strings.linkPrivacy);
+    var opened = false;
+    try {
+      opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      opened = false;
     }
+    if (!opened) _message(strings.linkOpenError);
   }
 
   void _message(String message) {

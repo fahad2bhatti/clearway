@@ -35,7 +35,7 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
     }
     if (!opened && mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(strings.linkPrivacy)));
+          .showSnackBar(SnackBar(content: Text(strings.linkOpenError)));
     }
   }
 
