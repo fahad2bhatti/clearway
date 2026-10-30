@@ -85,6 +85,8 @@ final class EconomyRepository implements RewardRepository {
     }
   }
 
+
+
   Future<PurchaseResult> _purchase(String itemId) async {
     if (_firebaseUnavailable) return _localPurchase(itemId);
     try {
@@ -101,6 +103,8 @@ final class EconomyRepository implements RewardRepository {
       return const PurchaseResult(success: false, reason: 'offline');
     }
   }
+
+
 
   Future<PurchaseResult> _localPurchase(String itemId) async {
     final item = switch (itemId) {
@@ -121,6 +125,24 @@ final class EconomyRepository implements RewardRepository {
     if (item.skin != null) save.ownedArrowSkins.add(item.skin!);
     await save.save();
     return const PurchaseResult(success: true);
+  }
+
+  Future<PurchaseResult> claimAdCoins() async {
+    if (_firebaseUnavailable) {
+      return const PurchaseResult(success: false, reason: 'offline');
+    }
+    try {
+      final result = await _functions.httpsCallable('claimAdCoins').call({
+        'requestId': _requestId('claimAdCoins', 'ad-coins'),
+      });
+      _applyState(result.data);
+      await save.save();
+      return const PurchaseResult(success: true);
+    } on FirebaseFunctionsException catch (error) {
+      return PurchaseResult(success: false, reason: error.code);
+    } catch (_) {
+      return const PurchaseResult(success: false, reason: 'offline');
+    }
   }
 
   Future<PurchaseResult> buyOffer(String offerId) {

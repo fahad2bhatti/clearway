@@ -44,6 +44,10 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
     setState(() => _busy = true);
     try {
       await widget.save.acceptTerms();
+      if (!mounted) return;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => _save.username == null ? WelcomeScreen(save: _save, onContinue: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(save: _save)))) : HomeScreen(save: _save));
+    } catch (_) {
+      _message(strings.termsError);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

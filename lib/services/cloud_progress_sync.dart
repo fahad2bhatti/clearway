@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'dart:convert';;
 import 'package:flutter/foundation.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../data/local_save.dart';
 import '../data/progress_codec.dart';
@@ -17,6 +19,13 @@ final class CloudProgressSync extends ChangeNotifier {
   FirebaseAuth? _auth;
   FirebaseFirestore? _firestore;
   CloudSyncStatus status = CloudSyncStatus.notConfigured;
+  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+
+  Future<void> _handleConnectivityChanged(ConnectivityResult result) async {
+    if (result != ConnectivityResult.none) {
+      await _submitPendingFeedback();
+    }
+  }
   bool _busy = false;
   bool _ready = false;
   bool _emulatorConfigured = false;
@@ -118,13 +127,101 @@ final class CloudProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const String _pendingFeedbackKey = 'pendingFeedback';
+
+  Future<void> _savePendingFeedback(String text, String appVersion) async {
+    final prefs = await SharedPreferences.getInstance();
+    final pendingFeedback = prefs.getStringList(_pendingFeedbackKey) ?? [];
+    final device = defaultTargetPlatform.name;
+    
+    final newFeedback = {
+      'uid': _auth?.currentUser?.uid,
+      'type': 'feedback',
+      'text': text.trim(),
+      'appVersion': appVersion,
+      'device': device,
+    };
+    
+    if (!pendingFeedback.any((item) => item['text'] == text)) {
+      pendingFeedback.add(jsonEncode(newFeedback));
+      await prefs.setStringList(_pendingFeedbackKey, pendingFeedback);
+    }
+  }
+
+  Future<void> _submitPendingFeedback() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pendingFeedback = prefs.getStringList(_pendingFeedbackKey) ?? [];
+    
+    if (pendingFeedback.isNotEmpty) {
+      for (final feedbackJson in pendingFeedback) {
+        try {
+          final feedback = jsonDecode(feedbackJson) as Map<String, dynamic>;
+          await _firestore!.collection('reports').add(feedback);
+        } catch (e) {
+          // Log error and continue with next feedback
+          debugPrint('Error submitting feedback: $e');
+        }
+      }
+      await prefs.remove(_pendingFeedbackKey);
+    }
+  }
+
+  static const String _pendingFeedbackKey = 'pendingFeedback';
+
+  Future<void> _savePendingFeedback(String text, String appVersion) async {
+    final prefs = await SharedPreferences.getInstance();
+    final pendingFeedback = prefs.getStringList(_pendingFeedbackKey) ?? [];
+    final device = defaultTargetPlatform.name;
+    
+    final newFeedback = {
+      'uid': _auth?.currentUser?.uid,
+      'type': 'feedback',
+      'text': text.trim(),
+      'appVersion': appVersion,
+      'device': device,
+    };
+    
+    if (!pendingFeedback.any((item) => jsonDecode(item)['text'] == text)) {
+      pendingFeedback.add(jsonEncode(newFeedback));
+      await prefs.setStringList(_pendingFeedbackKey, pendingFeedback);
+    }
+  }
+
+  Future<void> _submitPendingFeedback() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pendingFeedback = prefs.getStringList(_pendingFeedbackKey) ?? [];
+    
+    if (pendingFeedback.isNotEmpty) {
+      for (final feedbackJson in pendingFeedback) {
+        try {
+          final feedback = jsonDecode(feedbackJson) as Map<String, dynamic>;
+          await _firestore!.collection('reports').add(feedback);
+        } catch (e) {
+          debugPrint('Error submitting feedback: $e');
+        }
+      }
+      await prefs.remove(_pendingFeedbackKey);
+    }
+  }
+
   Future<void> sendFeedback({
     required String text,
     required String appVersion,
   }) async {
     final uid = _auth?.currentUser?.uid;
-    if (!_ready || _firestore == null || uid == null) {
-      throw StateError('Feedback is unavailable offline.');
+    if (!_ready || _firestore == null) {
+      await _savePendingFeedback(text, appVersion);
+      return;
+    }
+    if (uid == null) {
+      throw StateError('Feedback is unavailable.');
+    }
+    if (!_ready || _firestore == null) {
+      await _savePendingFeedback(text, appVersion);
+      return;
+    }
+    if (uid == null) {
+      throw StateError('Feedback unavailable.');
     }
     await _firestore!.collection('reports').add({
       'uid': uid,

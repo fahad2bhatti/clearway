@@ -1,28 +1,23 @@
 {
   "name": "clearway-functions",
-  "private": true,
-  "main": "lib/index.js",
-  "engines": {
-    "node": "22"
-  },
+  "version": "1.0.0",
+  "description": "Firebase Cloud Functions for Clearway",
+  "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "serve": "npm run build && firebase emulators:start --only auth,firestore,functions",
-    "deploy": "npm run build && firebase deploy --only functions",
-    "logs": "firebase functions:log",
-    "test:rules": "node --test test/firestore.rules.test.mjs",
-    "test:rules:emulator": "cd .. && firebase emulators:exec --only firestore --project demo-clearway-rules \"npm --prefix functions run test:rules\"",
-    "test:daily": "npm run build && node --test test/daily.test.mjs",
-    "test:economy": "npm run build && node --test test/economy.test.mjs"
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
   },
   "dependencies": {
-    "firebase-admin": "^13.5.0",
-    "firebase-functions": "^6.4.0"
+    "@types/express": "^4.17.21",
+    "firebase-admin": "^11.0.0",
+    "firebase-functions": "^4.7.0"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^4.0.1",
-    "@types/node": "^22.10.2",
-    "firebase": "^11.10.0",
-    "typescript": "^5.7.2"
+    "@types/node": "^16.18.64",
+    "typescript": "^4.9.5"
   }
 }

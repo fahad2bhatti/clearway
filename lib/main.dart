@@ -282,8 +282,50 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     theme: _save.darkTheme ? _darkTheme : _lightTheme,
     home: !_saveLoaded
         ? const Scaffold(body: SizedBox.shrink())
+        : _save.username == null
+        ? WelcomeScreen(save: _save, onContinue: () => setState(() {}))
         : !_save.termsAccepted
-        ? TermsGateScreen(save: _save)
+        ? TermsGateScreen(save: _save, onAccepted: () => setState(() {}))
+        : _playing
+        ? GameScreen(
+            startingLevel: _level,
+            daily: _daily,
+            dailyDayKey: _dailyDayKey,
+            dailyServerSeed: _dailyServerSeed,
+            save: _save,
+            onLevelWon: _onLevelWon,
+            onHome: (level) => setState(() {
+              unawaited(NotificationService.instance.disable());
+              _level = level;
+              _playing = false;
+              _daily = false;
+              _dailyDayKey = null;
+              _dailyServerSeed = null;
+            }),
+            onLevelChanged: (level) => setState(() => _level = level),
+          )
+        : HomeScreen(
+            currentLevel: _save.level,
+            save: _save,
+            cloudStatus: _cloud.status,
+            onSyncNow: () => unawaited(_retryCloudSync()),
+            onPlay: (level) {
+              setState(() {
+                _level = level;
+                _playing = true;
+                _daily = false;
+                _dailyDayKey = null;
+                _dailyServerSeed = null;
+              });
+              unawaited(_maybeRequestNotificationPermission());
+            },
+            onDaily: () {
+              unawaited(_startDaily());
+              unawaited(_maybeRequestNotificationPermission());
+            },
+            onShop: () => setState(() => _screen = _AppScreen.shop),
+            onSettings: () => setState(() => _screen = _AppScreen.settings),
+          )
         : _playing
         ? GameScreen(
             startingLevel: _level,
