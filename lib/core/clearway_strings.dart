@@ -99,6 +99,15 @@ final class ClearwayStrings {
   String get sendFeedback => _ur ? 'رائے بھیجیں' : 'Send Feedback';
   String get privacyPolicy => _ur ? 'رازداری کی پالیسی' : 'Privacy Policy';
   String get terms => _ur ? 'شرائط و ضوابط' : 'Terms & Conditions';
+  String get termsGateTitle => _ur ? 'کھیلنے سے پہلے' : 'Before you play';
+  String get termsGateBody => _ur
+      ? 'Clearway کھیلنے کے لیے براہ کرم شرائط و ضوابط اور رازداری کی پالیسی پڑھ کر قبول کریں۔'
+      : 'Please read and accept the Terms & Conditions and the Privacy Policy to play Clearway.';
+  String get termsGateCheckbox => _ur
+      ? 'شرائط و ضوابط اور رازداری کی پالیسی پڑھ لی ہیں اور میں ان سے متفق ہوں۔'
+      : 'I have read and accept the Terms & Conditions and the Privacy Policy.';
+  String get termsGateContinue =>
+      _ur ? 'قبول کریں اور جاری رکھیں' : 'Accept and continue';
   String get appVersion => _ur ? 'ایپ ورژن' : 'App version';
   String get logout => _ur ? 'لاگ آؤٹ' : 'Logout';
   String get deleteAccount => _ur ? 'اکاؤنٹ حذف کریں' : 'Delete Account';
