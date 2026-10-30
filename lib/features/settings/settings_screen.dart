@@ -223,8 +223,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
     try {
-      await widget.cloud.sendFeedback(text: value, appVersion: _version);
-      _message(strings.feedbackSent);
+      final outcome = await widget.cloud.submitFeedback(
+        text: value,
+        appVersion: _version,
+      );
+      _message(switch (outcome) {
+        FeedbackOutcome.sent => strings.feedbackSent,
+        FeedbackOutcome.queued => strings.feedbackQueued,
+        FeedbackOutcome.queueFull => strings.feedbackQueueFull,
+      });
     } catch (_) {
       _message(strings.feedbackUnavailable);
     }

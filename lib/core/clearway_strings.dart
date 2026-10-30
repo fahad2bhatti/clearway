@@ -124,6 +124,8 @@ final class ClearwayStrings {
   String get accountDeleteFailed => _ur ? 'اکاؤنٹ حذف نہیں ہو سکا۔ دوبارہ کوشش کریں۔' : 'Account deletion failed. Please retry.';
   String get feedbackUnavailable => _ur ? 'رائے بھیجنے کے لیے آن لائن کنکشن درکار ہے۔' : 'An online connection is required to send feedback.';
   String get feedbackSent => _ur ? 'رائے بھیج دی گئی۔' : 'Feedback sent.';
+  String get feedbackQueued => _ur ? 'رائے محفوظ ہو گئی۔ انٹرنیٹ آنے پر بھیج دی جائے گی۔' : 'Saved. It will be sent when you are back online.';
+  String get feedbackQueueFull => _ur ? 'بھیجنے کے منتظر پیغامات کی حد پوری ہو گئی ہے۔ آن لائن ہو کر دوبارہ کوشش کریں۔' : 'Too many messages are waiting to be sent. Please go online and try again.';
   String get feedbackPrompt => _ur ? 'اپنی رائے لکھیں' : 'Write your feedback';
   String get feedbackEmpty => _ur ? 'رائے خالی نہیں ہو سکتی۔' : 'Feedback cannot be empty.';
   String get linkOpenError => _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
