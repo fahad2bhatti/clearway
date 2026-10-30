@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../app/legal_links.dart';
 import '../core/daily_clock.dart';
 import '../game/data/level_catalog.dart';
 import '../game/tutorial.dart';
@@ -56,6 +57,7 @@ final class LocalSave extends ChangeNotifier {
   bool notifications = true;
   bool notificationPermissionAsked = false;
   String language = 'en';
+  String acceptedTermsVersion = '';
   bool tutorialDone = false;
   final Set<int> chaptersSeen = {};
   Map<String, dynamic>? activeBoard;
@@ -111,6 +113,7 @@ final class LocalSave extends ChangeNotifier {
     notificationPermissionAsked =
         data['notificationPermissionAsked'] as bool? ?? false;
     language = data['lang'] as String? ?? 'en';
+    acceptedTermsVersion = data['termsVersion'] as String? ?? '';
     ownedArrowSkins
       ..clear()
       ..addAll(
@@ -214,6 +217,7 @@ final class LocalSave extends ChangeNotifier {
     notifications = true;
     notificationPermissionAsked = false;
     language = 'en';
+    acceptedTermsVersion = '';
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;
@@ -272,6 +276,7 @@ final class LocalSave extends ChangeNotifier {
         'notifications': notifications,
         'notificationPermissionAsked': notificationPermissionAsked,
         'lang': language,
+        'termsVersion': acceptedTermsVersion,
         'arrowSkins': ownedArrowSkins.toList()..sort(),
         'selectedArrowSkin': selectedArrowSkin,
         'claimedMilestones': claimedMilestones.toList()..sort(),
@@ -388,6 +393,13 @@ final class LocalSave extends ChangeNotifier {
     if (changed) await save();
   }
 
+  bool get termsAccepted => acceptedTermsVersion == LegalLinks.termsVersion;
+
+  Future<void> acceptTerms() async {
+    acceptedTermsVersion = LegalLinks.termsVersion;
+    await save();
+  }
+
   Future<void> reset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
@@ -410,6 +422,7 @@ final class LocalSave extends ChangeNotifier {
     colorblind = false;
     notifications = true;
     language = 'en';
+    acceptedTermsVersion = '';
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;

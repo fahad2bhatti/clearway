@@ -11,6 +11,7 @@ import 'app/app_identity.dart';
 import 'core/clearway_strings.dart';
 import 'core/daily_clock.dart';
 import 'features/home/home_screen.dart';
+import 'features/onboarding/terms_gate_screen.dart';
 import 'features/shop/shop_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'game/data/level_catalog.dart';
@@ -60,6 +61,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
   late final _progressSync = ProgressSyncDebouncer(
     operation: (force) => force ? _cloud.retry(_save) : _cloud.sync(_save),
   );
+  var _saveLoaded = false;
   var _playing = false;
   var _screen = _AppScreen.home;
   var _level = 1;
@@ -105,6 +107,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
         _playing = true;
       }
     }
+    _saveLoaded = true;
     if (mounted) setState(() {});
     try {
       await NotificationService.instance.initialize(
@@ -277,7 +280,11 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       child: child ?? const SizedBox.shrink(),
     ),
     theme: _save.darkTheme ? _darkTheme : _lightTheme,
-    home: _playing
+    home: !_saveLoaded
+        ? const Scaffold(body: SizedBox.shrink())
+        : !_save.termsAccepted
+        ? TermsGateScreen(save: _save)
+        : _playing
         ? GameScreen(
             startingLevel: _level,
             daily: _daily,
