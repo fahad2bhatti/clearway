@@ -204,9 +204,11 @@ class _ShopScreenState extends State<ShopScreen> {
         return;
       }
 
-      widget.save.recordAdCoins();
-      widget.save.coins += offer.coinReward;
-      await widget.save.save();
+      final result = await economy.claimAdCoins();
+      if (!mounted) return;
+      if (!result.success && result.reason != 'failed-precondition') {
+        _message(strings.cloudError);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

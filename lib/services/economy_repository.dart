@@ -123,6 +123,34 @@ final class EconomyRepository implements RewardRepository {
     return const PurchaseResult(success: true);
   }
 
+  Future<PurchaseResult> claimAdCoins() async {
+    if (_firebaseUnavailable) {
+      save.recordAdCoins();
+      save.coins += LocalSave.adCoinsReward;
+      await save.save();
+      return const PurchaseResult(success: true);
+    }
+    try {
+      final result = await _functions.httpsCallable('claimAdCoins').call({
+        'requestId': _requestId('ad-coins', 'daily'),
+      });
+      _applyState(result.data);
+      save.recordAdCoins();
+      await save.save();
+      return const PurchaseResult(success: true);
+    } on FirebaseFunctionsException catch (error) {
+      if (error.code == 'failed-precondition') {
+        while (save.adCoinsLeft > 0) {
+          save.recordAdCoins();
+        }
+        await save.save();
+      }
+      return PurchaseResult(success: false, reason: error.code);
+    } catch (_) {
+      return const PurchaseResult(success: false, reason: 'offline');
+    }
+  }
+
   Future<PurchaseResult> buyOffer(String offerId) {
     if (offerId != 'hint-pack' && offerId != 'undo-pack') {
       return Future.value(

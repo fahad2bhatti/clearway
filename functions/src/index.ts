@@ -13,6 +13,8 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { dailySeed } from './daily.js';
 import {
+  AD_COINS_PER_DAY,
+  AD_COINS_REWARD,
   boundedAmount,
   economyItem,
   requestId,
@@ -364,6 +366,72 @@ export const claimEconomyReward = onCall(callableOptions, async (request) => {
     claimId,
     state: economyResponse(readEconomyState(economy)),
   };
+});
+
+/** Credits the fixed rewarded-ad coin amount, capped per UTC day. */
+export const claimAdCoins = onCall(callableOptions, async (request) => {
+  const uid = uidFrom(request);
+  await assertNotBanned(uid);
+  await enforceRateLimit(uid, 'claimAdCoins', 3000);
+  let idempotencyKey: string;
+  try {
+    idempotencyKey = requestId(dataFrom(request).requestId);
+  } catch (error) {
+    invalidArgument(error instanceof Error ? error.message : 'invalid-request');
+  }
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const userRef = db.collection('users').doc(uid);
+  const economyRef = userRef.collection('economy').doc('state');
+  const ledgerRef = userRef.collection('ledger').doc(idempotencyKey);
+  const dailyRef = userRef.collection('daily').doc(`ad-coins-${dayKey}`);
+  const state = await db.runTransaction(async (transaction) => {
+    const [economy, ledger, daily] = await Promise.all([
+      transaction.get(economyRef),
+      transaction.get(ledgerRef),
+      transaction.get(dailyRef),
+    ]);
+    const current = readEconomyState(economy);
+    if (ledger.exists) return current;
+    const count = safeBalance(daily.get('count'));
+    if (count >= AD_COINS_PER_DAY) {
+      throw new HttpsError('failed-precondition', 'daily-limit');
+    }
+    const next = { ...current, coins: current.coins + AD_COINS_REWARD };
+    transaction.set(
+      economyRef,
+      {
+        coins: next.coins,
+        hints: current.hints,
+        undos: current.undos,
+        ownedSkins: current.ownedSkins,
+        schemaVersion: 1,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    transaction.set(
+      dailyRef,
+      {
+        uid,
+        type: 'ad-coins',
+        dayKey,
+        count: count + 1,
+        updatedAt: FieldValue.serverTimestamp(),
+        schemaVersion: 1,
+      },
+      { merge: true },
+    );
+    transaction.create(ledgerRef, {
+      type: 'earn',
+      amount: AD_COINS_REWARD,
+      reason: 'ad-coins',
+      idempotencyKey,
+      createdAt: FieldValue.serverTimestamp(),
+      schemaVersion: 1,
+    });
+    return next;
+  });
+  return { state: economyResponse(state) };
 });
 
 /** Exports a signed-in player's own account data for a privacy request. */
