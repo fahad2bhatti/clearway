@@ -409,6 +409,13 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
     if (watch != true || !mounted) return;
+    await _playRewardedAd(rewardMessage: rewardMessage, grant: grant);
+  }
+
+  Future<void> _playRewardedAd({
+    required String rewardMessage,
+    required void Function() grant,
+  }) async {
     final rewarded = await AdService.showRewarded();
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -416,9 +423,25 @@ class _GameScreenState extends State<GameScreen> {
       grant();
       await widget.save.save();
       messenger.showSnackBar(SnackBar(content: Text(rewardMessage)));
-    } else {
-      messenger.showSnackBar(SnackBar(content: Text(strings.adNotReady)));
+      return;
     }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(strings.adNotReady),
+          action: SnackBarAction(
+            label: strings.tryAgain,
+            onPressed: () {
+              if (mounted) {
+                unawaited(
+                  _playRewardedAd(rewardMessage: rewardMessage, grant: grant),
+                );
+              }
+            },
+          ),
+        ),
+      );
   }
 
   void _undo() {

@@ -268,7 +268,19 @@ class HomeScreen extends StatelessWidget {
     AdService.preload();
     final rewarded = await AdService.showRewarded();
     if (!rewarded) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.adNotReady)));
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(strings.adNotReady),
+            action: SnackBarAction(
+              label: strings.tryAgain,
+              onPressed: () {
+                if (context.mounted) _claimDailyGift(context);
+              },
+            ),
+          ),
+        );
       return;
     }
 

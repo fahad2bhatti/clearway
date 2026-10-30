@@ -61,6 +61,7 @@ class AdService {
   static RewardedAd? _rewarded;
   static var _loadingInterstitial = false;
   static var _loadingRewarded = false;
+  static var _showingRewarded = false;
   static var _levelsSinceAd = 0;
   static DateTime? _lastInterstitial;
 
@@ -193,13 +194,14 @@ class AdService {
   /// Rewarded ad dikhata hai. Sirf tab true deta hai jab user ne ad poora
   /// dekh kar reward kamaya.
   static Future<bool> showRewarded() async {
-    if (adsRemoved) return false;
+    if (adsRemoved || _showingRewarded) return false;
     final ad = _rewarded;
     if (ad == null) {
       _loadRewarded();
       return false;
     }
     _rewarded = null;
+    _showingRewarded = true;
     final done = Completer<bool>();
     var earned = false;
     ad.fullScreenContentCallback = FullScreenContentCallback(
@@ -219,8 +221,14 @@ class AdService {
       await ad.show(onUserEarnedReward: (ad, reward) => earned = true);
     } catch (error) {
       debugPrint('Rewarded show error: $error');
+      ad.dispose();
+      _loadRewarded();
       if (!done.isCompleted) done.complete(false);
     }
-    return done.future;
+    try {
+      return await done.future;
+    } finally {
+      _showingRewarded = false;
+    }
   }
 }

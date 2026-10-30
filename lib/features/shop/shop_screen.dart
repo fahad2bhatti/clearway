@@ -200,7 +200,7 @@ class _ShopScreenState extends State<ShopScreen> {
     try {
       AdService.preload();
       if (!await AdService.showRewarded()) {
-        _message(strings.adNotReady);
+        _messageWithRetry(strings.adNotReady, () => _claimAdCoins(offer));
         return;
       }
 
@@ -217,6 +217,18 @@ class _ShopScreenState extends State<ShopScreen> {
   void _message(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _messageWithRetry(String message, VoidCallback retry) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          action: SnackBarAction(label: strings.tryAgain, onPressed: retry),
+        ),
+      );
   }
 
   IconData _iconFor(ShopOfferKind kind) => switch (kind) {
