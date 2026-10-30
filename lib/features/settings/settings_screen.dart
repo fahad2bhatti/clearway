@@ -232,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _open(String url) async {
     if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
-      _message(strings.linkError);
+      _message(strings.linkPrivacy);
     }
   }
 

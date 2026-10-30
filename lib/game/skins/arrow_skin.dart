@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/clearway_strings.dart';
+
 enum SkinCategory { free, premium, milestone }
 
 final class ArrowSkin {
@@ -19,45 +21,24 @@ final class ArrowSkin {
 
   Color colorFor(int index) => primaryColors[index % primaryColors.length];
 
-  String name(String language) => language == 'ur' ? switch (id) {
-    'classic' => 'کلاسک',
-    'sunset' => 'غروب آفتاب',
-    'spectrum' => 'اسپیکٹرم',
-    _ => id,
-  } : switch (id) {
-    'classic' => 'Classic',
-    'sunset' => 'Sunset',
-    'spectrum' => 'Spectrum',
-    _ => id,
-  };
-
-  String description(String language) => language == 'ur' ? switch (id) {
-    'classic' => 'صاف یک رنگ تیر',
-    'sunset' => 'گرم رنگوں کا مجموعہ',
-    'spectrum' => 'لیول ۸۰ پر مفت کھلتا ہے',
-    _ => '',
-  } : switch (id) {
-    'classic' => 'Clean monochrome arrows',
-    'sunset' => 'A warm color palette',
-    'spectrum' => 'Free at level 80',
-    _ => '',
-  };
+  String name(ClearwayStrings strings) => strings.skinName(id);
+  String description(ClearwayStrings strings) => strings.skinDescription(id);
 }
 
-class ArrowSkinCatalog {
-  static final classic = ArrowSkin(
+abstract final class ArrowSkinCatalog {
+  static const classic = ArrowSkin(
     id: 'classic',
     category: SkinCategory.free,
     primaryColors: [Color(0xffd9e5df)],
     price: 0,
   );
-  static final sunset = ArrowSkin(
+  static const sunset = ArrowSkin(
     id: 'sunset',
     category: SkinCategory.premium,
     primaryColors: [Color(0xffffb347), Color(0xffed6ca7), Color(0xffff796c)],
     price: 150,
   );
-  static final spectrum = ArrowSkin(
+  static const spectrum = ArrowSkin(
     id: 'spectrum',
     category: SkinCategory.milestone,
     primaryColors: [
@@ -72,10 +53,8 @@ class ArrowSkinCatalog {
 
   static const all = [classic, sunset, spectrum];
 
-  static ArrowSkin byId(String id) => 
+  static ArrowSkin byId(String id) =>
       all.where((skin) => skin.id == id).firstOrNull ?? classic;
 
   static bool contains(String id) => all.any((skin) => skin.id == id);
-
-  static int get spectrumUnlockLevel => spectrum.unlockLevel!;
 }

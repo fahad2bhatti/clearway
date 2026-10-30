@@ -206,11 +206,8 @@ class _ShopScreenState extends State<ShopScreen> {
 
       final result = await economy.claimAdCoins();
       if (!mounted) return;
-
-      if (result.success) {
-        _message(strings.adCoinsClaimed);
-      } else {
-        _message(result.reason == 'already-claimed' ? strings.adCoinsAlreadyClaimed : strings.cloudError);
+      if (!result.success && result.reason != 'failed-precondition') {
+        _message(strings.cloudError);
       }
     } finally {
       if (mounted) setState(() => _busy = false);

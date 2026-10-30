@@ -85,8 +85,6 @@ final class EconomyRepository implements RewardRepository {
     }
   }
 
-
-
   Future<PurchaseResult> _purchase(String itemId) async {
     if (_firebaseUnavailable) return _localPurchase(itemId);
     try {
@@ -103,8 +101,6 @@ final class EconomyRepository implements RewardRepository {
       return const PurchaseResult(success: false, reason: 'offline');
     }
   }
-
-
 
   Future<PurchaseResult> _localPurchase(String itemId) async {
     final item = switch (itemId) {
@@ -129,16 +125,26 @@ final class EconomyRepository implements RewardRepository {
 
   Future<PurchaseResult> claimAdCoins() async {
     if (_firebaseUnavailable) {
-      return const PurchaseResult(success: false, reason: 'offline');
+      save.recordAdCoins();
+      save.coins += LocalSave.adCoinsReward;
+      await save.save();
+      return const PurchaseResult(success: true);
     }
     try {
       final result = await _functions.httpsCallable('claimAdCoins').call({
-        'requestId': _requestId('claimAdCoins', 'ad-coins'),
+        'requestId': _requestId('ad-coins', 'daily'),
       });
       _applyState(result.data);
+      save.recordAdCoins();
       await save.save();
       return const PurchaseResult(success: true);
     } on FirebaseFunctionsException catch (error) {
+      if (error.code == 'failed-precondition') {
+        while (save.adCoinsLeft > 0) {
+          save.recordAdCoins();
+        }
+        await save.save();
+      }
       return PurchaseResult(success: false, reason: error.code);
     } catch (_) {
       return const PurchaseResult(success: false, reason: 'offline');
