@@ -26,8 +26,10 @@ final class LocalSave extends ChangeNotifier {
 
   // Ad rewards (sirf local, cloud mein nahi jate).
   static const dailyGiftCoins = 50;
-  static const adCoinsReward = 30;
+  static const adCoinsReward = 50;
   static const maxAdCoinsPerDay = 5;
+  static const adHintsReward = 3;
+  static const maxAdHintsPerDay = 3;
 
   /// Shop: a hint pack is deliberately pricey (25 coins per hint).
   static const hintPackCost = 50;
@@ -35,6 +37,8 @@ final class LocalSave extends ChangeNotifier {
   String giftDay = '';
   String adCoinsDay = '';
   int adCoinsCount = 0;
+  String adHintsDay = '';
+  int adHintsCount = 0;
 
   /// Aaj shop se kitni bar aur "ad dekho, coins pao" mil sakta hai.
   int get adCoinsLeft => adCoinsDay == DailyClock.dayKey()
@@ -48,6 +52,19 @@ final class LocalSave extends ChangeNotifier {
       adCoinsCount = 0;
     }
     adCoinsCount++;
+  }
+
+  int get adHintsLeft => adHintsDay == DailyClock.dayKey()
+      ? (maxAdHintsPerDay - adHintsCount).clamp(0, maxAdHintsPerDay)
+      : maxAdHintsPerDay;
+
+  void recordAdHints() {
+    final today = DailyClock.dayKey();
+    if (adHintsDay != today) {
+      adHintsDay = today;
+      adHintsCount = 0;
+    }
+    adHintsCount++;
   }
 
   bool sound = true;
@@ -111,6 +128,8 @@ final class LocalSave extends ChangeNotifier {
     giftDay = data['giftDay'] as String? ?? '';
     adCoinsDay = data['adCoinsDay'] as String? ?? '';
     adCoinsCount = _count(data['adCoinsCount'], 0);
+    adHintsDay = data['adHintsDay'] as String? ?? '';
+    adHintsCount = _count(data['adHintsCount'], 0);
     sound = data['sound'] as bool? ?? true;
     music = data['music'] as bool? ?? false;
     haptics = data['haptics'] as bool? ?? true;
@@ -231,6 +250,8 @@ final class LocalSave extends ChangeNotifier {
     giftDay = '';
     adCoinsDay = '';
     adCoinsCount = 0;
+    adHintsDay = '';
+    adHintsCount = 0;
     sound = true;
     music = false;
     haptics = true;
@@ -319,6 +340,8 @@ final class LocalSave extends ChangeNotifier {
         'giftDay': giftDay,
         'adCoinsDay': adCoinsDay,
         'adCoinsCount': adCoinsCount,
+        'adHintsDay': adHintsDay,
+        'adHintsCount': adHintsCount,
         'dailies': completedDailies.toList(),
         'activeBoard': activeBoard,
       }),

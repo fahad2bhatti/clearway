@@ -38,6 +38,12 @@ List<ShopOffer> shopOffers() => [
         coinReward: LocalSave.adCoinsReward,
         dailyLimit: LocalSave.maxAdCoinsPerDay,
       ),
+      ShopOffer(
+        id: 'ad-hints',
+        kind: ShopOfferKind.freeReward,
+        hintReward: LocalSave.adHintsReward,
+        dailyLimit: LocalSave.maxAdHintsPerDay,
+      ),
       const ShopOffer(
         id: 'remove-ads',
         kind: ShopOfferKind.removeAds,

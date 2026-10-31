@@ -159,6 +159,17 @@ final class EconomyRepository implements RewardRepository {
     }
   }
 
+  Future<PurchaseResult> claimAdHints() async {
+    if (save.adHintsLeft == 0) {
+      return const PurchaseResult(success: false, reason: 'failed-precondition');
+    }
+    // Server-side validation remains TODO for the later server-economy phase.
+    save.recordAdHints();
+    save.hints += LocalSave.adHintsReward;
+    await save.save();
+    return const PurchaseResult(success: true);
+  }
+
   Future<PurchaseResult> buyOffer(String offerId) {
     if (offerId != 'hint-pack' && offerId != 'undo-pack') {
       return Future.value(

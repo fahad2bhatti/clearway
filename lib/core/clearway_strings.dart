@@ -1,3 +1,5 @@
+import 'daily_clock.dart';
+
 /// Small built-in English/Urdu string set for the game UI.
 final class ClearwayStrings {
   const ClearwayStrings(this.language);
@@ -58,6 +60,9 @@ final class ClearwayStrings {
   String get shopCoins => _ur ? 'سکے اور اشارے' : 'Coins and hints';
   String get shopSkins => _ur ? 'تیر کی کھالیں' : 'Arrow skins';
   String get shopAds => _ur ? 'روزانہ اشتہاری انعامات' : 'Daily ad offers';
+  String get dailyOfferReset => _ur
+      ? 'اگلا ری سیٹ: ${DailyClock.countdownLabel()}'
+      : 'Resets in ${DailyClock.countdownLabel()}';
   String get shopRemoveAds => _ur ? 'اشتہارات ہٹائیں' : 'Remove Ads';
   String get comingSoon => _ur ? 'جلد آ رہا ہے' : 'Coming soon';
   String get owned => _ur ? 'ملکیت میں' : 'Owned';
@@ -180,7 +185,8 @@ final class ClearwayStrings {
       ? switch (id) {
           'hint-pack' => '۲ اشارے',
           'undo-pack' => '۳ واپسی کے مواقع',
-          'ad-coins' => '+۳۰ سکے',
+          'ad-coins' => '+۵۰ سکے',
+          'ad-hints' => '+۳ اشارے',
           'classic' => 'کلاسک',
           'sunset' => 'غروب آفتاب',
           'remove-ads' => 'اشتہارات ہٹائیں',
@@ -189,7 +195,8 @@ final class ClearwayStrings {
       : switch (id) {
           'hint-pack' => '2 hints',
           'undo-pack' => '3 undos',
-          'ad-coins' => '+30 coins',
+          'ad-coins' => '+50 coins',
+          'ad-hints' => '+3 hints',
           'classic' => 'Classic',
           'sunset' => 'Sunset',
           'remove-ads' => 'Remove Ads',
@@ -200,6 +207,7 @@ final class ClearwayStrings {
           'hint-pack' => 'ابھی نکلنے والی سواری دیکھیں',
           'undo-pack' => 'آخری نکلی سواری واپس لائیں',
           'ad-coins' => 'انعامی اشتہار دیکھیں',
+          'ad-hints' => 'تین اشاروں کے لیے انعامی اشتہار دیکھیں',
           'classic' => 'اصل Clearway تیر کا انداز',
           'sunset' => 'صرف UI اور ملکیت کی تیاری؛ مرحلہ ۷ میں آئے گا',
           'remove-ads' => 'ایک بار کی خریداری',
@@ -209,6 +217,7 @@ final class ClearwayStrings {
           'hint-pack' => 'Find a vehicle that can leave now',
           'undo-pack' => 'Bring back your last cleared vehicle',
           'ad-coins' => 'Watch a rewarded ad',
+          'ad-hints' => 'Watch a rewarded ad for three hints',
           'classic' => 'The original Clearway arrow style',
           'sunset' => 'UI and ownership wiring only; arrives in Phase 7',
           'remove-ads' => 'One-time purchase',
@@ -266,12 +275,12 @@ final class ClearwayStrings {
       ? 'کوئی انعام نہیں ملا۔ اشتہار دستیاب نہیں یا جلدی بند ہو گیا۔'
       : 'No reward. Ad not available or closed early.';
   String get adForHint => _ur
-      ? 'اشارے ختم ہو گئے۔ مختصر اشتہار دیکھ کر 1 اشارہ پائیں؟'
-      : 'Out of hints. Watch a short ad to get 1 hint?';
+      ? 'اشارے ختم ہو گئے۔ مختصر اشتہار دیکھ کر ۳ اشارے پائیں؟'
+      : 'Out of hints. Watch a short ad to get 3 hints?';
   String get adForUndo => _ur
       ? 'واپسی کے موقع ختم۔ مختصر اشتہار دیکھ کر 1 موقع پائیں؟'
       : 'No undos left. Watch a short ad to get 1 undo?';
-  String get hintAdded => _ur ? '1 اشارہ مل گیا!' : 'Hint added!';
+  String get hintAdded => _ur ? '۳ اشارے مل گئے!' : '3 hints added!';
   String get undoAdded => _ur ? '1 واپسی مل گئی!' : 'Undo added!';
   String get watchAd => _ur ? 'اشتہار دیکھیں' : 'Watch ad';
   String get notNow => _ur ? 'ابھی نہیں' : 'Not now';
@@ -285,6 +294,14 @@ final class ClearwayStrings {
             ? 'اشتہار دیکھیں · آج $left باقی'
             : 'Watch an ad · $left left today')
       : (_ur ? 'کل دوبارہ آئیں' : 'Come back tomorrow');
+  String freeRewardLeft(int left) => left > 0
+      ? (_ur
+      ? 'اشتہار دیکھیں · آج ${_digits(left)} باقی'
+      : 'Watch an ad · $left left today')
+      : (_ur ? 'کل دوبارہ آئیں' : 'Come back tomorrow');
+  String get adLimitReached => _ur
+      ? 'آج کا اشتہاری انعام مکمل ہو گیا۔'
+      : 'Today’s ad reward limit is reached.';
   String get lockZoom => 'Lock zoom';
   String get zoomLocked => 'Zoom locked';
   String get bossShapeTip =>

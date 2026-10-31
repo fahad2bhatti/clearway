@@ -353,7 +353,10 @@ class _GameScreenState extends State<GameScreen> {
         _offerRewardedAd(
           message: strings.adForHint,
           rewardMessage: strings.hintAdded,
-          grant: () => widget.save.hints += 1,
+          grant: () async {
+            final result = await EconomyRepository(widget.save).claimAdHints();
+            return result.success;
+          },
         ),
       );
       return;
@@ -379,7 +382,7 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _offerRewardedAd({
     required String message,
     required String rewardMessage,
-    required void Function() grant,
+    required Future<bool> Function() grant,
   }) async {
     AdService.preload();
     final watch = await showDialog<bool>(
@@ -416,15 +419,18 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _playRewardedAd({
     required String rewardMessage,
-    required void Function() grant,
+    required Future<bool> Function() grant,
   }) async {
     final rewarded = await AdService.showRewarded();
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     if (rewarded) {
-      grant();
-      await widget.save.save();
-      messenger.showSnackBar(SnackBar(content: Text(rewardMessage)));
+      if (await grant()) {
+        await widget.save.save();
+        messenger.showSnackBar(SnackBar(content: Text(rewardMessage)));
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(strings.adLimitReached)));
+      }
       return;
     }
     messenger
@@ -453,7 +459,10 @@ class _GameScreenState extends State<GameScreen> {
         _offerRewardedAd(
           message: strings.adForUndo,
           rewardMessage: strings.undoAdded,
-          grant: () => widget.save.undos += 1,
+          grant: () async {
+            widget.save.undos += 1;
+            return true;
+          },
         ),
       );
       return;

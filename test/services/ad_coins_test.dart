@@ -51,4 +51,20 @@ void main() {
     expect(save.adCoinsLeft, 0);
     save.dispose();
   });
+
+  test('hint ad grants three hints and stops at the daily limit', () async {
+    final save = LocalSave()..hints = 0;
+    final economy = EconomyRepository(save);
+
+    for (var i = 0; i < LocalSave.maxAdHintsPerDay; i++) {
+      expect((await economy.claimAdHints()).success, isTrue);
+    }
+
+    expect(save.hints, LocalSave.adHintsReward * LocalSave.maxAdHintsPerDay);
+    expect(save.adHintsLeft, 0);
+    final extra = await economy.claimAdHints();
+    expect(extra.success, isFalse);
+    expect(extra.reason, 'failed-precondition');
+    save.dispose();
+  });
 }
