@@ -119,10 +119,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       await _cloud.initialize();
       final synced = await _cloud.sync(_save, force: true);
       if (synced != null) _progressSync.markSynced(synced);
-      final dailyKey = _dailyDayKey;
-      if (_daily && dailyKey != null) {
-        unawaited(_refreshDailySeed(dailyKey));
-      }
       unawaited(_refreshDailyNotification());
     } catch (_) {
       // Keep the whole game playable when Firebase is unavailable or offline.
@@ -131,31 +127,13 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
 
   Future<void> _startDaily() async {
     final dayKey = DailyClock.dayKey();
-    final cachedSeed = await _cloud.readDailySeed(dayKey, cacheOnly: true);
-    if (!mounted) return;
     setState(() {
       _level = _save.level;
       _daily = true;
       _dailyDayKey = dayKey;
-      _dailyServerSeed = cachedSeed;
+      _dailyServerSeed = null;
       _playing = true;
     });
-    unawaited(_refreshDailySeed(dayKey));
-  }
-
-  Future<void> _refreshDailySeed(String dayKey) async {
-    final seed = await _cloud.readDailySeed(dayKey);
-    if (!mounted ||
-        seed == null ||
-        !_playing ||
-        !_daily ||
-        _dailyDayKey != dayKey ||
-        _dailyServerSeed == seed) {
-      return;
-    }
-    await LevelCatalog.prefetchDaily(dayKey, serverSeed: seed);
-    if (!mounted || !_playing || !_daily || _dailyDayKey != dayKey) return;
-    setState(() => _dailyServerSeed = seed);
   }
 
   void _onSaveChanged() {
@@ -196,8 +174,8 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     if (!mounted) return;
     _save.notificationPermissionAsked = true;
     if (confirmed == true) {
-      _save.notifications =
-          await NotificationService.instance.requestPermission();
+      _save.notifications = await NotificationService.instance
+          .requestPermission();
     } else {
       _save.notifications = false;
     }
@@ -220,12 +198,11 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       return;
     }
     final dayKey = DailyClock.dayKey();
-    final seed = await _cloud.readDailySeed(dayKey);
     await NotificationService.instance.scheduleDaily(
       strings: ClearwayStrings(_save.language),
       enabled: _save.notifications,
       dayKey: dayKey,
-      contentAvailable: seed != null,
+      contentAvailable: true,
       alreadyPlayed: _save.completedDailies.contains(dayKey),
     );
   }
@@ -303,7 +280,10 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
             onLevelChanged: (level) => setState(() => _level = level),
           )
         : _screen == _AppScreen.shop
-        ? ShopScreen(save: _save, onBack: () => setState(() => _screen = _AppScreen.home))
+        ? ShopScreen(
+            save: _save,
+            onBack: () => setState(() => _screen = _AppScreen.home),
+          )
         : _screen == _AppScreen.settings
         ? SettingsScreen(
             save: _save,

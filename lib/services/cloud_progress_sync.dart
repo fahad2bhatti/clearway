@@ -30,7 +30,6 @@ final class CloudProgressSync extends ChangeNotifier {
   bool _feedbackFlushing = false;
   DateTime? _lastFeedbackAttempt;
   ProgressSyncSignature? _lastSyncedSignature;
-  final Map<String, int> _dailySeedCache = {};
 
   bool get isReady => _ready;
 
@@ -42,28 +41,6 @@ final class CloudProgressSync extends ChangeNotifier {
   String? get accountUid => _auth?.currentUser?.uid;
 
   ProgressSyncSignature? get lastSyncedSignature => _lastSyncedSignature;
-
-  /// Cache-only mode is used before starting a daily so play never waits on
-  /// the network. A later online fetch can replace the local fallback seed.
-  Future<int?> readDailySeed(String dayKey, {bool cacheOnly = false}) async {
-    if (!_ready || _firestore == null) return null;
-    final cached = _dailySeedCache[dayKey];
-    if (cacheOnly && cached != null) return cached;
-    try {
-      final source = cacheOnly ? Source.cache : Source.serverAndCache;
-      final snapshot = await _firestore!
-          .collection('dailyChallenges')
-          .doc(dayKey)
-          .get(GetOptions(source: source))
-          .timeout(const Duration(milliseconds: 1500));
-      final seed = (snapshot.data()?['seed'] as num?)?.toInt();
-      if (seed == null || seed < 0 || seed > 0xffffffff) return null;
-      _dailySeedCache[dayKey] = seed;
-      return seed;
-    } catch (_) {
-      return null;
-    }
-  }
 
   Future<ProgressSyncSignature?> retry(LocalSave local) async {
     await initialize();
