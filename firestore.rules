@@ -125,6 +125,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /usernames/{usernameKey} {
+      allow read, write: if false;
+    }
+
     match /reports/{reportId} {
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([

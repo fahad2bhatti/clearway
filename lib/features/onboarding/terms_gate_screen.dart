@@ -6,13 +6,15 @@ import '../../app/legal_links.dart';
 import '../../core/clearway_strings.dart';
 import '../../core/username_rules.dart';
 import '../../data/local_save.dart';
+import '../../services/cloud_progress_sync.dart';
 
 /// Shown until the player accepts the current Terms and Privacy Policy.
 /// Accepting saves the version, which makes the app swap to the game.
 class TermsGateScreen extends StatefulWidget {
-  const TermsGateScreen({super.key, required this.save});
+  const TermsGateScreen({super.key, required this.save, this.cloud});
 
   final LocalSave save;
+  final CloudProgressSync? cloud;
 
   @override
   State<TermsGateScreen> createState() => _TermsGateScreenState();
@@ -21,6 +23,9 @@ class TermsGateScreen extends StatefulWidget {
 class _TermsGateScreenState extends State<TermsGateScreen> {
   late var _checked = widget.save.termsAccepted;
   var _busy = false;
+  late String? _serverError = widget.save.usernameTakenName.isEmpty
+      ? null
+      : strings.usernameTaken(widget.save.usernameTakenName);
 
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
 
@@ -67,7 +72,28 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
     if (!_canContinue || _busy) return;
     setState(() => _busy = true);
     try {
-      await widget.save.completeOnboarding(_username.text);
+      final name = _username.text;
+      var claimed = false;
+      final cloud = widget.cloud;
+      if (cloud != null) {
+        switch (await cloud.claimUsername(name)) {
+          case UsernameClaim.claimed:
+            claimed = true;
+          case UsernameClaim.taken:
+            if (mounted) {
+              setState(() => _serverError = strings.usernameTaken(name));
+            }
+            return;
+          case UsernameClaim.invalid:
+            if (mounted) {
+              setState(() => _serverError = strings.usernameInvalid);
+            }
+            return;
+          case UsernameClaim.unavailable:
+            break;
+        }
+      }
+      await widget.save.completeOnboarding(name, claimed: claimed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -134,10 +160,10 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
                           labelText: strings.username,
                           helperText: strings.usernameHelp,
                           helperMaxLines: 2,
-                          errorText: _usernameError(),
+                          errorText: _usernameError() ?? _serverError,
                           errorMaxLines: 2,
                         ),
-                        onChanged: (_) => setState(() {}),
+                        onChanged: (_) => setState(() => _serverError = null),
                       ),
                     ],
                   ),

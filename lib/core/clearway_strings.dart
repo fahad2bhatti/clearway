@@ -72,6 +72,7 @@ final class ClearwayStrings {
   String get usernameTooShort => _ur ? 'صارف نام کم از کم ۳ حروف کا ہونا چاہیے۔' : 'Username must be at least 3 characters.';
   String get usernameTooLong => _ur ? 'صارف نام زیادہ سے زیادہ ۱۵ حروف کا ہو سکتا ہے۔' : 'Username can be at most 15 characters.';
   String get usernameInvalid => _ur ? 'صرف انگریزی حروف، اعداد اور انڈر سکور (_) استعمال کریں۔' : 'Use only English letters, numbers and underscore (_).';
+  String usernameTaken(String name) => _ur ? '$name پہلے سے لیا جا چکا ہے۔ کوئی اور نام چنیں۔' : '"$name" is already taken. Please choose another name.';
   String get anonymousAccount => _ur ? 'گمنام اکاؤنٹ' : 'Anonymous account';
   String get linkAccount => _ur ? 'پیش رفت محفوظ کرنے کے لیے اکاؤنٹ لنک کریں' : 'Link account to save your progress';
   String get linkedAccount => _ur ? 'اکاؤنٹ لنک ہے' : 'Account linked';

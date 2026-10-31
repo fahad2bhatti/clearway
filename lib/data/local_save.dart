@@ -60,6 +60,10 @@ final class LocalSave extends ChangeNotifier {
   String language = 'en';
   String acceptedTermsVersion = '';
   String username = '';
+  bool usernameClaimed = false;
+
+  /// Last name the server refused. Only explains why the gate came back.
+  String usernameTakenName = '';
   bool tutorialDone = false;
   final Set<int> chaptersSeen = {};
   Map<String, dynamic>? activeBoard;
@@ -122,6 +126,7 @@ final class LocalSave extends ChangeNotifier {
             UsernameRules.validate(storedUsername) == null
         ? storedUsername
         : '';
+    usernameClaimed = username.isNotEmpty && data['usernameClaimed'] == true;
     ownedArrowSkins
       ..clear()
       ..addAll(
@@ -227,6 +232,7 @@ final class LocalSave extends ChangeNotifier {
     language = 'en';
     acceptedTermsVersion = '';
     username = '';
+    usernameClaimed = false;
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;
@@ -287,6 +293,7 @@ final class LocalSave extends ChangeNotifier {
         'lang': language,
         'termsVersion': acceptedTermsVersion,
         'username': username,
+        'usernameClaimed': usernameClaimed,
         'arrowSkins': ownedArrowSkins.toList()..sort(),
         'selectedArrowSkin': selectedArrowSkin,
         'claimedMilestones': claimedMilestones.toList()..sort(),
@@ -415,12 +422,29 @@ final class LocalSave extends ChangeNotifier {
 
   /// Saves the username together with the terms acceptance. Returns false and
   /// changes nothing when the username breaks the rules.
-  Future<bool> completeOnboarding(String name) async {
+  Future<bool> completeOnboarding(String name, {bool claimed = false}) async {
     if (UsernameRules.validate(name) != null) return false;
     acceptedTermsVersion = LegalLinks.termsVersion;
     username = name;
+    usernameClaimed = claimed;
+    usernameTakenName = '';
     await save();
     return true;
+  }
+
+  Future<void> markUsernameClaimed(String name) async {
+    if (username != name || usernameClaimed) return;
+    usernameClaimed = true;
+    await save();
+  }
+
+  /// The server refused a name that was only saved locally: ask for a new one.
+  Future<void> releaseUsername(String name) async {
+    if (username != name) return;
+    username = '';
+    usernameClaimed = false;
+    usernameTakenName = name;
+    await save();
   }
 
   Future<void> reset() async {
@@ -447,6 +471,7 @@ final class LocalSave extends ChangeNotifier {
     language = 'en';
     acceptedTermsVersion = '';
     username = '';
+    usernameClaimed = false;
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;

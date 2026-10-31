@@ -16,6 +16,8 @@ enum CloudSyncStatus { notConfigured, offline, syncing, synced, failed }
 
 enum FeedbackOutcome { sent, queued, queueFull }
 
+enum UsernameClaim { claimed, taken, invalid, unavailable }
+
 /// Anonymous account and conflict-safe progress sync. Local play never waits
 /// for Firebase to be reachable.
 final class CloudProgressSync extends ChangeNotifier {
@@ -29,6 +31,7 @@ final class CloudProgressSync extends ChangeNotifier {
   bool _syncAgainForce = false;
   bool _legacyRulesOnly = false;
   bool _feedbackFlushing = false;
+  bool _usernameClaiming = false;
   DateTime? _lastFeedbackAttempt;
   ProgressSyncSignature? _lastSyncedSignature;
   final Map<String, int> _dailySeedCache = {};
@@ -125,6 +128,48 @@ final class CloudProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Asks the server to reserve [name]. Offline or unexpected errors are
+  /// reported as unavailable so the caller can retry later.
+  Future<UsernameClaim> claimUsername(String name) async {
+    if (!_ready) return UsernameClaim.unavailable;
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('claimUsername')
+          .call({'username': name})
+          .timeout(const Duration(seconds: 8));
+      return UsernameClaim.claimed;
+    } on FirebaseFunctionsException catch (error) {
+      return switch (error.code) {
+        'already-exists' => UsernameClaim.taken,
+        'invalid-argument' => UsernameClaim.invalid,
+        _ => UsernameClaim.unavailable,
+      };
+    } catch (_) {
+      return UsernameClaim.unavailable;
+    }
+  }
+
+  Future<void> _claimPendingUsername(LocalSave local) async {
+    final name = local.username;
+    if (_usernameClaiming || name.isEmpty || local.usernameClaimed) return;
+    _usernameClaiming = true;
+    try {
+      switch (await claimUsername(name)) {
+        case UsernameClaim.claimed:
+          await local.markUsernameClaimed(name);
+        case UsernameClaim.taken:
+        case UsernameClaim.invalid:
+          await local.releaseUsername(name);
+        case UsernameClaim.unavailable:
+          break;
+      }
+    } catch (_) {
+      // A failed claim must never affect gameplay or sync.
+    } finally {
+      _usernameClaiming = false;
+    }
+  }
+
   /// Saves feedback on the device first so nothing is lost offline, then tries
   /// to deliver it. A queued item is only removed after the server confirms.
   Future<FeedbackOutcome> submitFeedback({
@@ -192,6 +237,7 @@ final class CloudProgressSync extends ChangeNotifier {
   }) async {
     if (!_ready) return null;
     unawaited(flushPendingFeedback());
+    unawaited(_claimPendingUsername(local));
     if (_busy) {
       _syncAgain = true;
       _syncAgainForce = _syncAgainForce || force;
