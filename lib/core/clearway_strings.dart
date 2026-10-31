@@ -68,6 +68,10 @@ final class ClearwayStrings {
   String get unavailableOffline => _ur ? 'آف لائن دستیاب نہیں' : 'Unavailable offline';
   String get settingsAccount => _ur ? 'اکاؤنٹ' : 'Account';
   String get username => _ur ? 'صارف نام' : 'Username';
+  String get usernameHelp => _ur ? 'صرف انگریزی حروف، اعداد اور _ (۳ تا ۱۵ حروف)۔' : 'English letters, numbers and _ only (3-15 characters).';
+  String get usernameTooShort => _ur ? 'صارف نام کم از کم ۳ حروف کا ہونا چاہیے۔' : 'Username must be at least 3 characters.';
+  String get usernameTooLong => _ur ? 'صارف نام زیادہ سے زیادہ ۱۵ حروف کا ہو سکتا ہے۔' : 'Username can be at most 15 characters.';
+  String get usernameInvalid => _ur ? 'صرف انگریزی حروف، اعداد اور انڈر سکور (_) استعمال کریں۔' : 'Use only English letters, numbers and underscore (_).';
   String get anonymousAccount => _ur ? 'گمنام اکاؤنٹ' : 'Anonymous account';
   String get linkAccount => _ur ? 'پیش رفت محفوظ کرنے کے لیے اکاؤنٹ لنک کریں' : 'Link account to save your progress';
   String get linkedAccount => _ur ? 'اکاؤنٹ لنک ہے' : 'Account linked';

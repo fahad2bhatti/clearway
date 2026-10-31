@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/app_identity.dart';
 import '../../app/legal_links.dart';
 import '../../core/clearway_strings.dart';
+import '../../core/username_rules.dart';
 import '../../data/local_save.dart';
 
 /// Shown until the player accepts the current Terms and Privacy Policy.
@@ -18,10 +19,33 @@ class TermsGateScreen extends StatefulWidget {
 }
 
 class _TermsGateScreenState extends State<TermsGateScreen> {
-  var _checked = false;
+  late var _checked = widget.save.termsAccepted;
   var _busy = false;
 
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
+
+  late final TextEditingController _username = TextEditingController(
+    text: widget.save.username,
+  );
+
+  bool get _canContinue =>
+      _checked && UsernameRules.validate(_username.text) == null;
+
+  String? _usernameError() {
+    if (_username.text.isEmpty) return null;
+    return switch (UsernameRules.validate(_username.text)) {
+      null => null,
+      UsernameError.tooShort => strings.usernameTooShort,
+      UsernameError.tooLong => strings.usernameTooLong,
+      UsernameError.invalidCharacters => strings.usernameInvalid,
+    };
+  }
+
+  @override
+  void dispose() {
+    _username.dispose();
+    super.dispose();
+  }
 
   Future<void> _open(String url) async {
     var opened = false;
@@ -40,10 +64,10 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
   }
 
   Future<void> _accept() async {
-    if (!_checked || _busy) return;
+    if (!_canContinue || _busy) return;
     setState(() => _busy = true);
     try {
-      await widget.save.acceptTerms();
+      await widget.save.completeOnboarding(_username.text);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -97,6 +121,24 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
                         strings.privacyPolicy,
                         LegalLinks.privacyUrl,
                       ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _username,
+                        enabled: !_busy,
+                        maxLength: UsernameRules.maxLength,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textDirection: TextDirection.ltr,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          labelText: strings.username,
+                          helperText: strings.usernameHelp,
+                          helperMaxLines: 2,
+                          errorText: _usernameError(),
+                          errorMaxLines: 2,
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
                     ],
                   ),
                 ),
@@ -112,7 +154,7 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
               ),
               const SizedBox(height: 8),
               FilledButton(
-                onPressed: _checked && !_busy ? _accept : null,
+                onPressed: _canContinue && !_busy ? _accept : null,
                 child: Text(strings.termsGateContinue),
               ),
             ],

@@ -282,7 +282,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     theme: _save.darkTheme ? _darkTheme : _lightTheme,
     home: !_saveLoaded
         ? const Scaffold(body: SizedBox.shrink())
-        : !_save.termsAccepted
+        : !_save.onboardingComplete
         ? TermsGateScreen(save: _save)
         : _playing
         ? GameScreen(

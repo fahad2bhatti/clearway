@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/legal_links.dart';
+import '../core/username_rules.dart';
 import '../core/daily_clock.dart';
 import '../game/data/level_catalog.dart';
 import '../game/tutorial.dart';
@@ -58,6 +59,7 @@ final class LocalSave extends ChangeNotifier {
   bool notificationPermissionAsked = false;
   String language = 'en';
   String acceptedTermsVersion = '';
+  String username = '';
   bool tutorialDone = false;
   final Set<int> chaptersSeen = {};
   Map<String, dynamic>? activeBoard;
@@ -114,6 +116,12 @@ final class LocalSave extends ChangeNotifier {
         data['notificationPermissionAsked'] as bool? ?? false;
     language = data['lang'] as String? ?? 'en';
     acceptedTermsVersion = data['termsVersion'] as String? ?? '';
+    final storedUsername = data['username'];
+    username =
+        storedUsername is String &&
+            UsernameRules.validate(storedUsername) == null
+        ? storedUsername
+        : '';
     ownedArrowSkins
       ..clear()
       ..addAll(
@@ -218,6 +226,7 @@ final class LocalSave extends ChangeNotifier {
     notificationPermissionAsked = false;
     language = 'en';
     acceptedTermsVersion = '';
+    username = '';
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;
@@ -277,6 +286,7 @@ final class LocalSave extends ChangeNotifier {
         'notificationPermissionAsked': notificationPermissionAsked,
         'lang': language,
         'termsVersion': acceptedTermsVersion,
+        'username': username,
         'arrowSkins': ownedArrowSkins.toList()..sort(),
         'selectedArrowSkin': selectedArrowSkin,
         'claimedMilestones': claimedMilestones.toList()..sort(),
@@ -400,6 +410,19 @@ final class LocalSave extends ChangeNotifier {
     await save();
   }
 
+  bool get onboardingComplete =>
+      termsAccepted && UsernameRules.validate(username) == null;
+
+  /// Saves the username together with the terms acceptance. Returns false and
+  /// changes nothing when the username breaks the rules.
+  Future<bool> completeOnboarding(String name) async {
+    if (UsernameRules.validate(name) != null) return false;
+    acceptedTermsVersion = LegalLinks.termsVersion;
+    username = name;
+    await save();
+    return true;
+  }
+
   Future<void> reset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
@@ -423,6 +446,7 @@ final class LocalSave extends ChangeNotifier {
     notifications = true;
     language = 'en';
     acceptedTermsVersion = '';
+    username = '';
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;
