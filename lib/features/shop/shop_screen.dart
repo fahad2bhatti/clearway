@@ -143,7 +143,11 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   Widget _offerTile(ShopOffer offer) {
-    final remaining = offer.dailyLimit == null ? null : widget.save.adCoinsLeft;
+    final remaining = switch (offer.id) {
+      'ad-coins' => widget.save.adCoinsLeft,
+      'ad-hints' => widget.save.adHintsLeft,
+      _ => null,
+    };
     final insufficient = offer.coinCost != null && widget.save.coins < offer.coinCost!;
     return Card(
       child: ListTile(
@@ -151,7 +155,8 @@ class _ShopScreenState extends State<ShopScreen> {
         title: Text(strings.shopOfferTitle(offer.id)),
         subtitle: Text(
           '${strings.shopOfferDescription(offer.id)}'
-          '${remaining == null ? '' : '\n${strings.freeCoinsLeft(remaining)}'}'
+          '${remaining == null ? '' : '\n${strings.freeRewardLeft(remaining)}'}'
+          '${remaining == null ? '' : '\n${strings.dailyOfferReset}'}'
           '${insufficient ? '\n${strings.insufficientCoins}' : ''}',
         ),
         isThreeLine: remaining != null,
@@ -167,7 +172,9 @@ class _ShopScreenState extends State<ShopScreen> {
     if (_busy) return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator());
     if (offer.kind == ShopOfferKind.freeReward) {
       return FilledButton(
-        onPressed: AdService.adsRemoved || widget.save.adCoinsLeft == 0 ? null : () => _claimAdCoins(offer),
+        onPressed: AdService.adsRemoved || _remaining(offer) == 0
+            ? null
+            : () => _claimAdReward(offer),
         child: Text(strings.watchAd),
       );
     }
@@ -194,19 +201,29 @@ class _ShopScreenState extends State<ShopScreen> {
     }
   }
 
-  Future<void> _claimAdCoins(ShopOffer offer) async {
-    if (_busy || widget.save.adCoinsLeft == 0 || AdService.adsRemoved) return;
+  int _remaining(ShopOffer offer) => switch (offer.id) {
+        'ad-coins' => widget.save.adCoinsLeft,
+        'ad-hints' => widget.save.adHintsLeft,
+        _ => 0,
+      };
+
+  Future<void> _claimAdReward(ShopOffer offer) async {
+    if (_busy || _remaining(offer) == 0 || AdService.adsRemoved) return;
     setState(() => _busy = true);
     try {
       AdService.preload();
       if (!await AdService.showRewarded()) {
-        _message(strings.adNotReady);
+        _messageWithRetry(strings.adNotReady, () => _claimAdReward(offer));
         return;
       }
 
-      widget.save.recordAdCoins();
-      widget.save.coins += offer.coinReward;
-      await widget.save.save();
+      final result = offer.id == 'ad-hints'
+          ? await economy.claimAdHints()
+          : await economy.claimAdCoins();
+      if (!mounted) return;
+      if (!result.success && result.reason != 'failed-precondition') {
+        _message(strings.cloudError);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -215,6 +232,18 @@ class _ShopScreenState extends State<ShopScreen> {
   void _message(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _messageWithRetry(String message, VoidCallback retry) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          action: SnackBarAction(label: strings.tryAgain, onPressed: retry),
+        ),
+      );
   }
 
   IconData _iconFor(ShopOfferKind kind) => switch (kind) {

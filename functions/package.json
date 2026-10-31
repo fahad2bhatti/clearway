@@ -13,7 +13,8 @@
     "test:rules": "node --test test/firestore.rules.test.mjs",
     "test:rules:emulator": "cd .. && firebase emulators:exec --only firestore --project demo-clearway-rules \"npm --prefix functions run test:rules\"",
     "test:daily": "npm run build && node --test test/daily.test.mjs",
-    "test:economy": "npm run build && node --test test/economy.test.mjs"
+    "test:economy": "npm run build && node --test test/economy.test.mjs",
+    "test:username": "npm run build && node --test test/username.test.mjs"
   },
   "dependencies": {
     "firebase-admin": "^13.5.0",

@@ -54,3 +54,6 @@ export function boundedAmount(value: unknown): number {
   }
   return value;
 }
+
+export const AD_COINS_REWARD = 30;
+export const AD_COINS_PER_DAY = 5;

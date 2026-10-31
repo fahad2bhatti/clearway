@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/legal_links.dart';
+import '../core/username_rules.dart';
 import '../core/daily_clock.dart';
 import '../game/data/level_catalog.dart';
 import '../game/tutorial.dart';
@@ -25,8 +26,10 @@ final class LocalSave extends ChangeNotifier {
 
   // Ad rewards (sirf local, cloud mein nahi jate).
   static const dailyGiftCoins = 50;
-  static const adCoinsReward = 30;
+  static const adCoinsReward = 50;
   static const maxAdCoinsPerDay = 5;
+  static const adHintsReward = 3;
+  static const maxAdHintsPerDay = 3;
 
   /// Shop: a hint pack is deliberately pricey (25 coins per hint).
   static const hintPackCost = 50;
@@ -34,6 +37,8 @@ final class LocalSave extends ChangeNotifier {
   String giftDay = '';
   String adCoinsDay = '';
   int adCoinsCount = 0;
+  String adHintsDay = '';
+  int adHintsCount = 0;
 
   /// Aaj shop se kitni bar aur "ad dekho, coins pao" mil sakta hai.
   int get adCoinsLeft => adCoinsDay == DailyClock.dayKey()
@@ -49,6 +54,19 @@ final class LocalSave extends ChangeNotifier {
     adCoinsCount++;
   }
 
+  int get adHintsLeft => adHintsDay == DailyClock.dayKey()
+      ? (maxAdHintsPerDay - adHintsCount).clamp(0, maxAdHintsPerDay)
+      : maxAdHintsPerDay;
+
+  void recordAdHints() {
+    final today = DailyClock.dayKey();
+    if (adHintsDay != today) {
+      adHintsDay = today;
+      adHintsCount = 0;
+    }
+    adHintsCount++;
+  }
+
   bool sound = true;
   bool music = false;
   bool haptics = true;
@@ -58,6 +76,11 @@ final class LocalSave extends ChangeNotifier {
   bool notificationPermissionAsked = false;
   String language = 'en';
   String acceptedTermsVersion = '';
+  String username = '';
+  bool usernameClaimed = false;
+
+  /// Last name the server refused. Only explains why the gate came back.
+  String usernameTakenName = '';
   bool tutorialDone = false;
   final Set<int> chaptersSeen = {};
   Map<String, dynamic>? activeBoard;
@@ -68,6 +91,7 @@ final class LocalSave extends ChangeNotifier {
   final Set<String> claimedMilestones = {};
   final Map<String, int> achievementProgress = {};
   final Set<String> claimedAchievements = {};
+  final Set<int> ratingPromptMilestonesShown = {};
   DailyMissionState? dailyMissions;
 
   Future<void> load() async {
@@ -104,6 +128,8 @@ final class LocalSave extends ChangeNotifier {
     giftDay = data['giftDay'] as String? ?? '';
     adCoinsDay = data['adCoinsDay'] as String? ?? '';
     adCoinsCount = _count(data['adCoinsCount'], 0);
+    adHintsDay = data['adHintsDay'] as String? ?? '';
+    adHintsCount = _count(data['adHintsCount'], 0);
     sound = data['sound'] as bool? ?? true;
     music = data['music'] as bool? ?? false;
     haptics = data['haptics'] as bool? ?? true;
@@ -114,6 +140,13 @@ final class LocalSave extends ChangeNotifier {
         data['notificationPermissionAsked'] as bool? ?? false;
     language = data['lang'] as String? ?? 'en';
     acceptedTermsVersion = data['termsVersion'] as String? ?? '';
+    final storedUsername = data['username'];
+    username =
+        storedUsername is String &&
+            UsernameRules.validate(storedUsername) == null
+        ? storedUsername
+        : '';
+    usernameClaimed = username.isNotEmpty && data['usernameClaimed'] == true;
     ownedArrowSkins
       ..clear()
       ..addAll(
@@ -150,6 +183,14 @@ final class LocalSave extends ChangeNotifier {
         (data['claimedAchievements'] as List<dynamic>? ?? [])
             .whereType<String>()
             .where((id) => AchievementCatalog.byId(id) != null),
+      );
+    ratingPromptMilestonesShown
+      ..clear()
+      ..addAll(
+        (data['ratingPromptMilestonesShown'] as List<dynamic>? ?? [])
+            .whereType<num>()
+            .map((level) => level.toInt())
+            .where((level) => level >= 1 && level <= LevelCatalog.totalLevels),
       );
     dailyMissions = _decodeDailyMissions(data['dailyMissions']);
     // Saves from before this flag existed carry no value: anyone who has
@@ -209,6 +250,8 @@ final class LocalSave extends ChangeNotifier {
     giftDay = '';
     adCoinsDay = '';
     adCoinsCount = 0;
+    adHintsDay = '';
+    adHintsCount = 0;
     sound = true;
     music = false;
     haptics = true;
@@ -218,6 +261,8 @@ final class LocalSave extends ChangeNotifier {
     notificationPermissionAsked = false;
     language = 'en';
     acceptedTermsVersion = '';
+    username = '';
+    usernameClaimed = false;
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;
@@ -230,6 +275,7 @@ final class LocalSave extends ChangeNotifier {
     claimedMilestones.clear();
     achievementProgress.clear();
     claimedAchievements.clear();
+    ratingPromptMilestonesShown.clear();
     dailyMissions = null;
   }
 
@@ -277,11 +323,15 @@ final class LocalSave extends ChangeNotifier {
         'notificationPermissionAsked': notificationPermissionAsked,
         'lang': language,
         'termsVersion': acceptedTermsVersion,
+        'username': username,
+        'usernameClaimed': usernameClaimed,
         'arrowSkins': ownedArrowSkins.toList()..sort(),
         'selectedArrowSkin': selectedArrowSkin,
         'claimedMilestones': claimedMilestones.toList()..sort(),
         'achievementProgress': achievementProgress,
         'claimedAchievements': claimedAchievements.toList()..sort(),
+        'ratingPromptMilestonesShown':
+            ratingPromptMilestonesShown.toList()..sort(),
         'dailyMissions': _encodeDailyMissions(dailyMissions),
         'tutorialDone': tutorialDone,
         'chaptersSeen': (chaptersSeen.toList()..sort()),
@@ -290,6 +340,8 @@ final class LocalSave extends ChangeNotifier {
         'giftDay': giftDay,
         'adCoinsDay': adCoinsDay,
         'adCoinsCount': adCoinsCount,
+        'adHintsDay': adHintsDay,
+        'adHintsCount': adHintsCount,
         'dailies': completedDailies.toList(),
         'activeBoard': activeBoard,
       }),
@@ -400,6 +452,36 @@ final class LocalSave extends ChangeNotifier {
     await save();
   }
 
+  bool get onboardingComplete =>
+      termsAccepted && UsernameRules.validate(username) == null;
+
+  /// Saves the username together with the terms acceptance. Returns false and
+  /// changes nothing when the username breaks the rules.
+  Future<bool> completeOnboarding(String name, {bool claimed = false}) async {
+    if (UsernameRules.validate(name) != null) return false;
+    acceptedTermsVersion = LegalLinks.termsVersion;
+    username = name;
+    usernameClaimed = claimed;
+    usernameTakenName = '';
+    await save();
+    return true;
+  }
+
+  Future<void> markUsernameClaimed(String name) async {
+    if (username != name || usernameClaimed) return;
+    usernameClaimed = true;
+    await save();
+  }
+
+  /// The server refused a name that was only saved locally: ask for a new one.
+  Future<void> releaseUsername(String name) async {
+    if (username != name) return;
+    username = '';
+    usernameClaimed = false;
+    usernameTakenName = name;
+    await save();
+  }
+
   Future<void> reset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
@@ -423,6 +505,8 @@ final class LocalSave extends ChangeNotifier {
     notifications = true;
     language = 'en';
     acceptedTermsVersion = '';
+    username = '';
+    usernameClaimed = false;
     tutorialDone = false;
     chaptersSeen.clear();
     activeBoard = null;

@@ -3,6 +3,7 @@ import 'package:flame/game.dart' hide Matrix4;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 import '../widgets/clearway_banner.dart';
 
@@ -24,6 +25,7 @@ import '../services/economy_repository.dart';
 import '../services/sound_service.dart';
 import 'revive.dart';
 import 'tutorial.dart';
+import 'rating_prompt.dart';
 import 'skins/arrow_skin.dart';
 import 'achievements/achievement_models.dart';
 
@@ -39,7 +41,6 @@ class GameScreen extends StatefulWidget {
     required this.save,
     this.daily = false,
     this.dailyDayKey,
-    this.dailyServerSeed,
   });
 
   final int startingLevel;
@@ -49,7 +50,6 @@ class GameScreen extends StatefulWidget {
   final LocalSave save;
   final bool daily;
   final String? dailyDayKey;
-  final int? dailyServerSeed;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -100,8 +100,7 @@ class _GameScreenState extends State<GameScreen> {
   void didUpdateWidget(covariant GameScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.daily &&
-        (oldWidget.dailyDayKey != widget.dailyDayKey ||
-            oldWidget.dailyServerSeed != widget.dailyServerSeed) &&
+        oldWidget.dailyDayKey != widget.dailyDayKey &&
         !_dailyTouched &&
         _phase == GamePhase.ready) {
       setState(() => _loadLevel(restore: false));
@@ -112,7 +111,7 @@ class _GameScreenState extends State<GameScreen> {
     _dailyTouched = false;
     _hintUsed = false;
     _level = widget.daily
-        ? LevelCatalog.daily(_dailyDayKey, serverSeed: widget.dailyServerSeed)
+        ? LevelCatalog.daily(_dailyDayKey)
         : LevelCatalog.getLevel(_levelIndex + 1);
     _remaining = _level.vehicles.map((vehicle) => vehicle.copy()).toList();
     _undoSnapshot = null;
@@ -246,8 +245,6 @@ class _GameScreenState extends State<GameScreen> {
       'level': _level.number,
       'daily': widget.daily,
       if (widget.daily) 'dayKey': _dailyDayKey,
-      if (widget.daily && widget.dailyServerSeed != null)
-        'dailySeed': widget.dailyServerSeed,
       'remaining': _remaining.map((vehicle) => vehicle.id).toList(),
       'undoSnapshot':
           _undoSnapshot?.map((vehicle) => vehicle.id).toList() ?? [],
@@ -351,7 +348,10 @@ class _GameScreenState extends State<GameScreen> {
         _offerRewardedAd(
           message: strings.adForHint,
           rewardMessage: strings.hintAdded,
-          grant: () => widget.save.hints += 1,
+          grant: () async {
+            final result = await EconomyRepository(widget.save).claimAdHints();
+            return result.success;
+          },
         ),
       );
       return;
@@ -363,9 +363,8 @@ class _GameScreenState extends State<GameScreen> {
       final result = await EconomyRepository(widget.save).spend('hint');
       if (!mounted) return;
       if (!result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.cloudError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.cloudError)));
         return;
       }
       _hintUsed = true;
@@ -377,7 +376,7 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _offerRewardedAd({
     required String message,
     required String rewardMessage,
-    required void Function() grant,
+    required Future<bool> Function() grant,
   }) async {
     AdService.preload();
     final watch = await showDialog<bool>(
@@ -409,16 +408,42 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
     if (watch != true || !mounted) return;
+    await _playRewardedAd(rewardMessage: rewardMessage, grant: grant);
+  }
+
+  Future<void> _playRewardedAd({
+    required String rewardMessage,
+    required Future<bool> Function() grant,
+  }) async {
     final rewarded = await AdService.showRewarded();
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     if (rewarded) {
-      grant();
-      await widget.save.save();
-      messenger.showSnackBar(SnackBar(content: Text(rewardMessage)));
-    } else {
-      messenger.showSnackBar(SnackBar(content: Text(strings.adNotReady)));
+      if (await grant()) {
+        await widget.save.save();
+        messenger.showSnackBar(SnackBar(content: Text(rewardMessage)));
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(strings.adLimitReached)));
+      }
+      return;
     }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(strings.adNotReady),
+          action: SnackBarAction(
+            label: strings.tryAgain,
+            onPressed: () {
+              if (mounted) {
+                unawaited(
+                  _playRewardedAd(rewardMessage: rewardMessage, grant: grant),
+                );
+              }
+            },
+          ),
+        ),
+      );
   }
 
   void _undo() {
@@ -428,7 +453,10 @@ class _GameScreenState extends State<GameScreen> {
         _offerRewardedAd(
           message: strings.adForUndo,
           rewardMessage: strings.undoAdded,
-          grant: () => widget.save.undos += 1,
+          grant: () async {
+            widget.save.undos += 1;
+            return true;
+          },
         ),
       );
       return;
@@ -437,9 +465,8 @@ class _GameScreenState extends State<GameScreen> {
       final result = await EconomyRepository(widget.save).spend('undo');
       if (!mounted) return;
       if (!result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.cloudError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.cloudError)));
         return;
       }
       _blockedTaps.reset();
@@ -457,6 +484,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _showWinDialog() async {
+    final completedLevel = _level.number;
     SoundService.win(enabled: widget.save.sound);
     final stars = _mistakes == 0
         ? 3
@@ -516,6 +544,7 @@ class _GameScreenState extends State<GameScreen> {
     if (!mounted) return;
     final earned = widget.save.coins - coinsBefore;
     AdService.preload();
+    Future<void>? dialogFollowUp;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -545,13 +574,16 @@ class _GameScreenState extends State<GameScreen> {
             widget.save.save();
             widget.onHome(_level.number);
           } else {
-            await AdService.maybeShowInterstitial();
-            if (!mounted) return;
-            setState(() {
-              _levelIndex++;
-              _loadLevel();
-            });
-            widget.onLevelChanged(_level.number);
+            dialogFollowUp = () async {
+              await AdService.maybeShowInterstitial();
+              if (!mounted) return;
+              setState(() {
+                _levelIndex++;
+                _loadLevel();
+              });
+              widget.onLevelChanged(_level.number);
+            }();
+            await dialogFollowUp;
           }
         },
         secondaryLabel: strings.replay,
@@ -559,7 +591,10 @@ class _GameScreenState extends State<GameScreen> {
           Navigator.pop(context);
           _clearActiveBoard();
           widget.save.save();
-          setState(_loadLevel);
+          dialogFollowUp = Future<void>.sync(() {
+            if (!mounted) return;
+            setState(_loadLevel);
+          });
         },
         tertiaryLabel: isLast ? null : strings.backToHome,
         onTertiary: isLast
@@ -572,6 +607,34 @@ class _GameScreenState extends State<GameScreen> {
               },
       ),
     );
+    final followUp = dialogFollowUp;
+    if (followUp != null) await followUp;
+    await _maybeRequestRatingPrompt(completedLevel);
+  }
+
+  Future<void> _maybeRequestRatingPrompt(int completedLevel) async {
+    if (!mounted ||
+        _phase != GamePhase.ready ||
+        !shouldShowRatingPrompt(
+          level: completedLevel,
+          won: true,
+          daily: widget.daily,
+          shownMilestones: widget.save.ratingPromptMilestonesShown,
+        )) {
+      return;
+    }
+    widget.save.ratingPromptMilestonesShown.add(completedLevel);
+    await widget.save.save();
+    if (!mounted) return;
+    try {
+      final review = InAppReview.instance;
+      if (await review.isAvailable()) {
+        if (!mounted) return;
+        await review.requestReview();
+      }
+    } catch (_) {
+      // Native review availability is best effort.
+    }
   }
 
   void _revive() {
@@ -584,9 +647,8 @@ class _GameScreenState extends State<GameScreen> {
       final result = await EconomyRepository(widget.save).spend('revive');
       if (!mounted) return;
       if (!result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.cloudError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.cloudError)));
         return;
       }
       setState(() {

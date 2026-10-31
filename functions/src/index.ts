@@ -12,7 +12,10 @@ import * as logger from 'firebase-functions/logger';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { dailySeed } from './daily.js';
+import { normalizeUsername, RESERVED_USERNAMES } from './username.js';
 import {
+  AD_COINS_PER_DAY,
+  AD_COINS_REWARD,
   boundedAmount,
   economyItem,
   requestId,
@@ -366,6 +369,130 @@ export const claimEconomyReward = onCall(callableOptions, async (request) => {
   };
 });
 
+/** Credits the fixed rewarded-ad coin amount, capped per UTC day. */
+export const claimAdCoins = onCall(callableOptions, async (request) => {
+  const uid = uidFrom(request);
+  await assertNotBanned(uid);
+  await enforceRateLimit(uid, 'claimAdCoins', 3000);
+  let idempotencyKey: string;
+  try {
+    idempotencyKey = requestId(dataFrom(request).requestId);
+  } catch (error) {
+    invalidArgument(error instanceof Error ? error.message : 'invalid-request');
+  }
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const userRef = db.collection('users').doc(uid);
+  const economyRef = userRef.collection('economy').doc('state');
+  const ledgerRef = userRef.collection('ledger').doc(idempotencyKey);
+  const dailyRef = userRef.collection('daily').doc(`ad-coins-${dayKey}`);
+  const state = await db.runTransaction(async (transaction) => {
+    const [economy, ledger, daily] = await Promise.all([
+      transaction.get(economyRef),
+      transaction.get(ledgerRef),
+      transaction.get(dailyRef),
+    ]);
+    const current = readEconomyState(economy);
+    if (ledger.exists) return current;
+    const count = safeBalance(daily.get('count'));
+    if (count >= AD_COINS_PER_DAY) {
+      throw new HttpsError('failed-precondition', 'daily-limit');
+    }
+    const next = { ...current, coins: current.coins + AD_COINS_REWARD };
+    transaction.set(
+      economyRef,
+      {
+        coins: next.coins,
+        hints: current.hints,
+        undos: current.undos,
+        ownedSkins: current.ownedSkins,
+        schemaVersion: 1,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    transaction.set(
+      dailyRef,
+      {
+        uid,
+        type: 'ad-coins',
+        dayKey,
+        count: count + 1,
+        updatedAt: FieldValue.serverTimestamp(),
+        schemaVersion: 1,
+      },
+      { merge: true },
+    );
+    transaction.create(ledgerRef, {
+      type: 'earn',
+      amount: AD_COINS_REWARD,
+      reason: 'ad-coins',
+      idempotencyKey,
+      createdAt: FieldValue.serverTimestamp(),
+      schemaVersion: 1,
+    });
+    return next;
+  });
+  return { state: economyResponse(state) };
+});
+
+/** Claims a unique, case-insensitive username for the signed-in player. */
+export const claimUsername = onCall(callableOptions, async (request) => {
+  const uid = uidFrom(request);
+  await assertNotBanned(uid);
+  await enforceRateLimit(uid, 'claimUsername', 3000);
+  let name: { display: string; key: string };
+  try {
+    name = normalizeUsername(dataFrom(request).username);
+  } catch (error) {
+    invalidArgument(error instanceof Error ? error.message : 'invalid-username');
+  }
+  if (RESERVED_USERNAMES.has(name.key)) {
+    throw new HttpsError('already-exists', 'username-taken');
+  }
+  const userRef = db.collection('users').doc(uid);
+  const nameRef = db.collection('usernames').doc(name.key);
+  await db.runTransaction(async (transaction) => {
+    const [user, current] = await Promise.all([
+      transaction.get(userRef),
+      transaction.get(nameRef),
+    ]);
+    if (current.exists && current.get('uid') !== uid) {
+      throw new HttpsError('already-exists', 'username-taken');
+    }
+    const previousKey = user.get('usernameKey');
+    const previousRef =
+      typeof previousKey === 'string' && previousKey !== name.key
+        ? db.collection('usernames').doc(previousKey)
+        : null;
+    const previous = previousRef ? await transaction.get(previousRef) : null;
+    transaction.set(
+      nameRef,
+      {
+        uid,
+        username: name.display,
+        updatedAt: FieldValue.serverTimestamp(),
+        schemaVersion: 1,
+        ...(!current.exists ? { createdAt: FieldValue.serverTimestamp() } : {}),
+      },
+      { merge: true },
+    );
+    transaction.set(
+      userRef,
+      {
+        username: name.display,
+        usernameKey: name.key,
+        usernameUpdatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    if (previousRef && previous?.exists && previous.get('uid') === uid) {
+      transaction.delete(previousRef);
+    }
+  });
+  logger.info('username_claimed', { uid });
+  return { username: name.display };
+});
+
 /** Exports a signed-in player's own account data for a privacy request. */
 export const exportMyData = onCall(callableOptions, async (request) => {
   const uid = uidFrom(request);
@@ -445,6 +572,7 @@ async function deleteUserIndexRows(uid: string): Promise<void> {
     db.collectionGroup('entries').where('uid', '==', uid),
     db.collection('reports').where('uid', '==', uid),
     db.collection('functionRateLimits').where('uid', '==', uid),
+    db.collection('usernames').where('uid', '==', uid),
   ];
   for (const query of targets) {
     const snapshot = await query.get();

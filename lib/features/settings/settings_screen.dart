@@ -1,4 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -178,8 +177,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _message(strings.accountDeleted);
         Navigator.pop(context);
       }
-    } on FirebaseFunctionsException catch (error) {
-      _message(error.message ?? strings.accountDeleteFailed);
     } catch (_) {
       _message(strings.accountDeleteFailed);
     } finally {
@@ -200,6 +197,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
       false;
 
   Future<void> _rateUs() async {
+    final rating = await showDialog<int>(
+      context: context,
+      builder: (context) => _RatingDialog(strings: strings),
+    );
+    if (rating == null || !mounted) return;
+    if (rating >= 4) {
+      final rateNow = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(strings.ratingTitle),
+          content: Text(strings.ratingStorePrompt),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(strings.ratingNotNow),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(strings.ratingNow),
+            ),
+          ],
+        ),
+      );
+      if (rateNow == true) await _requestStoreRating();
+      return;
+    }
+    await _sendFeedback(rating: rating);
+  }
+
+  Future<void> _requestStoreRating() async {
     final review = InAppReview.instance;
     try {
       if (await review.isAvailable()) {
@@ -212,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _sendFeedback() async {
+  Future<void> _sendFeedback({int? rating}) async {
     final text = await showDialog<String>(
       context: context,
       builder: (context) => _FeedbackDialog(strings: strings),
@@ -223,22 +250,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
     try {
-      await widget.cloud.sendFeedback(text: value, appVersion: _version);
-      _message(strings.feedbackSent);
+      final outcome = await widget.cloud.submitFeedback(
+        text: rating == null ? value : '[rating: $rating/5] $value',
+        appVersion: _version,
+      );
+      _message(switch (outcome) {
+        FeedbackOutcome.sent => strings.feedbackSent,
+        FeedbackOutcome.queued => strings.feedbackQueued,
+        FeedbackOutcome.queueFull => strings.feedbackQueueFull,
+      });
     } catch (_) {
       _message(strings.feedbackUnavailable);
     }
   }
 
   Future<void> _open(String url) async {
-    if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
-      _message(strings.linkPrivacy);
+    var opened = false;
+    try {
+      opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      opened = false;
     }
+    if (!opened) _message(strings.linkOpenError);
   }
 
   void _message(String message) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+final class _RatingDialog extends StatefulWidget {
+  const _RatingDialog({required this.strings});
+
+  final ClearwayStrings strings;
+
+  @override
+  State<_RatingDialog> createState() => _RatingDialogState();
+}
+
+final class _RatingDialogState extends State<_RatingDialog> {
+  var _rating = 0;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text(widget.strings.ratingTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.strings.ratingQuestion),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                5,
+                (index) => IconButton(
+                  tooltip: '${index + 1}',
+                  onPressed: () => setState(() => _rating = index + 1),
+                  icon: Icon(
+                    index < _rating
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                    color: Colors.amber,
+                    size: 34,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.strings.cancel),
+          ),
+          FilledButton(
+            onPressed: _rating == 0 ? null : () => Navigator.pop(context, _rating),
+            child: Text(widget.strings.confirm),
+          ),
+        ],
+      );
 }
 
 final class _FeedbackDialog extends StatefulWidget {

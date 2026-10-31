@@ -1,3 +1,5 @@
+import 'daily_clock.dart';
+
 /// Small built-in English/Urdu string set for the game UI.
 final class ClearwayStrings {
   const ClearwayStrings(this.language);
@@ -58,6 +60,9 @@ final class ClearwayStrings {
   String get shopCoins => _ur ? 'سکے اور اشارے' : 'Coins and hints';
   String get shopSkins => _ur ? 'تیر کی کھالیں' : 'Arrow skins';
   String get shopAds => _ur ? 'روزانہ اشتہاری انعامات' : 'Daily ad offers';
+  String get dailyOfferReset => _ur
+      ? 'اگلا ری سیٹ: ${DailyClock.countdownLabel()}'
+      : 'Resets in ${DailyClock.countdownLabel()}';
   String get shopRemoveAds => _ur ? 'اشتہارات ہٹائیں' : 'Remove Ads';
   String get comingSoon => _ur ? 'جلد آ رہا ہے' : 'Coming soon';
   String get owned => _ur ? 'ملکیت میں' : 'Owned';
@@ -68,6 +73,11 @@ final class ClearwayStrings {
   String get unavailableOffline => _ur ? 'آف لائن دستیاب نہیں' : 'Unavailable offline';
   String get settingsAccount => _ur ? 'اکاؤنٹ' : 'Account';
   String get username => _ur ? 'صارف نام' : 'Username';
+  String get usernameHelp => _ur ? 'صرف انگریزی حروف، اعداد اور _ (۳ تا ۱۵ حروف)۔' : 'English letters, numbers and _ only (3-15 characters).';
+  String get usernameTooShort => _ur ? 'صارف نام کم از کم ۳ حروف کا ہونا چاہیے۔' : 'Username must be at least 3 characters.';
+  String get usernameTooLong => _ur ? 'صارف نام زیادہ سے زیادہ ۱۵ حروف کا ہو سکتا ہے۔' : 'Username can be at most 15 characters.';
+  String get usernameInvalid => _ur ? 'صرف انگریزی حروف، اعداد اور انڈر سکور (_) استعمال کریں۔' : 'Use only English letters, numbers and underscore (_).';
+  String usernameTaken(String name) => _ur ? '$name پہلے سے لیا جا چکا ہے۔ کوئی اور نام چنیں۔' : '"$name" is already taken. Please choose another name.';
   String get anonymousAccount => _ur ? 'گمنام اکاؤنٹ' : 'Anonymous account';
   String get linkAccount => _ur ? 'پیش رفت محفوظ کرنے کے لیے اکاؤنٹ لنک کریں' : 'Link account to save your progress';
   String get linkedAccount => _ur ? 'اکاؤنٹ لنک ہے' : 'Account linked';
@@ -96,6 +106,13 @@ final class ClearwayStrings {
       ? 'زیر التوا لیول اور روزانہ چیلنج کی اختیاری یاد دہانیاں۔'
       : 'Optional reminders for unfinished levels and daily challenges.';
   String get rateUs => _ur ? 'ہمیں ریٹ کریں' : 'Rate Us';
+  String get ratingTitle => _ur ? 'Clearway کو ریٹ کریں' : 'Rate Clearway';
+  String get ratingQuestion => _ur ? 'آپ کو کھیل کیسا لگا؟' : 'How are you enjoying the game?';
+  String get ratingStorePrompt => _ur
+      ? 'کیا آپ Clearway کو Play Store پر ریٹ کرنا چاہیں گے؟'
+      : 'Would you like to rate Clearway on the Play Store?';
+  String get ratingNow => _ur ? 'ابھی ریٹ کریں' : 'Rate now';
+  String get ratingNotNow => _ur ? 'ابھی نہیں' : 'Not now';
   String get sendFeedback => _ur ? 'رائے بھیجیں' : 'Send Feedback';
   String get privacyPolicy => _ur ? 'رازداری کی پالیسی' : 'Privacy Policy';
   String get terms => _ur ? 'شرائط و ضوابط' : 'Terms & Conditions';
@@ -124,9 +141,11 @@ final class ClearwayStrings {
   String get accountDeleteFailed => _ur ? 'اکاؤنٹ حذف نہیں ہو سکا۔ دوبارہ کوشش کریں۔' : 'Account deletion failed. Please retry.';
   String get feedbackUnavailable => _ur ? 'رائے بھیجنے کے لیے آن لائن کنکشن درکار ہے۔' : 'An online connection is required to send feedback.';
   String get feedbackSent => _ur ? 'رائے بھیج دی گئی۔' : 'Feedback sent.';
+  String get feedbackQueued => _ur ? 'رائے محفوظ ہو گئی۔ انٹرنیٹ آنے پر بھیج دی جائے گی۔' : 'Saved. It will be sent when you are back online.';
+  String get feedbackQueueFull => _ur ? 'بھیجنے کے منتظر پیغامات کی حد پوری ہو گئی ہے۔ آن لائن ہو کر دوبارہ کوشش کریں۔' : 'Too many messages are waiting to be sent. Please go online and try again.';
   String get feedbackPrompt => _ur ? 'اپنی رائے لکھیں' : 'Write your feedback';
   String get feedbackEmpty => _ur ? 'رائے خالی نہیں ہو سکتی۔' : 'Feedback cannot be empty.';
-  String get linkPrivacy => _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
+  String get linkOpenError => _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
   String get rateUnavailable => _ur ? 'ریٹنگ ابھی دستیاب نہیں۔' : 'Rating is not available yet.';
   String skinName(String id) => _ur
       ? switch (id) {
@@ -166,7 +185,8 @@ final class ClearwayStrings {
       ? switch (id) {
           'hint-pack' => '۲ اشارے',
           'undo-pack' => '۳ واپسی کے مواقع',
-          'ad-coins' => '+۳۰ سکے',
+          'ad-coins' => '+۵۰ سکے',
+          'ad-hints' => '+۳ اشارے',
           'classic' => 'کلاسک',
           'sunset' => 'غروب آفتاب',
           'remove-ads' => 'اشتہارات ہٹائیں',
@@ -175,7 +195,8 @@ final class ClearwayStrings {
       : switch (id) {
           'hint-pack' => '2 hints',
           'undo-pack' => '3 undos',
-          'ad-coins' => '+30 coins',
+          'ad-coins' => '+50 coins',
+          'ad-hints' => '+3 hints',
           'classic' => 'Classic',
           'sunset' => 'Sunset',
           'remove-ads' => 'Remove Ads',
@@ -186,6 +207,7 @@ final class ClearwayStrings {
           'hint-pack' => 'ابھی نکلنے والی سواری دیکھیں',
           'undo-pack' => 'آخری نکلی سواری واپس لائیں',
           'ad-coins' => 'انعامی اشتہار دیکھیں',
+          'ad-hints' => 'تین اشاروں کے لیے انعامی اشتہار دیکھیں',
           'classic' => 'اصل Clearway تیر کا انداز',
           'sunset' => 'صرف UI اور ملکیت کی تیاری؛ مرحلہ ۷ میں آئے گا',
           'remove-ads' => 'ایک بار کی خریداری',
@@ -195,6 +217,7 @@ final class ClearwayStrings {
           'hint-pack' => 'Find a vehicle that can leave now',
           'undo-pack' => 'Bring back your last cleared vehicle',
           'ad-coins' => 'Watch a rewarded ad',
+          'ad-hints' => 'Watch a rewarded ad for three hints',
           'classic' => 'The original Clearway arrow style',
           'sunset' => 'UI and ownership wiring only; arrives in Phase 7',
           'remove-ads' => 'One-time purchase',
@@ -252,12 +275,12 @@ final class ClearwayStrings {
       ? 'کوئی انعام نہیں ملا۔ اشتہار دستیاب نہیں یا جلدی بند ہو گیا۔'
       : 'No reward. Ad not available or closed early.';
   String get adForHint => _ur
-      ? 'اشارے ختم ہو گئے۔ مختصر اشتہار دیکھ کر 1 اشارہ پائیں؟'
-      : 'Out of hints. Watch a short ad to get 1 hint?';
+      ? 'اشارے ختم ہو گئے۔ مختصر اشتہار دیکھ کر ۳ اشارے پائیں؟'
+      : 'Out of hints. Watch a short ad to get 3 hints?';
   String get adForUndo => _ur
       ? 'واپسی کے موقع ختم۔ مختصر اشتہار دیکھ کر 1 موقع پائیں؟'
       : 'No undos left. Watch a short ad to get 1 undo?';
-  String get hintAdded => _ur ? '1 اشارہ مل گیا!' : 'Hint added!';
+  String get hintAdded => _ur ? '۳ اشارے مل گئے!' : '3 hints added!';
   String get undoAdded => _ur ? '1 واپسی مل گئی!' : 'Undo added!';
   String get watchAd => _ur ? 'اشتہار دیکھیں' : 'Watch ad';
   String get notNow => _ur ? 'ابھی نہیں' : 'Not now';
@@ -271,6 +294,14 @@ final class ClearwayStrings {
             ? 'اشتہار دیکھیں · آج $left باقی'
             : 'Watch an ad · $left left today')
       : (_ur ? 'کل دوبارہ آئیں' : 'Come back tomorrow');
+  String freeRewardLeft(int left) => left > 0
+      ? (_ur
+      ? 'اشتہار دیکھیں · آج ${_digits(left)} باقی'
+      : 'Watch an ad · $left left today')
+      : (_ur ? 'کل دوبارہ آئیں' : 'Come back tomorrow');
+  String get adLimitReached => _ur
+      ? 'آج کا اشتہاری انعام مکمل ہو گیا۔'
+      : 'Today’s ad reward limit is reached.';
   String get lockZoom => 'Lock zoom';
   String get zoomLocked => 'Zoom locked';
   String get bossShapeTip =>

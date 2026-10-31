@@ -365,3 +365,9 @@ test('reports accept a well-formed message and nothing else', async () => {
   await assertFails(setDoc(doc(db, 'reports/bad-type'), validReport({ type: 5 })));
   await assertFails(deleteDoc(doc(db, 'reports/ok')));
 });
+
+test('clients can neither read nor write usernames', async () => {
+  const db = environment.authenticatedContext('player-a').firestore();
+  await assertFails(setDoc(doc(db, 'usernames/fahad_1'), { uid: 'player-a' }));
+  await assertFails(getDoc(doc(db, 'usernames/fahad_1')));
+});

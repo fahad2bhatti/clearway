@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -7,9 +8,12 @@ import 'package:flutter/foundation.dart';
 import '../data/local_save.dart';
 import '../data/progress_codec.dart';
 import '../game/achievements/achievement_models.dart';
+import 'feedback_queue.dart';
 import 'progress_sync_debouncer.dart';
 
 enum CloudSyncStatus { notConfigured, offline, syncing, synced, failed }
+
+enum FeedbackOutcome { sent, queued, queueFull }
 
 /// Anonymous account and conflict-safe progress sync. Local play never waits
 /// for Firebase to be reachable.
@@ -23,8 +27,9 @@ final class CloudProgressSync extends ChangeNotifier {
   bool _syncAgain = false;
   bool _syncAgainForce = false;
   bool _legacyRulesOnly = false;
+  bool _feedbackFlushing = false;
+  DateTime? _lastFeedbackAttempt;
   ProgressSyncSignature? _lastSyncedSignature;
-  final Map<String, int> _dailySeedCache = {};
 
   bool get isReady => _ready;
 
@@ -36,28 +41,6 @@ final class CloudProgressSync extends ChangeNotifier {
   String? get accountUid => _auth?.currentUser?.uid;
 
   ProgressSyncSignature? get lastSyncedSignature => _lastSyncedSignature;
-
-  /// Cache-only mode is used before starting a daily so play never waits on
-  /// the network. A later online fetch can replace the local fallback seed.
-  Future<int?> readDailySeed(String dayKey, {bool cacheOnly = false}) async {
-    if (!_ready || _firestore == null) return null;
-    final cached = _dailySeedCache[dayKey];
-    if (cacheOnly && cached != null) return cached;
-    try {
-      final source = cacheOnly ? Source.cache : Source.serverAndCache;
-      final snapshot = await _firestore!
-          .collection('dailyChallenges')
-          .doc(dayKey)
-          .get(GetOptions(source: source))
-          .timeout(const Duration(milliseconds: 1500));
-      final seed = (snapshot.data()?['seed'] as num?)?.toInt();
-      if (seed == null || seed < 0 || seed > 0xffffffff) return null;
-      _dailySeedCache[dayKey] = seed;
-      return seed;
-    } catch (_) {
-      return null;
-    }
-  }
 
   Future<ProgressSyncSignature?> retry(LocalSave local) async {
     await initialize();
@@ -98,10 +81,16 @@ final class CloudProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Deletes the Firebase Auth user from this device. Removing the server
+  /// data as well needs the deleteAccount Cloud Function (Blaze plan).
   Future<bool> deleteAccount() async {
-    if (!_ready) return false;
-    await FirebaseFunctions.instance.httpsCallable('deleteAccount').call();
-    await _auth?.signOut();
+    final user = _auth?.currentUser;
+    if (!_ready || user == null) return false;
+    try {
+      await user.delete();
+    } on FirebaseAuthException {
+      return false;
+    }
     _ready = false;
     status = CloudSyncStatus.offline;
     notifyListeners();
@@ -118,21 +107,70 @@ final class CloudProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendFeedback({
+  /// Saves feedback on the device first so nothing is lost offline, then tries
+  /// to deliver it. A queued item is only removed after the server confirms.
+  Future<FeedbackOutcome> submitFeedback({
     required String text,
     required String appVersion,
   }) async {
+    final item = await FeedbackQueue.enqueue(
+      text: text.trim(),
+      appVersion: appVersion,
+    );
+    if (item == null) return FeedbackOutcome.queueFull;
+    await flushPendingFeedback(force: true);
+    final stillQueued = (await FeedbackQueue.pending()).any(
+      (entry) => entry.id == item.id,
+    );
+    return stillQueued ? FeedbackOutcome.queued : FeedbackOutcome.sent;
+  }
+
+  /// Retries queued feedback. Called from sync(), so there is no timer or
+  /// polling; automatic attempts are spaced at least two minutes apart.
+  Future<void> flushPendingFeedback({bool force = false}) async {
+    final firestore = _firestore;
     final uid = _auth?.currentUser?.uid;
-    if (!_ready || _firestore == null || uid == null) {
-      throw StateError('Feedback is unavailable offline.');
+    if (_feedbackFlushing || !_ready || firestore == null || uid == null) {
+      return;
     }
-    await _firestore!.collection('reports').add({
-      'uid': uid,
-      'type': 'feedback',
-      'text': text.trim(),
-      'appVersion': appVersion,
-      'device': defaultTargetPlatform.name,
-    });
+    final now = DateTime.now();
+    final last = _lastFeedbackAttempt;
+    if (!force &&
+        last != null &&
+        now.difference(last) < const Duration(minutes: 2)) {
+      return;
+    }
+    _feedbackFlushing = true;
+    _lastFeedbackAttempt = now;
+    try {
+      for (final item in await FeedbackQueue.pending()) {
+        try {
+          await firestore
+              .collection('reports')
+              .doc(item.id)
+              .set({
+                'uid': uid,
+                'type': 'feedback',
+                'text': item.text,
+                'appVersion': item.appVersion,
+                'device': defaultTargetPlatform.name,
+              })
+              .timeout(const Duration(seconds: 8));
+          await FeedbackQueue.remove(item.id);
+        } on FirebaseException catch (error) {
+          // The rules never allow updates, so permission-denied on a retry
+          // means this id was already delivered.
+          if (error.code != 'permission-denied') break;
+          await FeedbackQueue.remove(item.id);
+        } catch (_) {
+          break;
+        }
+      }
+    } catch (_) {
+      // Queue storage problems must never affect gameplay or sync.
+    } finally {
+      _feedbackFlushing = false;
+    }
   }
 
   Future<ProgressSyncSignature?> sync(
@@ -140,6 +178,7 @@ final class CloudProgressSync extends ChangeNotifier {
     bool force = false,
   }) async {
     if (!_ready) return null;
+    unawaited(flushPendingFeedback());
     if (_busy) {
       _syncAgain = true;
       _syncAgainForce = _syncAgainForce || force;
@@ -193,7 +232,9 @@ final class CloudProgressSync extends ChangeNotifier {
           (remote?['claimedAchievements'] as List<dynamic>? ?? [])
               .whereType<String>()
               .toSet();
-      final remoteDailyMissions = _decodeDailyMissions(remote?['dailyMissions']);
+      final remoteDailyMissions = _decodeDailyMissions(
+        remote?['dailyMissions'],
+      );
       final remoteSignature = ProgressSyncSignature.fromProgress(
         remoteLevel,
         remoteStars,
