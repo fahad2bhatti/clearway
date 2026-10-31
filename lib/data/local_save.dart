@@ -74,6 +74,7 @@ final class LocalSave extends ChangeNotifier {
   final Set<String> claimedMilestones = {};
   final Map<String, int> achievementProgress = {};
   final Set<String> claimedAchievements = {};
+  final Set<int> ratingPromptMilestonesShown = {};
   DailyMissionState? dailyMissions;
 
   Future<void> load() async {
@@ -164,6 +165,14 @@ final class LocalSave extends ChangeNotifier {
             .whereType<String>()
             .where((id) => AchievementCatalog.byId(id) != null),
       );
+    ratingPromptMilestonesShown
+      ..clear()
+      ..addAll(
+        (data['ratingPromptMilestonesShown'] as List<dynamic>? ?? [])
+            .whereType<num>()
+            .map((level) => level.toInt())
+            .where((level) => level >= 1 && level <= LevelCatalog.totalLevels),
+      );
     dailyMissions = _decodeDailyMissions(data['dailyMissions']);
     // Saves from before this flag existed carry no value: anyone who has
     // already unlocked level 4 must have won the guided levels.
@@ -245,6 +254,7 @@ final class LocalSave extends ChangeNotifier {
     claimedMilestones.clear();
     achievementProgress.clear();
     claimedAchievements.clear();
+    ratingPromptMilestonesShown.clear();
     dailyMissions = null;
   }
 
@@ -299,6 +309,8 @@ final class LocalSave extends ChangeNotifier {
         'claimedMilestones': claimedMilestones.toList()..sort(),
         'achievementProgress': achievementProgress,
         'claimedAchievements': claimedAchievements.toList()..sort(),
+        'ratingPromptMilestonesShown':
+            ratingPromptMilestonesShown.toList()..sort(),
         'dailyMissions': _encodeDailyMissions(dailyMissions),
         'tutorialDone': tutorialDone,
         'chaptersSeen': (chaptersSeen.toList()..sort()),

@@ -3,6 +3,7 @@ import 'package:flame/game.dart' hide Matrix4;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 import '../widgets/clearway_banner.dart';
 
@@ -24,6 +25,7 @@ import '../services/economy_repository.dart';
 import '../services/sound_service.dart';
 import 'revive.dart';
 import 'tutorial.dart';
+import 'rating_prompt.dart';
 import 'skins/arrow_skin.dart';
 import 'achievements/achievement_models.dart';
 
@@ -480,6 +482,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _showWinDialog() async {
+    final completedLevel = _level.number;
     SoundService.win(enabled: widget.save.sound);
     final stars = _mistakes == 0
         ? 3
@@ -539,6 +542,7 @@ class _GameScreenState extends State<GameScreen> {
     if (!mounted) return;
     final earned = widget.save.coins - coinsBefore;
     AdService.preload();
+    Future<void>? dialogFollowUp;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -568,13 +572,16 @@ class _GameScreenState extends State<GameScreen> {
             widget.save.save();
             widget.onHome(_level.number);
           } else {
-            await AdService.maybeShowInterstitial();
-            if (!mounted) return;
-            setState(() {
-              _levelIndex++;
-              _loadLevel();
-            });
-            widget.onLevelChanged(_level.number);
+            dialogFollowUp = () async {
+              await AdService.maybeShowInterstitial();
+              if (!mounted) return;
+              setState(() {
+                _levelIndex++;
+                _loadLevel();
+              });
+              widget.onLevelChanged(_level.number);
+            }();
+            await dialogFollowUp;
           }
         },
         secondaryLabel: strings.replay,
@@ -582,7 +589,10 @@ class _GameScreenState extends State<GameScreen> {
           Navigator.pop(context);
           _clearActiveBoard();
           widget.save.save();
-          setState(_loadLevel);
+          dialogFollowUp = Future<void>.sync(() {
+            if (!mounted) return;
+            setState(_loadLevel);
+          });
         },
         tertiaryLabel: isLast ? null : strings.backToHome,
         onTertiary: isLast
@@ -595,6 +605,34 @@ class _GameScreenState extends State<GameScreen> {
               },
       ),
     );
+    final followUp = dialogFollowUp;
+    if (followUp != null) await followUp;
+    await _maybeRequestRatingPrompt(completedLevel);
+  }
+
+  Future<void> _maybeRequestRatingPrompt(int completedLevel) async {
+    if (!mounted ||
+              _phase != GamePhase.ready ||
+              !shouldShowRatingPrompt(
+                level: completedLevel,
+                won: true,
+                daily: widget.daily,
+                shownMilestones: widget.save.ratingPromptMilestonesShown,
+              )) {
+      return;
+    }
+    widget.save.ratingPromptMilestonesShown.add(completedLevel);
+    await widget.save.save();
+    if (!mounted) return;
+    try {
+      final review = InAppReview.instance;
+      if (await review.isAvailable()) {
+              if (!mounted) return;
+              await review.requestReview();
+      }
+    } catch (_) {
+      // Native review availability is best effort.
+    }
   }
 
   void _revive() {
