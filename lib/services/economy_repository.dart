@@ -6,6 +6,9 @@ import '../data/local_save.dart';
 import '../game/milestones/milestone_config.dart';
 import '../game/skins/arrow_skin.dart';
 import '../game/achievements/achievement_models.dart';
+import 'firebase_functions.dart';
+
+const serverEconomyEnabled = false;
 
 final class PurchaseResult {
   const PurchaseResult({
@@ -42,7 +45,7 @@ final class EconomyRepository implements RewardRepository {
   EconomyRepository(this.save);
 
   final LocalSave save;
-  FirebaseFunctions get _functions => FirebaseFunctions.instance;
+  FirebaseFunctions get _functions => clearwayFunctions;
   bool get _firebaseUnavailable =>
       Firebase.apps.isEmpty || FirebaseAuth.instance.currentUser == null;
   static int _requestSequence = 0;
@@ -86,7 +89,9 @@ final class EconomyRepository implements RewardRepository {
   }
 
   Future<PurchaseResult> _purchase(String itemId) async {
-    if (_firebaseUnavailable) return _localPurchase(itemId);
+    if (!serverEconomyEnabled || _firebaseUnavailable) {
+      return _localPurchase(itemId);
+    }
     try {
       final result = await _functions.httpsCallable('purchaseEconomyItem').call({
         'itemId': itemId,
@@ -124,10 +129,7 @@ final class EconomyRepository implements RewardRepository {
   }
 
   Future<PurchaseResult> claimAdCoins() async {
-    if (save.adCoinsLeft == 0) {
-      return const PurchaseResult(success: false, reason: 'failed-precondition');
-    }
-    if (_firebaseUnavailable) {
+    if (!serverEconomyEnabled || _firebaseUnavailable) {
       save.recordAdCoins();
       save.coins += LocalSave.adCoinsReward;
       await save.save();
@@ -167,7 +169,7 @@ final class EconomyRepository implements RewardRepository {
     if (action != 'hint' && action != 'undo' && action != 'revive') {
       return const PurchaseResult(success: false, reason: 'unavailable');
     }
-    if (_firebaseUnavailable) {
+    if (!serverEconomyEnabled || _firebaseUnavailable) {
       if (action == 'hint' && save.hints > 0) {
         save.hints--;
       } else if (action == 'undo' && save.undos > 0) {
@@ -253,7 +255,9 @@ final class EconomyRepository implements RewardRepository {
   }
 
   Future<MilestoneGrant> grantMilestonesThrough(int level) async {
-    if (_firebaseUnavailable) return _grantMilestonesLocally(level);
+    if (!serverEconomyEnabled || _firebaseUnavailable) {
+      return _grantMilestonesLocally(level);
+    }
     var coins = 0;
     var hints = 0;
     var skinUnlocked = false;
@@ -309,7 +313,7 @@ final class EconomyRepository implements RewardRepository {
     required String claimId,
     required void Function() onSuccess,
   }) async {
-    if (_firebaseUnavailable) {
+    if (!serverEconomyEnabled || _firebaseUnavailable) {
       onSuccess();
       await save.save();
       return true;

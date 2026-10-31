@@ -10,6 +10,7 @@ import '../data/local_save.dart';
 import '../data/progress_codec.dart';
 import '../game/achievements/achievement_models.dart';
 import 'feedback_queue.dart';
+import 'firebase_functions.dart';
 import 'progress_sync_debouncer.dart';
 
 enum CloudSyncStatus { notConfigured, offline, syncing, synced, failed }
@@ -110,7 +111,7 @@ final class CloudProgressSync extends ChangeNotifier {
 
   Future<bool> deleteAccount() async {
     if (!_ready) return false;
-    await FirebaseFunctions.instance.httpsCallable('deleteAccount').call();
+    await clearwayFunctions.httpsCallable('deleteAccount').call();
     await _auth?.signOut();
     _ready = false;
     status = CloudSyncStatus.offline;
@@ -133,7 +134,7 @@ final class CloudProgressSync extends ChangeNotifier {
   Future<UsernameClaim> claimUsername(String name) async {
     if (!_ready) return UsernameClaim.unavailable;
     try {
-      await FirebaseFunctions.instance
+      await clearwayFunctions
           .httpsCallable('claimUsername')
           .call({'username': name})
           .timeout(const Duration(seconds: 8));
