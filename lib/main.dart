@@ -68,7 +68,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
   var _daily = false;
   var _lastNotifications = true;
   String? _dailyDayKey;
-  int? _dailyServerSeed;
 
   @override
   void initState() {
@@ -101,9 +100,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
         _level = (activeBoard['level'] as num?)?.toInt() ?? _save.level;
         _daily = isDaily;
         _dailyDayKey = isDaily ? activeBoard['dayKey'] as String? : null;
-        _dailyServerSeed = isDaily
-            ? (activeBoard['dailySeed'] as num?)?.toInt()
-            : null;
         _playing = true;
       }
     }
@@ -131,7 +127,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       _level = _save.level;
       _daily = true;
       _dailyDayKey = dayKey;
-      _dailyServerSeed = null;
       _playing = true;
     });
   }
@@ -202,7 +197,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       strings: ClearwayStrings(_save.language),
       enabled: _save.notifications,
       dayKey: dayKey,
-      contentAvailable: true,
       alreadyPlayed: _save.completedDailies.contains(dayKey),
     );
   }
@@ -266,7 +260,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
             startingLevel: _level,
             daily: _daily,
             dailyDayKey: _dailyDayKey,
-            dailyServerSeed: _dailyServerSeed,
             save: _save,
             onLevelWon: _onLevelWon,
             onHome: (level) => setState(() {
@@ -275,7 +268,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
               _playing = false;
               _daily = false;
               _dailyDayKey = null;
-              _dailyServerSeed = null;
             }),
             onLevelChanged: (level) => setState(() => _level = level),
           )
@@ -301,7 +293,6 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
                 _playing = true;
                 _daily = false;
                 _dailyDayKey = null;
-                _dailyServerSeed = null;
               });
               unawaited(_maybeRequestNotificationPermission());
             },

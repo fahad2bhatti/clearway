@@ -41,7 +41,6 @@ class GameScreen extends StatefulWidget {
     required this.save,
     this.daily = false,
     this.dailyDayKey,
-    this.dailyServerSeed,
   });
 
   final int startingLevel;
@@ -51,7 +50,6 @@ class GameScreen extends StatefulWidget {
   final LocalSave save;
   final bool daily;
   final String? dailyDayKey;
-  final int? dailyServerSeed;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -102,8 +100,7 @@ class _GameScreenState extends State<GameScreen> {
   void didUpdateWidget(covariant GameScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.daily &&
-        (oldWidget.dailyDayKey != widget.dailyDayKey ||
-            oldWidget.dailyServerSeed != widget.dailyServerSeed) &&
+        oldWidget.dailyDayKey != widget.dailyDayKey &&
         !_dailyTouched &&
         _phase == GamePhase.ready) {
       setState(() => _loadLevel(restore: false));
@@ -114,7 +111,7 @@ class _GameScreenState extends State<GameScreen> {
     _dailyTouched = false;
     _hintUsed = false;
     _level = widget.daily
-        ? LevelCatalog.daily(_dailyDayKey, serverSeed: widget.dailyServerSeed)
+        ? LevelCatalog.daily(_dailyDayKey)
         : LevelCatalog.getLevel(_levelIndex + 1);
     _remaining = _level.vehicles.map((vehicle) => vehicle.copy()).toList();
     _undoSnapshot = null;
@@ -248,8 +245,6 @@ class _GameScreenState extends State<GameScreen> {
       'level': _level.number,
       'daily': widget.daily,
       if (widget.daily) 'dayKey': _dailyDayKey,
-      if (widget.daily && widget.dailyServerSeed != null)
-        'dailySeed': widget.dailyServerSeed,
       'remaining': _remaining.map((vehicle) => vehicle.id).toList(),
       'undoSnapshot':
           _undoSnapshot?.map((vehicle) => vehicle.id).toList() ?? [],
@@ -368,9 +363,8 @@ class _GameScreenState extends State<GameScreen> {
       final result = await EconomyRepository(widget.save).spend('hint');
       if (!mounted) return;
       if (!result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.cloudError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.cloudError)));
         return;
       }
       _hintUsed = true;
@@ -471,9 +465,8 @@ class _GameScreenState extends State<GameScreen> {
       final result = await EconomyRepository(widget.save).spend('undo');
       if (!mounted) return;
       if (!result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.cloudError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.cloudError)));
         return;
       }
       _blockedTaps.reset();
@@ -621,13 +614,13 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _maybeRequestRatingPrompt(int completedLevel) async {
     if (!mounted ||
-              _phase != GamePhase.ready ||
-              !shouldShowRatingPrompt(
-                level: completedLevel,
-                won: true,
-                daily: widget.daily,
-                shownMilestones: widget.save.ratingPromptMilestonesShown,
-              )) {
+        _phase != GamePhase.ready ||
+        !shouldShowRatingPrompt(
+          level: completedLevel,
+          won: true,
+          daily: widget.daily,
+          shownMilestones: widget.save.ratingPromptMilestonesShown,
+        )) {
       return;
     }
     widget.save.ratingPromptMilestonesShown.add(completedLevel);
@@ -636,8 +629,8 @@ class _GameScreenState extends State<GameScreen> {
     try {
       final review = InAppReview.instance;
       if (await review.isAvailable()) {
-              if (!mounted) return;
-              await review.requestReview();
+        if (!mounted) return;
+        await review.requestReview();
       }
     } catch (_) {
       // Native review availability is best effort.
@@ -654,9 +647,8 @@ class _GameScreenState extends State<GameScreen> {
       final result = await EconomyRepository(widget.save).spend('revive');
       if (!mounted) return;
       if (!result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.cloudError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.cloudError)));
         return;
       }
       setState(() {

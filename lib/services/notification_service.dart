@@ -39,8 +39,7 @@ final class NotificationService {
           AndroidNotificationChannel(
             _channelId,
             strings?.notificationChannelName ?? 'Clearway reminders',
-            description: strings?.notificationChannelDescription ??
-                'Optional reminders for unfinished levels and daily challenges.',
+            description: strings?.notificationChannelDescription ?? 'Optional reminders for unfinished levels and daily challenges.',
             importance: Importance.defaultImportance,
           ),
         );
@@ -119,12 +118,11 @@ final class NotificationService {
     required ClearwayStrings strings,
     required bool enabled,
     required String dayKey,
-    required bool contentAvailable,
     required bool alreadyPlayed,
   }) async {
     await initialize();
     await _plugin.cancel(id: dailyId);
-    if (!enabled || !contentAvailable || alreadyPlayed) return;
+    if (!enabled || alreadyPlayed) return;
     final now = tz.TZDateTime.now(tz.local);
     final when = tz.TZDateTime(tz.local, now.year, now.month, now.day, 19);
     if (!when.isAfter(now)) return;
@@ -138,20 +136,6 @@ final class NotificationService {
       channelDescription: strings.notificationChannelDescription,
     );
   }
-
-  Future<void> rescheduleDaily({
-    required ClearwayStrings strings,
-    required bool enabled,
-    required String dayKey,
-    required bool contentAvailable,
-    required bool alreadyPlayed,
-  }) => scheduleDaily(
-    strings: strings,
-    enabled: enabled,
-    dayKey: dayKey,
-    contentAvailable: contentAvailable,
-    alreadyPlayed: alreadyPlayed,
-  );
 
   Future<void> _schedule({
     required int id,
