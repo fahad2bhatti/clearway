@@ -1,4 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -178,8 +177,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _message(strings.accountDeleted);
         Navigator.pop(context);
       }
-    } on FirebaseFunctionsException catch (error) {
-      _message(error.message ?? strings.accountDeleteFailed);
     } catch (_) {
       _message(strings.accountDeleteFailed);
     } finally {

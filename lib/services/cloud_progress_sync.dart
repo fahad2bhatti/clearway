@@ -109,10 +109,16 @@ final class CloudProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Deletes the Firebase Auth user from this device. Removing the server
+  /// data as well needs the deleteAccount Cloud Function (Blaze plan).
   Future<bool> deleteAccount() async {
-    if (!_ready) return false;
-    await clearwayFunctions.httpsCallable('deleteAccount').call();
-    await _auth?.signOut();
+    final user = _auth?.currentUser;
+    if (!_ready || user == null) return false;
+    try {
+      await user.delete();
+    } on FirebaseAuthException {
+      return false;
+    }
     _ready = false;
     status = CloudSyncStatus.offline;
     notifyListeners();
@@ -183,8 +189,9 @@ final class CloudProgressSync extends ChangeNotifier {
     );
     if (item == null) return FeedbackOutcome.queueFull;
     await flushPendingFeedback(force: true);
-    final stillQueued =
-        (await FeedbackQueue.pending()).any((entry) => entry.id == item.id);
+    final stillQueued = (await FeedbackQueue.pending()).any(
+      (entry) => entry.id == item.id,
+    );
     return stillQueued ? FeedbackOutcome.queued : FeedbackOutcome.sent;
   }
 
@@ -208,13 +215,17 @@ final class CloudProgressSync extends ChangeNotifier {
     try {
       for (final item in await FeedbackQueue.pending()) {
         try {
-          await firestore.collection('reports').doc(item.id).set({
-            'uid': uid,
-            'type': 'feedback',
-            'text': item.text,
-            'appVersion': item.appVersion,
-            'device': defaultTargetPlatform.name,
-          }).timeout(const Duration(seconds: 8));
+          await firestore
+              .collection('reports')
+              .doc(item.id)
+              .set({
+                'uid': uid,
+                'type': 'feedback',
+                'text': item.text,
+                'appVersion': item.appVersion,
+                'device': defaultTargetPlatform.name,
+              })
+              .timeout(const Duration(seconds: 8));
           await FeedbackQueue.remove(item.id);
         } on FirebaseException catch (error) {
           // The rules never allow updates, so permission-denied on a retry
@@ -292,7 +303,9 @@ final class CloudProgressSync extends ChangeNotifier {
           (remote?['claimedAchievements'] as List<dynamic>? ?? [])
               .whereType<String>()
               .toSet();
-      final remoteDailyMissions = _decodeDailyMissions(remote?['dailyMissions']);
+      final remoteDailyMissions = _decodeDailyMissions(
+        remote?['dailyMissions'],
+      );
       final remoteSignature = ProgressSyncSignature.fromProgress(
         remoteLevel,
         remoteStars,
