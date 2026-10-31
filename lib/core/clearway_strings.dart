@@ -101,6 +101,13 @@ final class ClearwayStrings {
       ? 'زیر التوا لیول اور روزانہ چیلنج کی اختیاری یاد دہانیاں۔'
       : 'Optional reminders for unfinished levels and daily challenges.';
   String get rateUs => _ur ? 'ہمیں ریٹ کریں' : 'Rate Us';
+  String get ratingTitle => _ur ? 'Clearway کو ریٹ کریں' : 'Rate Clearway';
+  String get ratingQuestion => _ur ? 'آپ کو کھیل کیسا لگا؟' : 'How are you enjoying the game?';
+  String get ratingStorePrompt => _ur
+      ? 'کیا آپ Clearway کو Play Store پر ریٹ کرنا چاہیں گے؟'
+      : 'Would you like to rate Clearway on the Play Store?';
+  String get ratingNow => _ur ? 'ابھی ریٹ کریں' : 'Rate now';
+  String get ratingNotNow => _ur ? 'ابھی نہیں' : 'Not now';
   String get sendFeedback => _ur ? 'رائے بھیجیں' : 'Send Feedback';
   String get privacyPolicy => _ur ? 'رازداری کی پالیسی' : 'Privacy Policy';
   String get terms => _ur ? 'شرائط و ضوابط' : 'Terms & Conditions';
