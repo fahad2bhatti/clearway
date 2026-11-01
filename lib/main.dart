@@ -11,7 +11,7 @@ import 'app/app_identity.dart';
 import 'core/clearway_strings.dart';
 import 'core/daily_clock.dart';
 import 'features/home/home_screen.dart';
-import 'features/onboarding/terms_gate_screen.dart';
+import 'features/onboarding/onboarding_flow.dart';
 import 'features/shop/shop_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'game/data/level_catalog.dart';
@@ -254,7 +254,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     home: !_saveLoaded
         ? const Scaffold(body: SizedBox.shrink())
         : !_save.onboardingComplete
-        ? TermsGateScreen(save: _save)
+         ? OnboardingFlow(save: _save)
         : _playing
         ? GameScreen(
             startingLevel: _level,
