@@ -22,10 +22,6 @@ final class ThemePack {
     required this.showFloralMotifs,
     required this.vehicleNoun,
     required this.emptyYardMessage,
-    this.backdropAsset,
-    this.successSoundAsset,
-    this.blockedSoundAsset,
-    this.musicAsset,
   });
 
   final String id;
@@ -50,10 +46,6 @@ final class ThemePack {
   final bool showFloralMotifs;
   final String vehicleNoun;
   final String emptyYardMessage;
-  final String? backdropAsset;
-  final String? successSoundAsset;
-  final String? blockedSoundAsset;
-  final String? musicAsset;
 
   static const truckArt = ThemePack(
     id: 'truck_art_yard',
@@ -75,8 +67,5 @@ final class ThemePack {
     showFloralMotifs: true,
     vehicleNoun: 'vehicle',
     emptyYardMessage: 'All clear!',
-    successSoundAsset: 'audio/horn_clear.mp3',
-    blockedSoundAsset: 'audio/horn_bump.mp3',
-    musicAsset: 'audio/yard_lofi.mp3',
   );
 }

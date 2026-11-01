@@ -54,12 +54,6 @@ final class YardGame extends FlameGame with TapCallbacks {
 
   void _invalidateScene() => _sceneDirty = true;
 
-  set equippedSkin(ArrowSkin value) {
-    if (skin.id == value.id) return;
-    skin = value;
-    _invalidateScene();
-  }
-
   @override
   void onRemove() {
     _scene?.dispose();

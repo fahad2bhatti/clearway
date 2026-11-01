@@ -31,10 +31,6 @@ final class CloudProgressSync extends ChangeNotifier {
   DateTime? _lastFeedbackAttempt;
   ProgressSyncSignature? _lastSyncedSignature;
 
-  bool get isReady => _ready;
-
-  ProgressSyncSignature? get lastSyncedSignature => _lastSyncedSignature;
-
   Future<ProgressSyncSignature?> retry(LocalSave local) async {
     await initialize();
     return sync(local, force: true);
