@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:clearway/core/daily_clock.dart';
 import 'package:clearway/game/data/level_catalog.dart';
 import 'package:clearway/game/engine/game_level.dart';
 import 'package:clearway/game/engine/level_solver.dart';
+import 'package:clearway/game/generator/maze_level_generator.dart';
 
 String _fingerprint(GameLevel level) =>
     [for (final v in level.vehicles) '${v.id}:${v.direction.name}:${v.cells}']
@@ -82,11 +84,12 @@ void main() {
       expect(_fingerprint(nextDay), isNot(_fingerprint(first)));
     });
 
-    test('a server seed overrides the date seed', () {
-      final seeded = LevelCatalog.daily('2026-10-23', serverSeed: 12345);
+    test('the daily board depends on the date alone', () {
       expect(
-        _fingerprint(LevelCatalog.daily('2026-10-24', serverSeed: 12345)),
-        _fingerprint(seeded),
+        _fingerprint(LevelCatalog.daily('2026-10-23')),
+        _fingerprint(
+          MazeLevelGenerator.generateDaily(DailyClock.seedFor('2026-10-23')),
+        ),
       );
     });
 

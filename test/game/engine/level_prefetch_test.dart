@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:clearway/core/daily_clock.dart';
 import 'package:clearway/game/data/level_catalog.dart';
 import 'package:clearway/game/engine/game_level.dart';
 import 'package:clearway/game/generator/maze_level_generator.dart';
@@ -27,16 +28,16 @@ void main() {
     });
 
     test('prefetchDaily matches the sync daily board and is cached', () async {
-      await LevelCatalog.prefetchDaily('any', serverSeed: 4242);
-      final cached = LevelCatalog.daily('any', serverSeed: 4242);
+      const day = '2026-10-24';
+      await LevelCatalog.prefetchDaily(day);
+      final cached = LevelCatalog.daily(day);
       expect(
         _fingerprint(cached),
-        _fingerprint(MazeLevelGenerator.generateDaily(4242)),
+        _fingerprint(
+          MazeLevelGenerator.generateDaily(DailyClock.seedFor(day)),
+        ),
       );
-      expect(
-        identical(cached, LevelCatalog.daily('any', serverSeed: 4242)),
-        isTrue,
-      );
+      expect(identical(cached, LevelCatalog.daily(day)), isTrue);
     });
   });
 }

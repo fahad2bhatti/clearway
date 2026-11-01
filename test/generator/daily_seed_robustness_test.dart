@@ -29,7 +29,7 @@ void main() {
 
     test('is complete, solvable and deterministic', () {
       for (final seed in seeds) {
-        final board = LevelCatalog.daily('any', serverSeed: seed);
+        final board = MazeLevelGenerator.generateDaily(seed);
         expect(
           board.vehicles.length,
           greaterThanOrEqualTo(MazeLevelGenerator.dailyBuses),
@@ -38,7 +38,7 @@ void main() {
         expect(_emptyCells(board), 0, reason: 'seed=$seed');
         expect(LevelSolver.isSolvable(board), isTrue, reason: 'seed=$seed');
         expect(
-          _fingerprint(LevelCatalog.daily('any', serverSeed: seed)),
+          _fingerprint(MazeLevelGenerator.generateDaily(seed)),
           _fingerprint(board),
           reason: 'seed=$seed',
         );
@@ -49,7 +49,7 @@ void main() {
       'out-of-range seeds from a damaged save still give a playable board',
       () {
         for (final seed in [-1, -5000000000, 0x100000000, 0x7FFFFFFFFFFFFFFF]) {
-          final board = LevelCatalog.daily('any', serverSeed: seed);
+          final board = MazeLevelGenerator.generateDaily(seed);
           expect(
             board.vehicles.length,
             greaterThanOrEqualTo(MazeLevelGenerator.dailyBuses),
@@ -76,7 +76,7 @@ void main() {
     }
     for (final seed in [3, 999, 0xFFFFFFFF, 2103100923]) {
       final timer = Stopwatch()..start();
-      LevelCatalog.daily('any', serverSeed: seed);
+      MazeLevelGenerator.generateDaily(seed);
       expect(
         timer.elapsedMilliseconds,
         lessThan(ceilingMs),

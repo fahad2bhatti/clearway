@@ -92,16 +92,16 @@ abstract final class LevelCatalog {
   }
 
   /// The Rush Hour board for [dayKey]: 100 buses, the same for everyone.
-  static GameLevel daily(String dayKey, {int? serverSeed}) {
-    final seed = serverSeed ?? DailyClock.seedFor(dayKey);
+  static GameLevel daily(String dayKey) {
+    final seed = DailyClock.seedFor(dayKey);
     final cached = _dailyCache[seed];
     if (cached != null) return cached;
     return _cacheDaily(seed, MazeLevelGenerator.generateDaily(seed));
   }
 
   /// Background version of [daily]; same rules as [prefetch].
-  static Future<void> prefetchDaily(String dayKey, {int? serverSeed}) async {
-    final seed = serverSeed ?? DailyClock.seedFor(dayKey);
+  static Future<void> prefetchDaily(String dayKey) async {
+    final seed = DailyClock.seedFor(dayKey);
     if (_dailyCache.containsKey(seed)) return;
     try {
       final level = await Isolate.run(
