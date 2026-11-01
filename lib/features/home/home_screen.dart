@@ -41,6 +41,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    resizeToAvoidBottomInset: false,
     bottomNavigationBar: const ClearwayBanner(),
     body: SafeArea(
       child: Stack(
