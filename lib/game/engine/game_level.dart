@@ -88,10 +88,6 @@ final class GameLevel {
   /// True when [cell] is inside the width x height box (the exit-line limit).
   bool contains(GridPoint cell) => _inside(cell);
 
-  /// True when [cell] is an actual board cell (inside the shape, if any).
-  bool inBoard(GridPoint cell) =>
-      _inside(cell) && (shape == null || shape!.contains(cell));
-
   bool hasCone(GridPoint cell) => cones.contains(cell);
 
   OneWayGate? gateAt(GridPoint cell) {

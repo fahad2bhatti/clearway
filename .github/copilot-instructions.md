@@ -24,9 +24,10 @@ The app is organized around these boundaries:
   `lib/services/cloud_progress_sync.dart` and
   `lib/services/progress_sync_debouncer.dart` perform optional anonymous-auth
   Firestore synchronization without blocking local play.
-- `functions/` is an independent TypeScript/Node 22 Firebase Functions package.
-  Its callable functions and scheduled daily-seed job are server-side only;
-  `firestore.rules` prevents clients from writing server-owned data.
+- The project is on the Firebase Spark plan: no server code runs. The Cloud
+  Functions backend is archived in the `archive/functions-blaze` git tag.
+  `firestore.rules` only allows `users/{uid}/progress/state` and `reports`;
+  `rules_test/` holds the rules tests.
 
 ## Commands
 
@@ -46,35 +47,28 @@ Use `flutter test <path>` for one Dart test file, or add `-n "..."` to select
 one named test. Tests cover the pure engine, generator/catalog solvability,
 local persistence, UI/game behavior, and sync resilience.
 
-Firebase Functions commands run from `functions/`:
+Firestore rules tests run from `rules_test/`:
 
 ```sh
 npm install
-npm run build
-npm run test:daily
 npm run test:rules:emulator
-npm run serve
 ```
 
-For one Node test, use `node --test test/daily.test.mjs`; use
-`node --test --test-name-pattern="..." test/daily.test.mjs` for one named test.
 The rules emulator test starts Firebase's Firestore emulator through
-`firebase emulators:exec`. `npm run serve` starts the Auth, Firestore, and
-Functions emulators after compiling. There is no separate npm lint script;
-`flutter analyze` is the app's configured static check and `npm run build`
-type-checks the Functions package.
+`firebase emulators:exec`. `flutter analyze` is the app's configured static
+check.
 
 To run the Flutter client against local Firebase emulators:
 
 ```sh
-firebase emulators:start --only auth,firestore,functions
+firebase emulators:start --only auth,firestore
 flutter run --dart-define=CLEARWAY_FIREBASE_EMULATORS=true
 ```
 
 The default Android emulator host is `10.0.2.2`; override it with
-`CLEARWAY_FIREBASE_EMULATOR_HOST` when needed. Deploy rules/indexes from the
-root with `firebase deploy --only firestore:rules,firestore:indexes`; deploy
-Functions with `firebase deploy --only functions`.
+`CLEARWAY_FIREBASE_EMULATOR_HOST` when needed. Deploy only the rules, from the
+newest branch: `firebase deploy --only firestore:rules`. Never deploy
+functions on the Spark plan.
 
 ## Implementation conventions
 
@@ -84,16 +78,16 @@ Functions with `firebase deploy --only functions`.
 - Keep engine and generation logic pure Dart and deterministic where possible.
   `MoveValidator` is the single movement authority used by both gameplay and
   `LevelSolver`; generated levels must remain solvable by that same solver.
-- Main levels and daily puzzles are deterministic contracts. The client and
-  Functions package share the UTC date-key/SHA-256 daily seed algorithm, so
-  change both implementations and their vector tests together.
+- Main levels and daily puzzles are deterministic contracts. The daily seed
+  comes from the UTC date key alone (`DailyClock.seedFor`, SHA-256), so every
+  player gets the same board; its vector tests pin the formula.
 - `LocalSave` persists a versioned JSON shape in `SharedPreferences` and keeps
   a last-known-good backup. Validate/clamp persisted values and preserve
   recovery behavior when extending the save format.
 - Cloud progress is intentionally limited to monotonic highest level and stars.
   `ProgressCodec` stores stars as an index-preserving compact string; new
   Firestore progress writes must use schema version 2 and match
-  `firestore.rules`. Do not move coin/economy or ledger writes into the client.
+  `firestore.rules`. The coin/hint/undo economy is local-only (Spark plan).
 - Use `ChangeNotifier` for the existing save/cloud service state flow and keep
   debounced sync requests behind `ProgressSyncDebouncer`; do not introduce a
   second state-management pattern for a localized change.
@@ -108,13 +102,12 @@ Functions with `firebase deploy --only functions`.
   vehicle IDs are unique, convoy IDs occur in pairs, and obstacles cannot
   overlap vehicles or each other.
 - Keep secrets, signing material, Firebase credentials, and production
-  configuration out of Git. Use `functions/.env.example` as the template for
-  Functions environment configuration.
+  configuration out of Git.
 
 ## Repository references
 
 - `README.md` describes the product scope and normal Flutter run commands.
-- `docs/ROADMAP.md` records verified status, Firebase setup, emulator commands,
-  and remaining production work. Update it when a meaningful milestone changes.
+- `docs/ROADMAP.md` records the shipped scope and the planned work. Update it
+  when a meaningful milestone changes.
 - `analysis_options.yaml` excludes generated Android/iOS/build output from Dart
   analysis.

@@ -87,11 +87,6 @@ final class NotificationService {
     await _plugin.cancel(id: midLevelId);
   }
 
-  Future<void> cancelDaily() async {
-    await initialize();
-    await _plugin.cancel(id: dailyId);
-  }
-
   Future<void> scheduleMidLevel({
     required ClearwayStrings strings,
     required bool enabled,
@@ -168,6 +163,4 @@ final class NotificationService {
     final day = value.hour >= 22 ? value.day + 1 : value.day;
     return tz.TZDateTime(tz.local, value.year, value.month, day, 9);
   }
-
-  String? get timezoneName => _timezoneName;
 }

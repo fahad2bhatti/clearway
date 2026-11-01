@@ -21,9 +21,6 @@ class TermsGateScreen extends StatefulWidget {
 class _TermsGateScreenState extends State<TermsGateScreen> {
   late var _checked = widget.save.termsAccepted;
   var _busy = false;
-  late String? _serverError = widget.save.usernameTakenName.isEmpty
-      ? null
-      : strings.usernameTaken(widget.save.usernameTakenName);
 
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
 
@@ -137,10 +134,10 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
                           labelText: strings.username,
                           helperText: strings.usernameHelp,
                           helperMaxLines: 2,
-                          errorText: _usernameError() ?? _serverError,
+                          errorText: _usernameError(),
                           errorMaxLines: 2,
                         ),
-                        onChanged: (_) => setState(() => _serverError = null),
+                        onChanged: (_) => setState(() {}),
                       ),
                     ],
                   ),

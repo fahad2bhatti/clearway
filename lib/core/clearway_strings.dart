@@ -63,8 +63,6 @@ final class ClearwayStrings {
   String get dailyOfferReset => _ur
       ? 'اگلا ری سیٹ: ${DailyClock.countdownLabel()}'
       : 'Resets in ${DailyClock.countdownLabel()}';
-  String get shopRemoveAds => _ur ? 'اشتہارات ہٹائیں' : 'Remove Ads';
-  String get comingSoon => _ur ? 'جلد آ رہا ہے' : 'Coming soon';
   String get owned => _ur ? 'ملکیت میں' : 'Owned';
   String get selected => _ur ? 'منتخب' : 'Selected';
   String get select => _ur ? 'منتخب کریں' : 'Select';
@@ -75,10 +73,7 @@ final class ClearwayStrings {
   String get usernameTooShort => _ur ? 'صارف نام کم از کم ۳ حروف کا ہونا چاہیے۔' : 'Username must be at least 3 characters.';
   String get usernameTooLong => _ur ? 'صارف نام زیادہ سے زیادہ ۱۵ حروف کا ہو سکتا ہے۔' : 'Username can be at most 15 characters.';
   String get usernameInvalid => _ur ? 'صرف انگریزی حروف، اعداد اور انڈر سکور (_) استعمال کریں۔' : 'Use only English letters, numbers and underscore (_).';
-  String usernameTaken(String name) => _ur ? '$name پہلے سے لیا جا چکا ہے۔ کوئی اور نام چنیں۔' : '"$name" is already taken. Please choose another name.';
   String get anonymousAccount => _ur ? 'گمنام اکاؤنٹ' : 'Anonymous account';
-  String get linkAccount => _ur ? 'پیش رفت محفوظ کرنے کے لیے اکاؤنٹ لنک کریں' : 'Link account to save your progress';
-  String get linkedAccount => _ur ? 'اکاؤنٹ لنک ہے' : 'Account linked';
   String get notifications => _ur ? 'اطلاعات' : 'Notifications';
   String get notificationPermissionTitle =>
       _ur ? 'یاد دہانیاں آن کریں؟' : 'Turn on reminders?';
@@ -124,17 +119,12 @@ final class ClearwayStrings {
   String get termsGateContinue =>
       _ur ? 'قبول کریں اور جاری رکھیں' : 'Accept and continue';
   String get appVersion => _ur ? 'ایپ ورژن' : 'App version';
-  String get logout => _ur ? 'لاگ آؤٹ' : 'Logout';
   String get deleteAccount => _ur ? 'اکاؤنٹ حذف کریں' : 'Delete Account';
   String get cancel => _ur ? 'منسوخ' : 'Cancel';
   String get confirm => _ur ? 'تصدیق کریں' : 'Confirm';
-  String get logoutConfirm => _ur ? 'کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟' : 'Are you sure you want to log out?';
   String get deleteAccountConfirm => _ur
       ? 'یہ کارروائی واپس نہیں ہو سکتی۔ اکاؤنٹ اور اس سے منسلک آن لائن ڈیٹا حذف ہو جائے گا۔'
       : 'This cannot be undone. Your account and associated online data will be deleted.';
-  String get accountActionUnavailable => _ur
-      ? 'اکاؤنٹ لنک کرنے کا عمل اگلے مرحلے میں دستیاب ہوگا۔ آپ کی مقامی پیش رفت محفوظ ہے۔'
-      : 'Account linking will be available in a later phase. Your local progress remains safe.';
   String get accountDeleted => _ur ? 'اکاؤنٹ حذف ہو گیا' : 'Account deleted';
   String get accountDeleteFailed => _ur ? 'اکاؤنٹ حذف نہیں ہو سکا۔ دوبارہ کوشش کریں۔' : 'Account deletion failed. Please retry.';
   String get feedbackUnavailable => _ur ? 'رائے بھیجنے کے لیے آن لائن کنکشن درکار ہے۔' : 'An online connection is required to send feedback.';
@@ -181,9 +171,6 @@ final class ClearwayStrings {
           'undo-pack' => '۳ واپسی کے مواقع',
           'ad-coins' => '+۵۰ سکے',
           'ad-hints' => '+۳ اشارے',
-          'classic' => 'کلاسک',
-          'sunset' => 'غروب آفتاب',
-          'remove-ads' => 'اشتہارات ہٹائیں',
           _ => id,
         }
       : switch (id) {
@@ -191,9 +178,6 @@ final class ClearwayStrings {
           'undo-pack' => '3 undos',
           'ad-coins' => '+50 coins',
           'ad-hints' => '+3 hints',
-          'classic' => 'Classic',
-          'sunset' => 'Sunset',
-          'remove-ads' => 'Remove Ads',
           _ => id,
         };
   String shopOfferDescription(String id) => _ur
@@ -202,9 +186,6 @@ final class ClearwayStrings {
           'undo-pack' => 'آخری نکلی سواری واپس لائیں',
           'ad-coins' => 'انعامی اشتہار دیکھیں',
           'ad-hints' => 'تین اشاروں کے لیے انعامی اشتہار دیکھیں',
-          'classic' => 'اصل Clearway تیر کا انداز',
-          'sunset' => 'صرف UI اور ملکیت کی تیاری؛ مرحلہ ۷ میں آئے گا',
-          'remove-ads' => 'ایک بار کی خریداری',
           _ => '',
         }
       : switch (id) {
@@ -212,9 +193,6 @@ final class ClearwayStrings {
           'undo-pack' => 'Bring back your last cleared vehicle',
           'ad-coins' => 'Watch a rewarded ad',
           'ad-hints' => 'Watch a rewarded ad for three hints',
-          'classic' => 'The original Clearway arrow style',
-          'sunset' => 'UI and ownership wiring only; arrives in Phase 7',
-          'remove-ads' => 'One-time purchase',
           _ => '',
         };
   String get sound => _ur ? 'آواز' : 'Sound effects';
@@ -292,12 +270,6 @@ final class ClearwayStrings {
   String get gateBlocked => _ur ? 'یک طرفہ گیٹ' : 'One-way gate';
   String get convoyBlocked =>
       _ur ? 'قافلے کی دوسری سواری پھنسی ہے' : 'Convoy partner is blocked';
-  String get outOfHints => _ur
-      ? 'اشارے ختم — مزید کے لیے دکان دیکھیں۔'
-      : 'Out of hints — visit the shop for more.';
-  String get outOfUndos => _ur
-      ? 'واپسی کے موقع ختم — دکان دیکھیں۔'
-      : 'No undos left — visit the shop for more.';
   String get wayClear => _ur ? 'راستہ صاف ہے!' : 'Way clear!';
   String get allVehiclesOut => _ur
       ? 'آپ نے تمام سواریوں کو باہر نکال دیا۔'
@@ -359,14 +331,6 @@ final class ClearwayStrings {
   String get rushHourDays => _ur ? 'رش آور کے دن' : 'Rush Hour days';
   String get boss => _ur ? 'باس' : 'BOSS';
   String get dailyLabel => _ur ? 'روزانہ' : 'DAILY';
-  String get starsLabel => _ur ? 'ستارے' : 'STARS';
-  String get ratingPrompt => _ur ? 'اچھا کھیلا!' : 'Nice driving!';
-  String get outOfHintsShort => _ur
-      ? 'اشارے ختم — دکان دیکھیں۔'
-      : 'Out of hints — visit the shop for more.';
-  String get outOfUndosShort => _ur
-      ? 'واپسی ختم — دکان دیکھیں۔'
-      : 'No undos left — visit the shop for more.';
 
   String dailyWithStreak(int days) =>
       '$dailyChallenge${days > 0 ? '  •  ${streak(days)}' : ''}';

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:clearway/data/local_save.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -49,6 +51,21 @@ void main() {
 
     expect(save.username, '');
     expect(save.onboardingComplete, isFalse);
+    save.dispose();
+  });
+
+  test('old saves with the removed claim keys still load', () async {
+    SharedPreferences.setMockInitialValues({
+      'clearway-save-v1': jsonEncode({
+        'username': 'Fahad_1',
+        'usernameClaimed': true,
+        'usernameTakenName': 'Other_1',
+        'termsVersion': 'x',
+      }),
+    });
+    final save = LocalSave();
+    await save.load();
+    expect(save.username, 'Fahad_1');
     save.dispose();
   });
 }

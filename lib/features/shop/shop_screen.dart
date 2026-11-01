@@ -28,7 +28,6 @@ class _ShopScreenState extends State<ShopScreen> {
     final offers = shopOffers();
     final coinOffers = offers.where((o) => o.kind == ShopOfferKind.coinPurchase);
     final adOffers = offers.where((o) => o.kind == ShopOfferKind.freeReward);
-    final removeAds = offers.where((o) => o.kind == ShopOfferKind.removeAds);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -45,7 +44,6 @@ class _ShopScreenState extends State<ShopScreen> {
           _section(strings.shopCoins, coinOffers),
           _skinSection(),
           _section(strings.shopAds, adOffers),
-          _section(strings.shopRemoveAds, removeAds),
         ],
       ),
     );
@@ -166,9 +164,6 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   Widget _action(ShopOffer offer) {
-    if (offer.kind == ShopOfferKind.removeAds) {
-      return Chip(label: Text(strings.comingSoon));
-    }
     if (_busy) return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator());
     if (offer.kind == ShopOfferKind.freeReward) {
       return FilledButton(
@@ -249,7 +244,6 @@ class _ShopScreenState extends State<ShopScreen> {
   IconData _iconFor(ShopOfferKind kind) => switch (kind) {
         ShopOfferKind.coinPurchase => Icons.lightbulb_rounded,
         ShopOfferKind.freeReward => Icons.ondemand_video_rounded,
-        ShopOfferKind.removeAds => Icons.block_rounded,
       };
 }
 

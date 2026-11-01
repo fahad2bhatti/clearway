@@ -1,6 +1,6 @@
 import '../../data/local_save.dart';
 
-enum ShopOfferKind { coinPurchase, freeReward, removeAds }
+enum ShopOfferKind { coinPurchase, freeReward }
 
 final class ShopOffer {
   const ShopOffer({
@@ -43,9 +43,5 @@ List<ShopOffer> shopOffers() => [
         kind: ShopOfferKind.freeReward,
         hintReward: LocalSave.adHintsReward,
         dailyLimit: LocalSave.maxAdHintsPerDay,
-      ),
-      const ShopOffer(
-        id: 'remove-ads',
-        kind: ShopOfferKind.removeAds,
       ),
     ];
