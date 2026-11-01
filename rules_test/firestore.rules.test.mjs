@@ -26,7 +26,7 @@ before(async () => {
   environment = await initializeTestEnvironment({
     projectId: 'demo-clearway-rules',
     firestore: {
-      rules: await readFile(new URL('../../firestore.rules', import.meta.url), 'utf8'),
+      rules: await readFile(new URL('../firestore.rules', import.meta.url), 'utf8'),
     },
   });
 });
@@ -52,31 +52,6 @@ test('a user cannot read another account progress', async () => {
 test('client cannot write coin balances on the user profile', async () => {
   const db = environment.authenticatedContext('player-a').firestore();
   await assertFails(setDoc(doc(db, 'users/player-a'), { coins: 999999 }));
-});
-
-test('client cannot create ledger or purchase records', async () => {
-  const db = environment.authenticatedContext('player-a').firestore();
-  await assertFails(setDoc(doc(db, 'users/player-a/ledger/fake'), {
-    type: 'earn', amount: 50000, reason: 'fake', schemaVersion: 1,
-  }));
-  await assertFails(setDoc(doc(db, 'users/player-a/purchases/fake'), {
-    productId: 'remove_ads', state: 'verified', schemaVersion: 1,
-  }));
-});
-
-test('economy state and claimables are server-owned', async () => {
-  const db = environment.authenticatedContext('player-a').firestore();
-  await assertFails(setDoc(doc(db, 'users/player-a/economy/state'), {
-    coins: 999999,
-    hints: 999,
-    undos: 999,
-    schemaVersion: 1,
-  }));
-  await assertFails(setDoc(doc(db, 'users/player-a/claimables/claim-1'), {
-    uid: 'player-a',
-    coins: 100,
-    claimed: false,
-  }));
 });
 
 test('progress rejects invalid star characters and excessive data', async () => {
@@ -341,23 +316,23 @@ test('users collection cannot be listed or written, own profile is readable', as
   await assertFails(getDoc(doc(db, 'users/player-b')));
 });
 
-test('daily challenges are readable when signed in but never writable', async () => {
-  await environment.withSecurityRulesDisabled(async (context) => {
-    await setDoc(doc(context.firestore(), 'dailyChallenges/2026-10-24'), { seed: 7 });
-  });
+test('collections the app does not use are closed to clients', async () => {
   const db = environment.authenticatedContext('player-a').firestore();
-  await assertSucceeds(getDoc(doc(db, 'dailyChallenges/2026-10-24')));
-  await assertFails(setDoc(doc(db, 'dailyChallenges/2026-10-25'), { seed: 1 }));
-  await assertFails(setDoc(doc(db, 'dailyChallenges/2026-10-24'), { seed: 1 }));
-});
-
-test('leaderboards and public config are server-only writes', async () => {
-  const db = environment.authenticatedContext('player-a').firestore();
-  await assertFails(setDoc(doc(db, 'leaderboards/2026-W43/entries/player-a'), {
-    uid: 'player-a', score: 999999,
-  }));
-  await assertFails(setDoc(doc(db, 'config/public'), { dailyRewardCoins: 500 }));
-  await assertFails(setDoc(doc(db, 'users/player-a/daily/2026-10-24'), { completed: true }));
+  const paths = [
+    'users/player-a/ledger/e1',
+    'users/player-a/economy/state',
+    'users/player-a/claimables/c1',
+    'users/player-a/purchases/p1',
+    'users/player-a/daily/2026-10-24',
+    'dailyChallenges/2026-10-24',
+    'leaderboards/2026-W43/entries/player-a',
+    'config/public',
+    'usernames/fahad_1',
+  ];
+  for (const path of paths) {
+    await assertFails(getDoc(doc(db, path)));
+    await assertFails(setDoc(doc(db, path), { value: 1 }));
+  }
 });
 
 test('reports accept a well-formed message and only the owner can read or delete it', async () => {
@@ -372,12 +347,6 @@ test('reports accept a well-formed message and only the owner can read or delete
   await assertFails(setDoc(doc(db, 'reports/bad-type'), validReport({ type: 5 })));
   await assertFails(deleteDoc(doc(other, 'reports/ok')));
   await assertSucceeds(deleteDoc(doc(db, 'reports/ok')));
-});
-
-test('clients can neither read nor write usernames', async () => {
-  const db = environment.authenticatedContext('player-a').firestore();
-  await assertFails(setDoc(doc(db, 'usernames/fahad_1'), { uid: 'player-a' }));
-  await assertFails(getDoc(doc(db, 'usernames/fahad_1')));
 });
 
 test('an owner can delete their own progress and nobody else can', async () => {

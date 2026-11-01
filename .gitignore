@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /coverage/
 /functions/node_modules/
+/rules_test/node_modules/
 /functions/lib/
 /.firebase/
 /functions/.secret.local

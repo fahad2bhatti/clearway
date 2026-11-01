@@ -1,0 +1,13 @@
+{
+  "name": "clearway-rules-test",
+  "private": true,
+  "description": "Firestore security rules tests for Clearway (run against the local emulator).",
+  "scripts": {
+    "test:rules": "node --test firestore.rules.test.mjs",
+    "test:rules:emulator": "cd .. && firebase emulators:exec --only firestore --project demo-clearway-rules \"npm --prefix rules_test run test:rules\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.10.0"
+  }
+}

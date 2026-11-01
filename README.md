@@ -2,14 +2,9 @@
 
 # Clearway: Arrow Puzzle
 
-**Tap an arrow. Slide it out. Clear the way.**
+**Tap a vehicle. Clear the way. Empty the yard.**
 
-A calm-but-tricky mobile puzzle game built with Flutter + Flame, playable fully offline.
-
-![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)
-![Flutter](https://img.shields.io/badge/Flutter-Flame-02569B?logo=flutter&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore%20%7C%20Crashlytics-FFCA28?logo=firebase&logoColor=black)
-![Status](https://img.shields.io/badge/status-Google%20Play%20closed%20testing-blue)
+A tap-to-clear puzzle game for Android, built with Flutter and Flame. Fully playable offline.
 
 `com.fahadapps.clearway`
 
@@ -19,144 +14,119 @@ A calm-but-tricky mobile puzzle game built with Flutter + Flame, playable fully 
 
 ## About
 
-Clearway is a tap-to-clear puzzle. Every level is a board packed with arrow-shaped paths. Tap an arrow and it slides out along its path, but only if nothing is blocking its way. Work out the right order, clear the board, and earn your stars.
+Every level is a yard packed with vehicles. Tap a vehicle and it drives out along its lane, but only if nothing blocks it. Work out the right order, empty the board and earn up to three stars. A blocked vehicle bumps and costs one of your 3 lives.
 
-The game engine and level catalog run locally, so every puzzle is playable without a network connection. Cloud features (guest sign-in, progress sync, daily seed) are optional extras that never block local play.
+All levels are generated on the device from fixed seeds and checked with a solver, so the game never needs a network connection. The cloud features are optional and never block play.
 
 ## Features
 
-### Gameplay
-- **Arrow-path puzzles:** each arrow is a curved path drawn as a rounded line with an arrow head. Tap one to slide it out of the board; if it is blocked, it bumps and you lose a life.
-- **80 deterministic levels:** the same level number always generates the same board. Every level is verified solvable.
-- **Difficulty ramp:** the first ten levels are an easy start. Boards then grow chapter by chapter, with more arrows and longer, twistier paths. Large boards support pinch-to-zoom and pan.
-- **Breather levels and boss boards:** lighter levels give you a rest, and boss levels use silhouette boards (heart, diamond, cross, ellipse).
-- **Daily challenge:** a new puzzle every day, seeded by the UTC date so every player gets the same board. A calendar and monthly trophy view track completion.
-- **Hints, undo and lives:** solver-backed hints and safe-move checks, 3 lives per attempt, stars for clean clears, and a coin-based revive.
-- **Safe tapping:** an arrow moves only on a quick, still, single-finger tap. Panning, zooming and long presses never cost a life.
+- **80 levels** in 8 chapters of 10 (`LevelCatalog.totalLevels`). The same level number always produces the same board. Boss levels start at level 5 and come every 5 levels; every 10th level is a silhouette board. Large boards support pinch-to-zoom and pan.
+- **Daily challenge ("Rush Hour")**: a 100+ vehicle board for each UTC day. The seed comes from the date alone (`DailyClock.seedFor`, SHA-256 of `clearway:<yyyy-MM-dd>`), so every player gets the same board. The daily screen has a calendar and a streak.
+- **Hints, undo, lives and revive**: solver-backed hints, one undo per attempt, 3 lives, and a 30-coin revive.
+- **Local economy**: coins, hints and undos live on the device (SharedPreferences). A shop sells hint and undo packs and the Sunset arrow skin for coins; rewarded ads give coins and hints with daily limits. A third skin unlocks free at level 80.
+- **Progress extras**: milestones, achievements and daily missions.
+- **Safe tapping**: a vehicle moves only on a quick, still, single-finger tap. Panning, zooming and long presses never cost a life.
+- **Onboarding**: a first-launch gate (terms and a username, 3-15 characters, letters, digits and `_`) and a guided tutorial for the first three levels.
+- **Settings**: sound, haptics, notifications, English and Urdu (right-to-left), rate us, send feedback, and Delete Account.
+- **Notifications**: optional reminders scheduled on the device (no push server).
+- **Rating prompt** after winning level 10, 25 or 50, and offline-safe feedback (queued on the device and sent when online).
 
-### Experience
-- **Guided tutorial** for the first three levels, plus tips for boss shapes, breather levels and big boards.
-- **Settings:** sound, music, haptics, light/dark theme, color-blind mode (dash patterns) and language (English / Urdu with right-to-left layout).
-- **Local progress:** unlocked level, stars, coins, hints, undos, daily streak and settings are saved on device, with a last-known-good backup to recover from corrupted saves.
-- **Resume anywhere:** current level, remaining arrows, lives and undo history resume after an app restart.
+### Online parts (optional)
 
-### Online (optional, offline-first)
-- Anonymous guest sign-in with Firebase Authentication.
-- Cloud progress merge via Cloud Firestore: only the highest level and best stars sync, so progress never shrinks.
-- Crashlytics crash reporting.
-- Banner ads via Google Mobile Ads (AdMob).
-- Cloud Functions v2 scaffold: daily reward ledger, account export and deletion, scheduled daily seed.
+- Anonymous sign-in with Firebase Authentication.
+- Progress sync to Cloud Firestore (`users/{uid}/progress/state`): level, stars, skins, milestones, achievements and missions. The username is not part of it.
+- Feedback reports in Firestore (`reports`).
+- Firebase Crashlytics crash reports.
+- Google AdMob ads (banner, interstitial every 5 levels with a cooldown, rewarded) with the Google consent form (UMP).
+
+## Spark plan limitations
+
+The Firebase project (`clearway-ac80b`) is on the free **Spark** plan, so no server code runs:
+
+- Coins, hints, undos and ad rewards are **local** and can be edited by a determined player. A server-authoritative economy needs the Blaze plan.
+- The username is stored on the device only. It is not unique and not synced.
+- Anonymous accounts: reinstalling the app loses progress. Google account linking is planned for version 1.1.
+- No leaderboard yet.
+
+### Restoring Cloud Functions (when Blaze is available)
+
+The old Cloud Functions backend (daily reward ledger, server economy, username claim, scheduled daily seed) is archived in git. Nothing in the app calls it.
+
+```bash
+git fetch --tags
+git checkout archive/functions-blaze -- functions
+```
+
+That brings back the `functions/` folder. You also need to restore the `functions` block and emulator in `firebase.json` (see that tag), the removed collections in `firestore.rules`, the matching tests, and a client that calls the functions. Never deploy rules from an older branch: the account-deletion rules would be lost.
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| App framework | Flutter (Dart SDK `^3.13.5`) |
-| Game rendering | [Flame](https://flame-engine.org/) `^1.38.2` |
-| State management | `provider` |
-| Local storage | `shared_preferences` |
-| Backend | Firebase Auth, Cloud Firestore, Crashlytics, Cloud Functions v2 |
-| Monetization | `google_mobile_ads` |
-| Tooling | `flutter_launcher_icons`, `flutter_lints` |
+| App | Flutter (Dart SDK `^3.13.5`) |
+| Board rendering | [Flame](https://flame-engine.org/) `^1.38.2`, `flame_audio` |
+| Local storage | `shared_preferences` (versioned JSON with a last-known-good backup) |
+| Backend | Firebase Auth, Cloud Firestore, Crashlytics |
+| Ads | `google_mobile_ads` (AdMob + UMP) |
+| Other | `flutter_local_notifications`, `in_app_review`, `url_launcher`, `package_info_plus` |
 
 ## Project structure
 
 ```
 clearway/
-├── lib/            # App code: game engine, level generator, UI, services
-├── test/           # Engine, catalog, codec and widget tests
-├── bin/            # Dev tools (e.g. level_generation_report.dart)
-├── assets/         # Images and app icon sources
-├── docs/           # ROADMAP.md and project documentation
-├── functions/      # Firebase Cloud Functions + Firestore rules tests
-├── android/        # Android project (applicationId com.fahadapps.clearway)
-├── ios/            # iOS project (not yet configured for release)
+├── lib/
+│   ├── game/        # engine (pure Dart), generator, Flame renderer, game screen
+│   ├── features/    # home, shop, settings, onboarding
+│   ├── services/    # cloud sync, economy, ads, notifications, feedback queue
+│   ├── data/        # local save and progress codec
+│   └── core/        # strings (English + Urdu), daily clock, username rules
+├── test/            # engine, generator, save, service and widget tests
+├── rules_test/      # Firestore security rules tests (Node, emulator)
+├── bin/             # dev tools (level_generation_report.dart, maze_preview.dart)
+├── docs/            # privacy policy, terms, roadmap, security notes (GitHub Pages)
 ├── firestore.rules
 ├── firestore.indexes.json
 └── firebase.json
 ```
 
-## Getting started
-
-### Prerequisites
-- Flutter SDK matching `sdk: ^3.13.5`
-- Android Studio or the Android SDK, plus a device or emulator
-- (Optional) Node.js and the Firebase CLI for backend work
-
-### Run the game
+## Run, test, build
 
 ```bash
-git clone https://github.com/fahad2bhatti/clearway.git
-cd clearway
 flutter pub get
-flutter run
-```
-
-The game is fully playable offline. Firebase features need the setup below.
-
-### Check code quality
-
-```bash
+flutter run                 # needs android/app/google-services.json
 dart format .
 flutter analyze
 flutter test
-```
-
-`flutter test` covers the engine, the progress codec, all 80 levels (solvability) and 365 daily puzzles.
-
-### Measure level generation speed
-
-```bash
 dart run bin/level_generation_report.dart
 ```
 
-## Firebase setup
+### Firestore rules tests
 
-1. In the Firebase Console, enable **Authentication → Anonymous** and create a **Cloud Firestore** database in `asia-south1` (the location cannot be changed later).
-2. Put your Android config at `android/app/google-services.json` (it must match `com.fahadapps.clearway`).
-3. Log in to the CLI: `firebase login --reauth`.
-4. Deploy rules and indexes:
-   ```bash
-   firebase deploy --only firestore:rules,firestore:indexes
-   ```
-5. Test the rules:
-   ```bash
-   cd functions && npm install && npm run test:rules:emulator
-   ```
-6. Build and deploy Functions (needs a billing plan):
-   ```bash
-   cd functions && npm run build
-   firebase deploy --only functions
-   ```
-7. Local emulator play:
-   ```bash
-   firebase emulators:start --only auth,firestore,functions
-   flutter run --dart-define=CLEARWAY_FIREBASE_EMULATORS=true
-   ```
+Needs Node 22, Java and the Firebase CLI:
 
-> Never commit signing keys, store credentials or server secrets. Use `functions/.env.example` as the template for Functions configuration.
+```bash
+cd rules_test
+npm install
+npm run test:rules:emulator
+```
 
-## Build for release
+### Deploy (Spark plan)
+
+Deploy **only the rules**, and only from the newest branch:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Never run `firebase deploy` for functions on this plan.
+
+### Release build
 
 ```bash
 flutter build appbundle --release
 ```
 
-Sign the app bundle with your own upload key before uploading to Google Play. iOS release needs a registered Firebase iOS app, a macOS build runner and signing, and is planned after the Android launch.
-
-## Status
-
-Clearway is in **Google Play closed testing**. Android is the first target, with iOS planned later. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full checklist, including:
-
-- More levels and achievements
-- Score replay and leaderboards
-- In-app purchases with server verification
-- Remote Config, Analytics and notifications
-- CI and release automation
-
-## Offline-first principle
-
-Local play always works. Cloud sync, daily seeds and ads must never block a player from solving puzzles.
+`build_release.sh` does the same and passes the AdMob unit IDs. Signing needs your own `android/key.properties` and keystore; they are git-ignored and must never be committed.
 
 ## License
 

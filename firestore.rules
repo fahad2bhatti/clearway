@@ -1,6 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Everything not matched below is denied. The app only uses
+    // users/{uid}/progress/state and reports/{id}. The server-owned collections
+    // of the archived Cloud Functions backend (ledger, economy, claimables,
+    // purchases, daily, dailyChallenges, leaderboards, config, usernames) were
+    // removed on purpose; see the archive/functions-blaze tag.
     function signedIn() {
       return request.auth != null;
     }
@@ -83,50 +88,6 @@ service cloud.firestore {
             .size() >= resource.data.get('claimedAchievements', []).size();
         allow delete: if owns(uid) && progressId == 'state';
       }
-
-      match /ledger/{entryId} {
-        allow get, list: if owns(uid);
-        allow write: if false;
-      }
-
-      match /economy/{economyId} {
-        allow get: if owns(uid) && economyId == 'state';
-        allow list, write: if false;
-      }
-
-      match /claimables/{claimId} {
-        allow get, list: if owns(uid);
-        allow write: if false;
-      }
-
-      match /purchases/{transactionId} {
-        allow get, list: if owns(uid);
-        allow write: if false;
-      }
-
-      match /daily/{dateId} {
-        allow get, list: if owns(uid);
-        allow write: if false;
-      }
-    }
-
-    match /dailyChallenges/{dateId} {
-      allow get, list: if signedIn();
-      allow write: if false;
-    }
-
-    match /leaderboards/{weekId}/entries/{uid} {
-      allow get, list: if signedIn();
-      allow write: if false;
-    }
-
-    match /config/public {
-      allow get: if signedIn();
-      allow write: if false;
-    }
-
-    match /usernames/{usernameKey} {
-      allow read, write: if false;
     }
 
     match /reports/{reportId} {
