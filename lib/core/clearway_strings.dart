@@ -68,9 +68,7 @@ final class ClearwayStrings {
   String get owned => _ur ? 'ملکیت میں' : 'Owned';
   String get selected => _ur ? 'منتخب' : 'Selected';
   String get select => _ur ? 'منتخب کریں' : 'Select';
-  String get buy => _ur ? 'خریدیں' : 'Buy';
   String get insufficientCoins => _ur ? 'سکے کم ہیں' : 'Not enough coins';
-  String get unavailableOffline => _ur ? 'آف لائن دستیاب نہیں' : 'Unavailable offline';
   String get settingsAccount => _ur ? 'اکاؤنٹ' : 'Account';
   String get username => _ur ? 'صارف نام' : 'Username';
   String get usernameHelp => _ur ? 'صرف انگریزی حروف، اعداد اور _ (۳ تا ۱۵ حروف)۔' : 'English letters, numbers and _ only (3-15 characters).';
@@ -175,12 +173,8 @@ final class ClearwayStrings {
         };
   String get unlockAt80 => _ur ? 'لیول ۸۰ پر کھلے گا' : 'Unlocks at level 80';
   String get skinPurchased => _ur ? 'اسکن خرید لیا گیا' : 'Skin purchased';
-  String get skinEquipped => _ur ? 'اسکن منتخب ہے' : 'Skin equipped';
   String get skinUnlocked => _ur ? 'نیا اسکن مفت کھل گیا!' : 'New skin unlocked for free!';
   String get rewardSummary => _ur ? 'سنگ میل کا انعام' : 'Milestone reward';
-  String milestoneReward(int level, int coins, int hints) => _ur
-      ? 'لیول ${_digits(level)}: +🪙${_digits(coins)}، +${_digits(hints)} اشارے'
-      : 'Level $level: +🪙$coins, +$hints hints';
   String shopOfferTitle(String id) => _ur
       ? switch (id) {
           'hint-pack' => '۲ اشارے',
@@ -230,18 +224,6 @@ final class ClearwayStrings {
   String get colorblind =>
       _ur ? 'رنگوں کے متبادل نشانات' : 'Color-blind patterns';
   String get languageLabel => _ur ? 'زبان' : 'Language';
-  String hintPack(int count) =>
-      _ur ? '${_digits(count)} اشارے' : '$count hints';
-  String get hintDescription => _ur
-      ? 'ابھی نکلنے والی سواری دیکھیں'
-      : 'Find a vehicle that can leave now';
-  String get undos3 => _ur ? '۳ واپسی کے موقع' : '3 undos';
-  String get undoDescription => _ur
-      ? 'آخری نکلی سواری واپس لائیں'
-      : 'Bring back your last cleared vehicle';
-  String get practiceReward => _ur ? 'مشق کا انعام' : 'Practice reward';
-  String get offlineDemoReward =>
-      _ur ? 'آف لائن نمونہ انعام' : 'Offline demo reward';
   String get chooseYard => _ur ? 'لیول منتخب کریں' : 'Choose a level';
   String get rushHour => _ur ? 'رش آور' : 'RUSH HOUR';
   String get daily => _ur ? 'روزانہ' : 'DAILY';
@@ -288,12 +270,6 @@ final class ClearwayStrings {
       _ur ? 'روزانہ تحفہ · +🪙$coins' : 'Daily gift · +🪙$coins';
   String giftClaimed(int coins) =>
       _ur ? 'تحفہ مل گیا! +🪙$coins' : 'Gift claimed! +🪙$coins';
-  String get freeCoinsAd => _ur ? 'مفت سکے' : 'Free coins';
-  String freeCoinsLeft(int left) => left > 0
-      ? (_ur
-            ? 'اشتہار دیکھیں · آج $left باقی'
-            : 'Watch an ad · $left left today')
-      : (_ur ? 'کل دوبارہ آئیں' : 'Come back tomorrow');
   String freeRewardLeft(int left) => left > 0
       ? (_ur
       ? 'اشتہار دیکھیں · آج ${_digits(left)} باقی'
