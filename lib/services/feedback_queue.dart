@@ -87,6 +87,11 @@ abstract final class FeedbackQueue {
         await _write(items.where((item) => item.id != id).toList());
       });
 
+  static Future<void> clear() => _serialized<void>(() async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(storageKey);
+      });
+
   static Future<void> _write(List<PendingFeedback> items) async {
     final prefs = await SharedPreferences.getInstance();
     if (items.isEmpty) {

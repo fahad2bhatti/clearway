@@ -13,9 +13,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   Timestamp,
+  where,
 } from 'firebase/firestore';
 
 let environment;
@@ -370,4 +372,32 @@ test('clients can neither read nor write usernames', async () => {
   const db = environment.authenticatedContext('player-a').firestore();
   await assertFails(setDoc(doc(db, 'usernames/fahad_1'), { uid: 'player-a' }));
   await assertFails(getDoc(doc(db, 'usernames/fahad_1')));
+});
+
+test('an owner can delete their own progress and nobody else can', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'users/player-a/progress/state'), { highestLevel: 1 });
+  });
+  const other = environment.authenticatedContext('player-b').firestore();
+  await assertFails(deleteDoc(doc(other, 'users/player-a/progress/state')));
+  const owner = environment.authenticatedContext('player-a').firestore();
+  await assertSucceeds(deleteDoc(doc(owner, 'users/player-a/progress/state')));
+});
+
+test('an owner can list and delete only their own reports', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, 'reports/r1'), { uid: 'player-a', type: 'feedback', text: 'hi' });
+    await setDoc(doc(db, 'reports/r2'), { uid: 'player-b', type: 'feedback', text: 'hi' });
+  });
+  const owner = environment.authenticatedContext('player-a').firestore();
+  const own = await assertSucceeds(
+    getDocs(query(collection(owner, 'reports'), where('uid', '==', 'player-a'))),
+  );
+  assert.equal(own.size, 1);
+  await assertFails(
+    getDocs(query(collection(owner, 'reports'), where('uid', '==', 'player-b'))),
+  );
+  await assertFails(deleteDoc(doc(owner, 'reports/r2')));
+  await assertSucceeds(deleteDoc(doc(owner, 'reports/r1')));
 });

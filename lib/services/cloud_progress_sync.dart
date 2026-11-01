@@ -81,17 +81,41 @@ final class CloudProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Deletes the Firebase Auth user from this device. Removing the server
-  /// data as well needs the deleteAccount Cloud Function (Blaze plan).
+  /// Deletes the player's cloud data (feedback reports and progress) and then
+  /// the Firebase Auth user, all from this device. Auth goes last so the rules
+  /// still allow the data deletes. Safe to retry if any step fails.
   Future<bool> deleteAccount() async {
     final user = _auth?.currentUser;
-    if (!_ready || user == null) return false;
+    final firestore = _firestore;
+    if (!_ready || user == null || firestore == null) return false;
+    const limit = Duration(seconds: 15);
+    _ready = false;
     try {
-      await user.delete();
-    } on FirebaseAuthException {
+      await FeedbackQueue.clear();
+      final reports = await firestore
+          .collection('reports')
+          .where('uid', isEqualTo: user.uid)
+          .get(const GetOptions(source: Source.server))
+          .timeout(limit);
+      for (var i = 0; i < reports.docs.length; i += 400) {
+        final batch = firestore.batch();
+        for (final doc in reports.docs.skip(i).take(400)) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit().timeout(limit);
+      }
+      await firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('progress')
+          .doc('state')
+          .delete()
+          .timeout(limit);
+      await user.delete().timeout(limit);
+    } catch (_) {
+      _ready = true;
       return false;
     }
-    _ready = false;
     status = CloudSyncStatus.offline;
     notifyListeners();
     return true;
