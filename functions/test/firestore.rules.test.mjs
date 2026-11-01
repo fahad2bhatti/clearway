@@ -13,9 +13,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   Timestamp,
+  where,
 } from 'firebase/firestore';
 
 let environment;
@@ -320,12 +322,15 @@ test('progress rejects a client-supplied timestamp, floats and strings', async (
   await assertFails(setDoc(ref, validProgress({ schemaVersion: 1 })));
 });
 
-test('progress only lives at progress/state and can never be deleted', async () => {
+test('progress only lives at progress/state and only the owner can delete it', async () => {
   const db = environment.authenticatedContext('player-a').firestore();
   await assertFails(setDoc(doc(db, 'users/player-a/progress/other'), validProgress()));
+  await assertFails(deleteDoc(doc(db, 'users/player-a/progress/other')));
   const ref = doc(db, 'users/player-a/progress/state');
   await assertSucceeds(setDoc(ref, validProgress()));
-  await assertFails(deleteDoc(ref));
+  const other = environment.authenticatedContext('player-b').firestore();
+  await assertFails(deleteDoc(doc(other, 'users/player-a/progress/state')));
+  await assertSucceeds(deleteDoc(ref));
 });
 
 test('users collection cannot be listed or written, own profile is readable', async () => {
@@ -355,19 +360,50 @@ test('leaderboards and public config are server-only writes', async () => {
   await assertFails(setDoc(doc(db, 'users/player-a/daily/2026-10-24'), { completed: true }));
 });
 
-test('reports accept a well-formed message and nothing else', async () => {
+test('reports accept a well-formed message and only the owner can read or delete it', async () => {
   const db = environment.authenticatedContext('player-a').firestore();
   await assertSucceeds(setDoc(doc(db, 'reports/ok'), validReport()));
-  await assertFails(getDoc(doc(db, 'reports/ok')));
+  await assertSucceeds(getDoc(doc(db, 'reports/ok')));
+  const other = environment.authenticatedContext('player-b').firestore();
+  await assertFails(getDoc(doc(other, 'reports/ok')));
   await assertFails(setDoc(doc(db, 'reports/spoof'), validReport({ uid: 'player-b' })));
   await assertFails(setDoc(doc(db, 'reports/long'), validReport({ text: 'x'.repeat(2001) })));
   await assertFails(setDoc(doc(db, 'reports/extra'), validReport({ admin: true })));
   await assertFails(setDoc(doc(db, 'reports/bad-type'), validReport({ type: 5 })));
-  await assertFails(deleteDoc(doc(db, 'reports/ok')));
+  await assertFails(deleteDoc(doc(other, 'reports/ok')));
+  await assertSucceeds(deleteDoc(doc(db, 'reports/ok')));
 });
 
 test('clients can neither read nor write usernames', async () => {
   const db = environment.authenticatedContext('player-a').firestore();
   await assertFails(setDoc(doc(db, 'usernames/fahad_1'), { uid: 'player-a' }));
   await assertFails(getDoc(doc(db, 'usernames/fahad_1')));
+});
+
+test('an owner can delete their own progress and nobody else can', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'users/player-a/progress/state'), { highestLevel: 1 });
+  });
+  const other = environment.authenticatedContext('player-b').firestore();
+  await assertFails(deleteDoc(doc(other, 'users/player-a/progress/state')));
+  const owner = environment.authenticatedContext('player-a').firestore();
+  await assertSucceeds(deleteDoc(doc(owner, 'users/player-a/progress/state')));
+});
+
+test('an owner can list and delete only their own reports', async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, 'reports/r1'), { uid: 'player-a', type: 'feedback', text: 'hi' });
+    await setDoc(doc(db, 'reports/r2'), { uid: 'player-b', type: 'feedback', text: 'hi' });
+  });
+  const owner = environment.authenticatedContext('player-a').firestore();
+  const own = await assertSucceeds(
+    getDocs(query(collection(owner, 'reports'), where('uid', '==', 'player-a'))),
+  );
+  assert.equal(own.size, 1);
+  await assertFails(
+    getDocs(query(collection(owner, 'reports'), where('uid', '==', 'player-b'))),
+  );
+  await assertFails(deleteDoc(doc(owner, 'reports/r2')));
+  await assertSucceeds(deleteDoc(doc(owner, 'reports/r1')));
 });

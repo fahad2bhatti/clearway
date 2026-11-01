@@ -159,7 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!await _confirm(strings.logoutConfirm)) return;
     try {
       await widget.cloud.signOut();
-      if (mounted) Navigator.pop(context);
+      if (mounted) widget.onBack();
     } catch (error) {
       _message(error.toString());
     }
@@ -175,7 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await widget.save.reset();
       if (mounted) {
         _message(strings.accountDeleted);
-        Navigator.pop(context);
+        widget.onBack();
       }
     } catch (_) {
       _message(strings.accountDeleteFailed);

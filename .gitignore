@@ -65,3 +65,8 @@ GoogleService-Info.plist
 android/.kotlin/
 .aider*
 functions/dist/
+
+# Android-only app: Flutter regenerates these desktop folders
+/linux/
+/macos/
+/windows/
