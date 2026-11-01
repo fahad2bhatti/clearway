@@ -59,21 +59,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _heading(strings.settingsAccount),
             ListTile(
               leading: const Icon(Icons.account_circle_rounded),
-              title: Text(widget.cloud.hasLinkedProvider ? strings.linkedAccount : strings.anonymousAccount),
-              subtitle: Text(widget.cloud.accountEmail ?? widget.cloud.accountUid ?? ''),
+              title: Text(strings.anonymousAccount),
+              subtitle: widget.save.username.isEmpty ? null : Text(widget.save.username),
             ),
-            if (!widget.cloud.hasLinkedProvider)
-              ListTile(
-                leading: const Icon(Icons.link_rounded),
-                title: Text(strings.linkAccount),
-                onTap: () => _message(strings.accountActionUnavailable),
-              ),
-            if (widget.cloud.hasLinkedProvider)
-              ListTile(
-                leading: const Icon(Icons.logout_rounded),
-                title: Text(strings.logout),
-                onTap: _confirmLogout,
-              ),
             ListTile(
               leading: const Icon(Icons.delete_forever_rounded),
               title: Text(strings.deleteAccount),
@@ -153,16 +141,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final granted = await NotificationService.instance.requestPermission();
     await _update(() => widget.save.notifications = granted);
     if (!granted) await NotificationService.instance.disable();
-  }
-
-  Future<void> _confirmLogout() async {
-    if (!await _confirm(strings.logoutConfirm)) return;
-    try {
-      await widget.cloud.signOut();
-      if (mounted) widget.onBack();
-    } catch (error) {
-      _message(error.toString());
-    }
   }
 
   Future<void> _confirmDelete() async {

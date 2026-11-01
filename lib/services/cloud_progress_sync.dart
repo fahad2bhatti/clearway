@@ -33,13 +33,6 @@ final class CloudProgressSync extends ChangeNotifier {
 
   bool get isReady => _ready;
 
-  bool get hasLinkedProvider =>
-      (_auth?.currentUser?.providerData ?? const []).isNotEmpty;
-
-  String? get accountEmail => _auth?.currentUser?.email;
-
-  String? get accountUid => _auth?.currentUser?.uid;
-
   ProgressSyncSignature? get lastSyncedSignature => _lastSyncedSignature;
 
   Future<ProgressSyncSignature?> retry(LocalSave local) async {
@@ -119,16 +112,6 @@ final class CloudProgressSync extends ChangeNotifier {
     status = CloudSyncStatus.offline;
     notifyListeners();
     return true;
-  }
-
-  Future<void> signOut() async {
-    if (!hasLinkedProvider) {
-      throw StateError('Anonymous accounts cannot be signed out safely.');
-    }
-    await _auth?.signOut();
-    _ready = false;
-    status = CloudSyncStatus.offline;
-    notifyListeners();
   }
 
   /// Saves feedback on the device first so nothing is lost offline, then tries
