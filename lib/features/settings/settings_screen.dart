@@ -5,12 +5,15 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_identity.dart';
 import '../../app/legal_links.dart';
+import '../../app/theme_pack.dart';
 import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import '../../services/cloud_progress_sync.dart';
 import '../../services/notification_service.dart';
+import '../../widgets/game_ui.dart';
 
-const _playStoreUrl = 'https://play.google.com/store/apps/details?id=${AppIdentity.applicationId}';
+const _playStoreUrl =
+    'https://play.google.com/store/apps/details?id=${AppIdentity.applicationId}';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -42,71 +45,357 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
-    if (mounted) setState(() => _version = '${info.version}+${info.buildNumber}');
+    if (mounted) {
+      setState(() => _version = '${info.version}+${info.buildNumber}');
+    }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            onPressed: widget.onBack,
-            icon: const Icon(Icons.arrow_back_rounded),
+  Widget build(BuildContext context) {
+    const pack = ThemePack.truckArt;
+    final ur = widget.save.language == 'ur';
+    return Scaffold(
+      body: GameBackdrop(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 20, 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: widget.onBack,
+                      tooltip: MaterialLocalizations.of(context)
+                          .backButtonTooltip,
+                      style: IconButton.styleFrom(
+                        backgroundColor: pack.ivory.withValues(alpha: 0.1),
+                        minimumSize: const Size(44, 44),
+                      ),
+                      icon: Icon(Icons.arrow_back_rounded, color: pack.ivory),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        strings.settings,
+                        style: TextStyle(
+                          fontFamily: GameFonts.display,
+                          fontSize: 30,
+                          color: pack.ivory,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  children: [
+                    _profileCard(pack),
+                    const SizedBox(height: 20),
+                    _heading(pack, strings.settingsPreferences, ur),
+                    _group(pack, [
+                      _toggleRow(
+                        pack,
+                        Icons.volume_up_rounded,
+                        pack.accent,
+                        strings.sound,
+                        widget.save.sound,
+                        (value) => _update(() => widget.save.sound = value),
+                      ),
+                      _toggleRow(
+                        pack,
+                        Icons.music_note_rounded,
+                        pack.floralMagenta,
+                        strings.music,
+                        widget.save.music,
+                        (value) => _update(() => widget.save.music = value),
+                      ),
+                      _toggleRow(
+                        pack,
+                        Icons.vibration_rounded,
+                        pack.turquoise,
+                        strings.haptics,
+                        widget.save.haptics,
+                        (value) => _update(() => widget.save.haptics = value),
+                      ),
+                      _toggleRow(
+                        pack,
+                        Icons.notifications_rounded,
+                        pack.coral,
+                        strings.notifications,
+                        widget.save.notifications,
+                        _toggleNotifications,
+                      ),
+                      _row(
+                        pack,
+                        icon: Icons.language_rounded,
+                        color: pack.accent,
+                        label: strings.languageLabel,
+                        trailing: LanguageSwitch(
+                          value: widget.save.language,
+                          onChanged: (value) =>
+                              _update(() => widget.save.language = value),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
+                    _heading(pack, strings.settingsAbout, ur),
+                    _group(pack, [
+                      _linkRow(
+                        pack,
+                        Icons.star_rounded,
+                        pack.accent,
+                        strings.rateUs,
+                        _rateUs,
+                      ),
+                      _linkRow(
+                        pack,
+                        Icons.chat_bubble_rounded,
+                        pack.turquoise,
+                        strings.sendFeedback,
+                        _sendFeedback,
+                      ),
+                      _linkRow(
+                        pack,
+                        Icons.privacy_tip_rounded,
+                        pack.floralMagenta,
+                        strings.privacyPolicy,
+                        () => _open(LegalLinks.privacyUrl),
+                      ),
+                      _linkRow(
+                        pack,
+                        Icons.gavel_rounded,
+                        pack.textMuted,
+                        strings.terms,
+                        () => _open(LegalLinks.termsUrl),
+                      ),
+                    ]),
+                    const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _confirmDelete,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: pack.coral,
+                        side: BorderSide(color: pack.coral, width: 2),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: const StadiumBorder(),
+                      ),
+                      icon: _busy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.delete_forever_rounded),
+                      label: Text(
+                        strings.deleteAccount,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    if (_version.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        '${strings.appVersion} $_version',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: pack.textMuted, fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-          title: Text(strings.settings),
         ),
-        body: ListView(
+      ),
+    );
+  }
+
+  Widget _profileCard(ThemePack pack) {
+    final name = widget.save.username.isEmpty
+        ? AppIdentity.name
+        : widget.save.username;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: pack.accent, width: 3),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [pack.panelActive, pack.panel],
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: pack.asphalt,
+              border: Border.all(color: pack.accent, width: 3),
+            ),
+            child: BusIllustration(
+              body: pack.floralMagenta,
+              stripe: pack.coral,
+              width: 44,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: TextDirection.ltr,
+                  style: TextStyle(
+                    fontFamily: GameFonts.display,
+                    fontSize: 22,
+                    color: pack.ivory,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: pack.turquoise.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    strings.anonymousAccount,
+                    style: TextStyle(
+                      color: pack.turquoise,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heading(ThemePack pack, String title, bool ur) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 6, right: 6),
+    child: Text(
+      ur ? title : title.toUpperCase(),
+      style: TextStyle(
+        color: pack.textMuted,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        letterSpacing: letterSpacingFor(widget.save.language, 2),
+      ),
+    ),
+  );
+
+  Widget _group(ThemePack pack, List<Widget> rows) => Material(
+    color: pack.panel,
+    clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: BorderSide(color: pack.panelActive, width: 2),
+    ),
+    child: Column(
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0)
+            Divider(
+              height: 1,
+              indent: 16,
+              endIndent: 16,
+              color: pack.ivory.withValues(alpha: 0.08),
+            ),
+          rows[i],
+        ],
+      ],
+    ),
+  );
+
+  Widget _row(
+    ThemePack pack, {
+    required IconData icon,
+    required Color color,
+    required String label,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) => InkWell(
+    onTap: onTap,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 54),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
           children: [
-            _heading(strings.settingsAccount),
-            ListTile(
-              leading: const Icon(Icons.account_circle_rounded),
-              title: Text(strings.anonymousAccount),
-              subtitle: widget.save.username.isEmpty ? null : Text(widget.save.username),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(icon, size: 20, color: color),
             ),
-            ListTile(
-              leading: const Icon(Icons.delete_forever_rounded),
-              title: Text(strings.deleteAccount),
-              onTap: _confirmDelete,
-            ),
-            _heading(strings.settings),
-            _toggle(strings.sound, widget.save.sound, (value) => _update(() => widget.save.sound = value)),
-            _toggle(strings.music, widget.save.music, (value) => _update(() => widget.save.music = value)),
-            _toggle(strings.haptics, widget.save.haptics, (value) => _update(() => widget.save.haptics = value)),
-            _toggle(strings.notifications, widget.save.notifications, _toggleNotifications),
-            ListTile(
-              title: Text(strings.languageLabel),
-              trailing: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'en', label: Text('EN')),
-                  ButtonSegment(value: 'ur', label: Text('اردو')),
-                ],
-                selected: {widget.save.language},
-                onSelectionChanged: (value) => _update(() => widget.save.language = value.first),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: pack.ivory,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            _heading(''),
-            ListTile(leading: const Icon(Icons.star_rate_rounded), title: Text(strings.rateUs), onTap: _rateUs),
-            ListTile(leading: const Icon(Icons.feedback_rounded), title: Text(strings.sendFeedback), onTap: _sendFeedback),
-            ListTile(leading: const Icon(Icons.privacy_tip_rounded), title: Text(strings.privacyPolicy), onTap: () => _open(LegalLinks.privacyUrl)),
-            ListTile(leading: const Icon(Icons.gavel_rounded), title: Text(strings.terms), onTap: () => _open(LegalLinks.termsUrl)),
-            ListTile(
-              leading: const Icon(Icons.info_outline_rounded),
-              title: Text(strings.appVersion),
-              trailing: Text(_version.isEmpty ? '…' : _version),
-            ),
+            ?trailing,
           ],
         ),
-      );
+      ),
+    ),
+  );
 
-  Widget _heading(String title) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-        child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-      );
+  Widget _toggleRow(
+    ThemePack pack,
+    IconData icon,
+    Color color,
+    String label,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) => Semantics(
+    toggled: value,
+    child: _row(
+      pack,
+      icon: icon,
+      color: color,
+      label: label,
+      trailing: GameToggle(value: value),
+      onTap: () => onChanged(!value),
+    ),
+  );
 
-  Widget _toggle(String title, bool value, ValueChanged<bool> onChanged) => SwitchListTile(
-        title: Text(title),
-        value: value,
-        onChanged: onChanged,
-      );
+  Widget _linkRow(
+    ThemePack pack,
+    IconData icon,
+    Color color,
+    String label,
+    VoidCallback onTap,
+  ) => _row(
+    pack,
+    icon: icon,
+    color: color,
+    label: label,
+    trailing: Icon(Icons.chevron_right_rounded, color: pack.textMuted),
+    onTap: onTap,
+  );
 
   Future<void> _update(VoidCallback update) async {
     setState(update);
@@ -162,13 +451,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<bool> _confirm(String message) async => await showDialog<bool>(
+  Future<bool> _confirm(String message) async =>
+      await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           content: Text(message),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(strings.cancel)),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(strings.confirm)),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(strings.confirm),
+            ),
           ],
         ),
       ) ??
@@ -245,7 +541,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _open(String url) async {
     var opened = false;
     try {
-      opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
     } catch (_) {
       opened = false;
     }
@@ -253,7 +552,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _message(String message) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 }
 
@@ -271,42 +573,42 @@ final class _RatingDialogState extends State<_RatingDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.strings.ratingTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(widget.strings.ratingQuestion),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                5,
-                (index) => IconButton(
-                  tooltip: '${index + 1}',
-                  onPressed: () => setState(() => _rating = index + 1),
-                  icon: Icon(
-                    index < _rating
-                        ? Icons.star_rounded
-                        : Icons.star_border_rounded,
-                    color: Colors.amber,
-                    size: 34,
-                  ),
-                ),
+    title: Text(widget.strings.ratingTitle),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(widget.strings.ratingQuestion),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            5,
+            (index) => IconButton(
+              tooltip: '${index + 1}',
+              onPressed: () => setState(() => _rating = index + 1),
+              icon: Icon(
+                index < _rating
+                    ? Icons.star_rounded
+                    : Icons.star_border_rounded,
+                color: Colors.amber,
+                size: 34,
               ),
             ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(widget.strings.cancel),
-          ),
-          FilledButton(
-            onPressed: _rating == 0 ? null : () => Navigator.pop(context, _rating),
-            child: Text(widget.strings.confirm),
-          ),
-        ],
-      );
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text(widget.strings.cancel),
+      ),
+      FilledButton(
+        onPressed: _rating == 0 ? null : () => Navigator.pop(context, _rating),
+        child: Text(widget.strings.confirm),
+      ),
+    ],
+  );
 }
 
 final class _FeedbackDialog extends StatefulWidget {
