@@ -20,18 +20,25 @@ final class GameplayEvent {
   bool get isDaily => type == GameplayEventType.dailyCleared;
 }
 
-enum AchievementObjective { clearWithoutHints, clearBoss, dailyStreak, reachLevel }
+enum AchievementObjective {
+  clearWithoutHints,
+  clearBoss,
+  dailyStreak,
+  reachLevel,
+}
 
 final class AchievementDefinition {
   const AchievementDefinition({
     required this.id,
     required this.objective,
     required this.target,
+    required this.coins,
   });
 
   final String id;
   final AchievementObjective objective;
   final int target;
+  final int coins;
 }
 
 abstract final class AchievementCatalog {
@@ -40,21 +47,25 @@ abstract final class AchievementCatalog {
       id: 'clear-10-no-hints',
       objective: AchievementObjective.clearWithoutHints,
       target: 10,
+      coins: 100,
     ),
     AchievementDefinition(
       id: 'clear-boss',
       objective: AchievementObjective.clearBoss,
       target: 1,
+      coins: 75,
     ),
     AchievementDefinition(
       id: 'daily-streak-7',
       objective: AchievementObjective.dailyStreak,
       target: 7,
+      coins: 150,
     ),
     AchievementDefinition(
       id: 'reach-level-80',
       objective: AchievementObjective.reachLevel,
       target: 80,
+      coins: 250,
     ),
   ];
 
@@ -148,10 +159,7 @@ abstract final class DailyMissionCatalog {
 }
 
 final class AchievementTracker {
-  static Map<String, int> apply(
-    Map<String, int> current,
-    GameplayEvent event,
-  ) {
+  static Map<String, int> apply(Map<String, int> current, GameplayEvent event) {
     final next = Map<String, int>.of(current);
     for (final definition in AchievementCatalog.definitions) {
       var increment = 0;
@@ -169,9 +177,9 @@ final class AchievementTracker {
       }
       if (increment == 0) continue;
       final old = next[definition.id] ?? 0;
-      next[definition.id] = definition.objective ==
-              AchievementObjective.reachLevel ||
-          definition.objective == AchievementObjective.dailyStreak
+      next[definition.id] =
+          definition.objective == AchievementObjective.reachLevel ||
+              definition.objective == AchievementObjective.dailyStreak
           ? (old > increment ? old : increment).clamp(0, definition.target)
           : (old + increment).clamp(0, definition.target);
     }

@@ -118,7 +118,10 @@ final class EconomyRepository implements RewardRepository {
         (save.achievementProgress[achievementId] ?? 0) < definition.target) {
       return false;
     }
-    return _claim(() => save.claimedAchievements.add(achievementId));
+    return _claim(
+      definition.coins,
+      () => save.claimedAchievements.add(achievementId),
+    );
   }
 
   @override
@@ -133,7 +136,13 @@ final class EconomyRepository implements RewardRepository {
         (state.progress[missionId] ?? 0) < mission.target) {
       return false;
     }
-    return _claim(() => state.claimed.add(missionId));
+    // The default `claimed` set is const (unmodifiable), so replace it.
+    return _claim(
+      mission.coins,
+      () => save.dailyMissions = state.copyWith(
+        claimed: {...state.claimed, missionId},
+      ),
+    );
   }
 
   Future<PurchaseResult> buySkin(ArrowSkin skin) async {
@@ -186,8 +195,9 @@ final class EconomyRepository implements RewardRepository {
     );
   }
 
-  Future<bool> _claim(void Function() onSuccess) async {
+  Future<bool> _claim(int coins, void Function() onSuccess) async {
     onSuccess();
+    save.coins += coins;
     await save.save();
     return true;
   }

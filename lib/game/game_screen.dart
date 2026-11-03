@@ -1089,15 +1089,11 @@ class _ResultDialog extends StatelessWidget {
     required this.onPrimary,
     required this.secondaryLabel,
     required this.onSecondary,
-    this.tertiaryLabel,
-    this.onTertiary,
-    this.stars = 0,
     this.note,
     this.reviveLabel,
     this.reviveEnabled = false,
     this.onRevive,
     this.adLabel,
-    this.adDoneLabel,
     this.adFailedMessage = '',
     this.onAd,
   });
@@ -1109,15 +1105,11 @@ class _ResultDialog extends StatelessWidget {
   final VoidCallback onPrimary;
   final String secondaryLabel;
   final VoidCallback onSecondary;
-  final String? tertiaryLabel;
-  final VoidCallback? onTertiary;
-  final int stars;
   final String? note;
   final String? reviveLabel;
   final bool reviveEnabled;
   final VoidCallback? onRevive;
   final String? adLabel;
-  final String? adDoneLabel;
   final String adFailedMessage;
   final Future<bool> Function()? onAd;
 
@@ -1152,22 +1144,6 @@ class _ResultDialog extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          if (won) ...[
-            const SizedBox(height: 9),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                3,
-                (index) => Icon(
-                  Icons.star_rounded,
-                  size: 33,
-                  color: index < stars
-                      ? const Color(0xffffb347)
-                      : const Color(0xff536165),
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 9),
           Text(
             message,
@@ -1186,7 +1162,6 @@ class _ResultDialog extends StatelessWidget {
           if (adLabel != null && onAd != null) ...[
             _AdRewardButton(
               label: adLabel!,
-              doneLabel: adDoneLabel,
               failedMessage: adFailedMessage,
               onWatch: onAd!,
             ),
@@ -1230,25 +1205,12 @@ class _ResultDialog extends StatelessWidget {
               ),
             ),
           ),
-          Wrap(
-            alignment: WrapAlignment.center,
-            children: [
-              TextButton(
-                onPressed: onSecondary,
-                child: Text(
-                  secondaryLabel,
-                  style: const TextStyle(color: Color(0xffc6d2ca)),
-                ),
-              ),
-              if (tertiaryLabel != null && onTertiary != null)
-                TextButton(
-                  onPressed: onTertiary,
-                  child: Text(
-                    tertiaryLabel!,
-                    style: const TextStyle(color: Color(0xffc6d2ca)),
-                  ),
-                ),
-            ],
+          TextButton(
+            onPressed: onSecondary,
+            child: Text(
+              secondaryLabel,
+              style: const TextStyle(color: Color(0xffc6d2ca)),
+            ),
           ),
         ],
       ),
@@ -1262,11 +1224,9 @@ class _AdRewardButton extends StatefulWidget {
     required this.label,
     required this.failedMessage,
     required this.onWatch,
-    this.doneLabel,
   });
 
   final String label;
-  final String? doneLabel;
   final String failedMessage;
   final Future<bool> Function() onWatch;
 
@@ -1312,7 +1272,7 @@ class _AdRewardButtonState extends State<_AdRewardButton> {
             )
           : Icon(_done ? Icons.check_circle_rounded : Icons.play_circle_fill),
       label: Text(
-        _done ? (widget.doneLabel ?? widget.label) : widget.label,
+        widget.label,
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
     ),

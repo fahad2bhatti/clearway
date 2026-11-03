@@ -193,7 +193,9 @@ class HomeScreen extends StatelessWidget {
             onTap: () => _showLevels(context, save, onPlay),
           ),
           const SizedBox(width: 10),
-          Expanded(child: _ShopButton(label: strings.yardShop, onTap: onShop)),
+          Expanded(
+            child: _ShopButton(label: strings.yardShop, onTap: onShop),
+          ),
         ],
       ),
       if (save.giftDay != DailyClock.dayKey()) ...[
@@ -533,9 +535,7 @@ class _SheetShell extends StatelessWidget {
                 OnboardingTheme.cardPurpleDark,
               ],
             ),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(32),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             border: Border.all(color: OnboardingTheme.gold, width: 2.5),
           ),
           // Ink (level tiles, Claim button) must paint on a Material that
@@ -691,7 +691,9 @@ class _CalendarDay extends StatelessWidget {
       decoration: BoxDecoration(
         color: done
             ? OnboardingTheme.teal.withValues(alpha: 0.2)
-            : OnboardingTheme.deepPurple.withValues(alpha: future ? 0.25 : 0.55),
+            : OnboardingTheme.deepPurple.withValues(
+                alpha: future ? 0.25 : 0.55,
+              ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: border, width: done || today ? 2 : 1),
       ),
@@ -747,10 +749,11 @@ class _GoalsSheetState extends State<_GoalsSheet> {
             icon: Icons.emoji_events_rounded,
             color: OnboardingTheme.gold,
             title: widget.strings.achievementName(definition.id),
+            subtitle: widget.strings.coinsReward(definition.coins),
             progress: widget.save.achievementProgress[definition.id] ?? 0,
             target: definition.target,
             claimed: widget.save.claimedAchievements.contains(definition.id),
-            onClaim: () => _claimAchievement(definition.id),
+            onClaim: () => _claimAchievement(definition),
           ),
         const SizedBox(height: 10),
         Padding(
@@ -774,7 +777,7 @@ class _GoalsSheetState extends State<_GoalsSheet> {
             progress: daily.progress[mission.id] ?? 0,
             target: mission.target,
             claimed: daily.claimed.contains(mission.id),
-            onClaim: () => _claimMission(mission.id),
+            onClaim: () => _claimMission(mission),
           ),
       ],
     );
@@ -898,31 +901,36 @@ class _GoalsSheetState extends State<_GoalsSheet> {
                     ],
                   )
                 : complete
-                ? InkWell(
+                ? Semantics(
                     key: const ValueKey('claim'),
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: onClaim,
-                    child: Ink(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: OnboardingTheme.gold,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: OnboardingTheme.goldDark,
-                            offset: Offset(0, 3),
+                    button: true,
+                    label: widget.strings.claim,
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onClaim,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: OnboardingTheme.gold,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: OnboardingTheme.goldDark,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          widget.strings.claim,
+                          style: const TextStyle(
+                            color: OnboardingTheme.deepPurple,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
                           ),
-                        ],
-                      ),
-                      child: Text(
-                        widget.strings.claim,
-                        style: const TextStyle(
-                          color: OnboardingTheme.deepPurple,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
@@ -934,20 +942,34 @@ class _GoalsSheetState extends State<_GoalsSheet> {
     );
   }
 
-  Future<void> _claimAchievement(String id) async {
-    if (await EconomyRepository(widget.save).claimAchievement(id) && mounted) {
+  Future<void> _claimAchievement(AchievementDefinition definition) async {
+    final claimed = await EconomyRepository(widget.save)
+        .claimAchievement(definition.id);
+    if (claimed && mounted) {
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.strings.achievementComplete)),
+        SnackBar(
+          content: Text(
+            '${widget.strings.achievementComplete}  '
+            '${widget.strings.coinsReward(definition.coins)}',
+          ),
+        ),
       );
     }
   }
 
-  Future<void> _claimMission(String id) async {
-    if (await EconomyRepository(widget.save).claimDailyMission(id) && mounted) {
+  Future<void> _claimMission(DailyMissionDefinition mission) async {
+    final claimed = await EconomyRepository(widget.save)
+        .claimDailyMission(mission.id);
+    if (claimed && mounted) {
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.strings.missionComplete)),
+        SnackBar(
+          content: Text(
+            '${widget.strings.missionComplete}  '
+            '${widget.strings.coinsReward(mission.coins)}',
+          ),
+        ),
       );
     }
   }
@@ -1222,7 +1244,6 @@ class _PreviewBoardPainter extends CustomPainter {
   bool shouldRepaint(covariant _PreviewBoardPainter oldDelegate) =>
       oldDelegate.animation != animation;
 }
-
 
 // ---------------------------------------------------------------------------
 // New home widgets (Figma design)
@@ -1768,10 +1789,16 @@ class _BackdropPainter extends CustomPainter {
       );
     }
 
-    glow(Offset(size.width * .15, size.height * .35), size.width * .7,
-        const Color(0xffff5c8d));
-    glow(Offset(size.width * .9, size.height * .7), size.width * .8,
-        const Color(0xff22c7b0));
+    glow(
+      Offset(size.width * .15, size.height * .35),
+      size.width * .7,
+      const Color(0xffff5c8d),
+    );
+    glow(
+      Offset(size.width * .9, size.height * .7),
+      size.width * .8,
+      const Color(0xff22c7b0),
+    );
   }
 
   @override
