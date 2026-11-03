@@ -68,4 +68,28 @@ final class ThemePack {
     vehicleNoun: 'vehicle',
     emptyYardMessage: 'All clear!',
   );
+
+  /// Purple "arrow night" look shared by Home, Shop and Settings. The game
+  /// board keeps using [truckArt].
+  static const arrowNight = ThemePack(
+    id: 'arrow_night',
+    name: 'Arrow night',
+    asphalt: Color(0xff120d2b),
+    yardSurface: Color(0xff1b1440),
+    gridLine: Color(0xff4b3fa8),
+    ivory: Color(0xfffff4dc),
+    panel: Color(0xff2a1f63),
+    panelActive: Color(0xff3a2f8f),
+    textMuted: Color(0xffb8aedb),
+    iconDisabled: Color(0xff6b5fa0),
+    textDisabled: Color(0xff8379b8),
+    accent: Color(0xffffb627),
+    floralMagenta: Color(0xffff5c8d),
+    emerald: Color(0xff5fe6af),
+    turquoise: Color(0xff22c7b0),
+    coral: Color(0xffff796c),
+    showFloralMotifs: true,
+    vehicleNoun: 'arrow',
+    emptyYardMessage: 'All clear!',
+  );
 }

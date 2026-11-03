@@ -27,7 +27,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.truckArt;
+    const pack = ThemePack.arrowNight;
     final ur = widget.save.language == 'ur';
     final offers = shopOffers();
     final coinOffers = offers
@@ -42,7 +42,7 @@ class _ShopScreenState extends State<ShopScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 20, 8),
+                padding: const EdgeInsets.fromLTRB(16, 10, 20, 8),
                 child: Row(
                   children: [
                     IconButton(

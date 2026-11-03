@@ -52,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.truckArt;
+    const pack = ThemePack.arrowNight;
     final ur = widget.save.language == 'ur';
     return Scaffold(
       body: GameBackdrop(
@@ -60,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 20, 8),
+                padding: const EdgeInsets.fromLTRB(16, 10, 20, 8),
                 child: Row(
                   children: [
                     IconButton(

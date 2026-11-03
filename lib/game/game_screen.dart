@@ -25,6 +25,7 @@ import '../services/economy_repository.dart';
 import '../services/sound_service.dart';
 import 'revive.dart';
 import 'tutorial.dart';
+import 'level_clear_dialog.dart';
 import 'rating_prompt.dart';
 import 'skins/arrow_skin.dart';
 import 'achievements/achievement_models.dart';
@@ -548,11 +549,13 @@ class _GameScreenState extends State<GameScreen> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _ResultDialog(
-        won: true,
-        title: strings.wayClear,
-        message: strings.allVehiclesOut,
+      useSafeArea: false,
+      builder: (context) => LevelClearDialog(
+        title: strings.levelCleared,
         stars: stars,
+        coinsEarned: earned,
+        coinsLabel: strings.coinsGained,
+        starsLabel: strings.starsEarned(stars),
         note: milestoneNote.isEmpty ? null : milestoneNote,
         adLabel: earned > 0 ? strings.watchAdDouble(earned) : null,
         adDoneLabel: strings.rewardDoubled,
@@ -566,8 +569,8 @@ class _GameScreenState extends State<GameScreen> {
           }
           return rewarded;
         },
-        primaryLabel: isLast ? strings.backToHome : strings.nextLevel,
-        onPrimary: () async {
+        nextLabel: isLast ? strings.backToHome : strings.nextLevel,
+        onNext: () async {
           Navigator.pop(context);
           if (isLast) {
             _clearActiveBoard();
@@ -586,8 +589,8 @@ class _GameScreenState extends State<GameScreen> {
             await dialogFollowUp;
           }
         },
-        secondaryLabel: strings.replay,
-        onSecondary: () {
+        replayLabel: strings.replay,
+        onReplay: () {
           Navigator.pop(context);
           _clearActiveBoard();
           widget.save.save();
@@ -596,8 +599,8 @@ class _GameScreenState extends State<GameScreen> {
             setState(_loadLevel);
           });
         },
-        tertiaryLabel: isLast ? null : strings.backToHome,
-        onTertiary: isLast
+        homeLabel: isLast ? null : strings.home,
+        onHome: isLast
             ? null
             : () {
                 Navigator.pop(context);
