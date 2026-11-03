@@ -386,4 +386,7 @@ final class ClearwayStrings {
             .replaceAll('8', '۸')
             .replaceAll('9', '۹')
       : '$value';
+
+  String get settingsPreferences => _ur ? 'ترجیحات' : 'Preferences';
+  String get settingsAbout => _ur ? 'ہمارے بارے میں' : 'About';
 }

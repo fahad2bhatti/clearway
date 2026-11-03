@@ -3,17 +3,16 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../widgets/clearway_banner.dart';
-
-import '../../app/app_identity.dart';
 import '../../core/clearway_strings.dart';
 import '../../core/daily_clock.dart';
 import '../../data/local_save.dart';
+import '../../game/achievements/achievement_models.dart';
 import '../../game/data/level_catalog.dart';
 import '../../services/ad_service.dart';
 import '../../services/cloud_progress_sync.dart';
-import '../../game/achievements/achievement_models.dart';
 import '../../services/economy_repository.dart';
+import '../../widgets/clearway_banner.dart';
+import '../onboarding/onboarding_theme.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -37,230 +36,202 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onShop;
   final VoidCallback onSettings;
 
+  static const _pink = Color(0xffff5c8d);
+
   ClearwayStrings get strings => ClearwayStrings(save.language);
 
   @override
   Widget build(BuildContext context) => Scaffold(
     resizeToAvoidBottomInset: false,
     bottomNavigationBar: const ClearwayBanner(),
-    body: SafeArea(
-      child: Stack(
-        children: [
-          const Positioned.fill(child: RepaintBoundary(child: _YardBackdrop())),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(25, 14, 25, 25),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const _ClearwayMark(size: 43),
-                    const SizedBox(width: 11),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppIdentity.name.toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 15,
-                            letterSpacing: 2.1,
-                          ),
-                        ),
-                        const Text(
-                          'FAHAD APPS',
-                          style: TextStyle(
-                            fontSize: 8,
-                            letterSpacing: 2.0,
-                            color: Color(0xff91a49e),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      '🪙 ${save.coins}',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: switch (cloudStatus) {
-                        CloudSyncStatus.synced => strings.synced,
-                        CloudSyncStatus.syncing => strings.syncing,
-                        CloudSyncStatus.offline => strings.offline,
-                        CloudSyncStatus.failed => strings.cloudError,
-                        CloudSyncStatus.notConfigured =>
-                          strings.cloudUnavailable,
-                      },
-                      onPressed: onSyncNow,
-                      icon: Icon(
-                        cloudStatus == CloudSyncStatus.synced
-                            ? Icons.cloud_done_rounded
-                            : Icons.cloud_off_rounded,
-                        size: 18,
-                        color: cloudStatus == CloudSyncStatus.synced
-                            ? const Color(0xff61c69a)
-                            : const Color(0xff91a49e),
-                      ),
-                    ),
-                    const SizedBox(width: 7),
-                    IconButton.filledTonal(
-                      onPressed: onSettings,
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xff25343a),
-                        foregroundColor: const Color(0xfffff3d8),
-                      ),
-                      icon: const Icon(Icons.tune_rounded, size: 20),
-                    ),
-                  ],
-                ),
-                const Spacer(flex: 2),
-                Text(
-                  strings.homeHeadline,
-                  style: const TextStyle(
-                    height: 0.98,
-                    fontSize: 47,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.4,
-                    color: Color(0xfffff3d8),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  strings.homeDescription,
-                  style: const TextStyle(
-                    color: Color(0xffb2c1b9),
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-                const Spacer(flex: 3),
-                const RepaintBoundary(child: _YardPreview()),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PlayPulse(
-                        child: FilledButton.icon(
-                          onPressed: () => onPlay(currentLevel),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xffff5c8d),
-                            foregroundColor: const Color(0xff0b232e),
-                            padding: const EdgeInsets.symmetric(vertical: 17),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                          ),
-                          icon: const Icon(Icons.play_arrow_rounded, size: 25),
-                          label: Text(
-                            strings.startDriving,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => _showLevels(context, save, onPlay),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 15,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xff25343a),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              currentLevel.toString().padLeft(2, '0'),
-                              style: const TextStyle(
-                                color: Color(0xfffff3d8),
-                                fontSize: 17,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            Text(
-                              strings.level,
-                              style: const TextStyle(
-                                color: Color(0xff91a49e),
-                                fontSize: 8,
-                                letterSpacing: 1.3,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 9),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: onDaily,
-                        icon: const Icon(Icons.calendar_month_rounded),
-                        label: _DailyRushLabel(
-                          strings: strings,
-                          streak: save.streak,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    IconButton.filledTonal(
-                      tooltip: strings.dailyCalendar,
-                      onPressed: () => showCalendar(context, save),
-                      icon: const Icon(Icons.calendar_view_month_rounded),
-                    ),
-                    const SizedBox(width: 5),
-                    _GoalsButton(save: save, onTap: () => _showGoals(context)),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    if (save.giftDay != DailyClock.dayKey())
-                      FilledButton.tonalIcon(
-                        onPressed: () => _claimDailyGift(context),
-                        icon: const Icon(Icons.card_giftcard_rounded, size: 18),
-                        label: Text(
-                          strings.dailyGift(LocalSave.dailyGiftCoins),
-                        ),
-                      ),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: onShop,
-                      icon: const Icon(Icons.storefront_rounded, size: 18),
-                      label: Text(strings.yardShop),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Text(
-                    strings.tagline,
-                    style: const TextStyle(
-                      color: Color(0xff738781),
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+    body: DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnboardingTheme.background),
+      child: SafeArea(
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: RepaintBoundary(child: _HomeBackdrop()),
             ),
-          ),
-        ],
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 26,
+              child: RepaintBoundary(child: _Bunting()),
+            ),
+            LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(22, 34, 22, 12),
+                      child: _content(context),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
+
+  Widget _content(BuildContext context) => Column(
+    children: [
+      Row(
+        children: [
+          _SyncPill(
+            status: cloudStatus,
+            strings: strings,
+            ur: save.language == 'ur',
+            onTap: onSyncNow,
+          ),
+          const Spacer(),
+          _CoinChip(coins: save.coins),
+          const SizedBox(width: 8),
+          _SquareAction(
+            icon: Icons.tune_rounded,
+            color: OnboardingTheme.cream,
+            tooltip: strings.settings,
+            onTap: onSettings,
+          ),
+        ],
+      ),
+      const SizedBox(height: 18),
+      Text(
+        strings.homeHeadline,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 36,
+          height: 1.05,
+          fontWeight: FontWeight.w900,
+          color: OnboardingTheme.cream,
+          letterSpacing: -0.5,
+          shadows: [Shadow(color: Color(0x66000000), offset: Offset(0, 3))],
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        strings.homeDescription,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: OnboardingTheme.muted,
+          fontSize: 13,
+          height: 1.35,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      const Spacer(),
+      const RepaintBoundary(child: _BoardCard()),
+      const SizedBox(height: 14),
+      _LevelPill(
+        label: strings.level,
+        level: currentLevel,
+        onTap: () => _showLevels(context, save, onPlay),
+      ),
+      const Spacer(),
+      _PlayPulse(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () => onPlay(currentLevel),
+            child: Ink(
+              height: 60,
+              decoration: OnboardingTheme.primaryButton,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.play_arrow_rounded,
+                      size: 30,
+                      color: OnboardingTheme.deepPurple,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      strings.startDriving.toUpperCase(),
+                      style: const TextStyle(
+                        color: OnboardingTheme.deepPurple,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
+      _DailyRushCard(strings: strings, streak: save.streak, onTap: onDaily),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          _TrophyButton(
+            hasReward: _hasClaimableReward(save),
+            tooltip: strings.achievements,
+            onTap: () => _showGoals(context),
+          ),
+          const SizedBox(width: 10),
+          _SquareAction(
+            icon: Icons.calendar_month_rounded,
+            color: OnboardingTheme.teal,
+            tooltip: strings.dailyCalendar,
+            onTap: () => showCalendar(context, save),
+          ),
+          const SizedBox(width: 10),
+          _SquareAction(
+            icon: Icons.grid_view_rounded,
+            color: _pink,
+            tooltip: strings.chooseYard,
+            onTap: () => _showLevels(context, save, onPlay),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: _ShopButton(label: strings.yardShop, onTap: onShop)),
+        ],
+      ),
+      if (save.giftDay != DailyClock.dayKey()) ...[
+        const SizedBox(height: 10),
+        _GiftChip(
+          label: strings.dailyGift(LocalSave.dailyGiftCoins),
+          onTap: () => _claimDailyGift(context),
+        ),
+      ],
+      const SizedBox(height: 14),
+      Text(
+        strings.tagline,
+        style: TextStyle(
+          color: OnboardingTheme.muted.withValues(alpha: 0.75),
+          fontSize: 11,
+          letterSpacing: 1.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ],
+  );
+
+  static bool _hasClaimableReward(LocalSave save) {
+    final hasClaimableAchievement = AchievementCatalog.definitions.any(
+      (definition) =>
+          !save.claimedAchievements.contains(definition.id) &&
+          (save.achievementProgress[definition.id] ?? 0) >= definition.target,
+    );
+    final missions = save.dailyMissions;
+    final hasClaimableMission =
+        missions?.missions.any(
+          (mission) =>
+              !missions.claimed.contains(mission.id) &&
+              (missions.progress[mission.id] ?? 0) >= mission.target,
+        ) ??
+        false;
+    return hasClaimableAchievement || hasClaimableMission;
+  }
 
   Future<void> _claimDailyGift(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -297,7 +268,7 @@ class HomeScreen extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xff25343a),
+      backgroundColor: OnboardingTheme.cardPurpleDark,
       showDragHandle: true,
       builder: (context) => _GoalsSheet(save: save, strings: strings),
     );
@@ -311,7 +282,7 @@ class HomeScreen extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xff25343a),
+      backgroundColor: OnboardingTheme.cardPurpleDark,
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: SizedBox(
@@ -352,8 +323,8 @@ class HomeScreen extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: unlocked
-                              ? const Color(0xff35474b)
-                              : const Color(0xff202a2e),
+                              ? const Color(0xff3A2F8F)
+                              : const Color(0xff1B1440),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: number == currentLevel
@@ -400,7 +371,7 @@ class HomeScreen extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xff25343a),
+      backgroundColor: OnboardingTheme.cardPurpleDark,
       showDragHandle: true,
       builder: (context) => StatefulBuilder(
         builder: (context, update) {
@@ -486,10 +457,10 @@ class HomeScreen extends StatelessWidget {
                         Container(
                           decoration: BoxDecoration(
                             color: completed.contains(day)
-                                ? const Color(0xff38554f)
-                                : const Color(0xff1d2a2f),
+                                ? const Color(0xff3A2F8F)
+                                : const Color(0xff150F33),
                             borderRadius: BorderRadius.circular(11),
-                            border: Border.all(color: const Color(0xff405357)),
+                            border: Border.all(color: const Color(0xff4B3FA8)),
                           ),
                           child: Center(
                             child: Text(
@@ -516,47 +487,6 @@ class HomeScreen extends StatelessWidget {
 
   static String _dateKey(int year, int month, int day) =>
       '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
-}
-
-/// "Rush Hour" button label. Owns its own once-a-minute timer so only this
-/// label rebuilds for the countdown, and the timer is cancelled on dispose.
-class _GoalsButton extends StatelessWidget {
-  const _GoalsButton({required this.save, required this.onTap});
-
-  final LocalSave save;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasClaimableAchievement = AchievementCatalog.definitions.any(
-      (definition) =>
-          !save.claimedAchievements.contains(definition.id) &&
-          (save.achievementProgress[definition.id] ?? 0) >= definition.target,
-    );
-    final missions = save.dailyMissions;
-    final hasClaimableMission = missions?.missions.any(
-          (mission) =>
-              !missions.claimed.contains(mission.id) &&
-              (missions.progress[mission.id] ?? 0) >= mission.target,
-        ) ??
-        false;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton.filledTonal(
-          tooltip: ClearwayStrings(save.language).achievements,
-          onPressed: onTap,
-          icon: const Icon(Icons.emoji_events_rounded),
-        ),
-        if (hasClaimableAchievement || hasClaimableMission)
-          const Positioned(
-            right: 4,
-            top: 4,
-            child: CircleAvatar(radius: 4, backgroundColor: Color(0xffff5c8d)),
-          ),
-      ],
-    );
-  }
 }
 
 class _GoalsSheet extends StatefulWidget {
@@ -671,109 +601,6 @@ class _GoalsSheetState extends State<_GoalsSheet> {
   }
 }
 
-class _DailyRushLabel extends StatefulWidget {
-  const _DailyRushLabel({required this.strings, required this.streak});
-
-  final ClearwayStrings strings;
-  final int streak;
-
-  @override
-  State<_DailyRushLabel> createState() => _DailyRushLabelState();
-}
-
-class _DailyRushLabelState extends State<_DailyRushLabel> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = widget.strings;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '${strings.rushHour}  •  ${strings.dailyWithStreak(widget.streak)}',
-        ),
-        Text(
-          strings.newPuzzleIn(DailyClock.countdownLabel()),
-          style: const TextStyle(fontSize: 10),
-        ),
-      ],
-    );
-  }
-}
-
-class _YardPreview extends StatelessWidget {
-  const _YardPreview();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: const Color(0xff202f35).withValues(alpha: 0.94),
-      borderRadius: BorderRadius.circular(25),
-      border: Border.all(
-        color: const Color(0xff526764).withValues(alpha: 0.65),
-      ),
-    ),
-    child: Column(
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.arrow_forward_rounded,
-              color: Color(0xffff5c8d),
-              size: 16,
-            ),
-            const SizedBox(width: 7),
-            const Text(
-              'THE ARROW BOARD',
-              style: TextStyle(
-                fontSize: 9,
-                color: Color(0xffc6d2ca),
-                letterSpacing: 1.5,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const Spacer(),
-            Container(
-              width: 7,
-              height: 7,
-              decoration: const BoxDecoration(
-                color: Color(0xff61c69a),
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 5),
-            const Text(
-              'READY',
-              style: TextStyle(
-                fontSize: 8,
-                color: Color(0xff91a49e),
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        const AspectRatio(aspectRatio: 2.1, child: _PreviewBoard()),
-      ],
-    ),
-  );
-}
-
 /// Ek arrow ka demo: kab nikalta hai aur kab wapas aata hai
 /// (sab waqt controller ke 0..1 cycle ke hisab se).
 class _MiniArrow {
@@ -886,9 +713,9 @@ class _PreviewBoardPainter extends CustomPainter {
       Offset.zero & size,
       const Radius.circular(13),
     );
-    canvas.drawRRect(boardRect, Paint()..color = const Color(0xff1a272c));
+    canvas.drawRRect(boardRect, Paint()..color = const Color(0xff241A5E));
     final grid = Paint()
-      ..color = const Color(0xff3d5154)
+      ..color = Colors.white.withValues(alpha: 0.07)
       ..strokeWidth = 1;
     for (var i = 1; i < 6; i++) {
       final x = size.width * i / 6;
@@ -1044,7 +871,562 @@ class _PreviewBoardPainter extends CustomPainter {
       oldDelegate.animation != animation;
 }
 
-/// Play button halka sa dhadakta hai (scale + glow), dhyan kheenchne ke liye.
+
+// ---------------------------------------------------------------------------
+// New home widgets (Figma design)
+// ---------------------------------------------------------------------------
+
+class _SyncPill extends StatelessWidget {
+  const _SyncPill({
+    required this.status,
+    required this.strings,
+    required this.ur,
+    required this.onTap,
+  });
+
+  final CloudSyncStatus status;
+  final ClearwayStrings strings;
+  final bool ur;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ok = status == CloudSyncStatus.synced;
+    final label = switch (status) {
+      CloudSyncStatus.synced => ur ? strings.synced : 'Synced',
+      CloudSyncStatus.syncing => ur ? strings.syncing : 'Syncing…',
+      CloudSyncStatus.offline => ur ? strings.offline : 'Offline',
+      CloudSyncStatus.failed => ur ? strings.cloudError : 'Sync error',
+      CloudSyncStatus.notConfigured =>
+        ur ? strings.cloudUnavailable : 'Local only',
+    };
+    final color = ok ? OnboardingTheme.teal : OnboardingTheme.muted;
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: OnboardingTheme.deepPurple.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                ok ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                size: 16,
+                color: color,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoinChip extends StatelessWidget {
+  const _CoinChip({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    decoration: BoxDecoration(
+      color: OnboardingTheme.deepPurple.withValues(alpha: 0.75),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: OnboardingTheme.gold.withValues(alpha: 0.5)),
+    ),
+    child: Text(
+      '🪙 $coins',
+      style: const TextStyle(
+        color: OnboardingTheme.cream,
+        fontSize: 13,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+  );
+}
+
+/// Rounded-square outlined icon button (settings / calendar / levels).
+class _SquareAction extends StatelessWidget {
+  const _SquareAction({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: tooltip ?? '',
+    child: InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Icon(icon, color: color, size: 24),
+      ),
+    ),
+  );
+}
+
+/// Trophy button: the pink dot bounces when a reward is ready to claim.
+class _TrophyButton extends StatefulWidget {
+  const _TrophyButton({
+    required this.hasReward,
+    required this.onTap,
+    this.tooltip,
+  });
+
+  final bool hasReward;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  @override
+  State<_TrophyButton> createState() => _TrophyButtonState();
+}
+
+class _TrophyButtonState extends State<_TrophyButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  void _sync() {
+    final reduce = MediaQuery.of(context).disableAnimations;
+    if (widget.hasReward && !reduce) {
+      if (!_controller.isAnimating) _controller.repeat();
+    } else {
+      _controller.stop();
+      _controller.value = 0;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TrophyButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sync();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      _SquareAction(
+        icon: Icons.emoji_events_rounded,
+        color: OnboardingTheme.gold,
+        tooltip: widget.tooltip,
+        onTap: widget.onTap,
+      ),
+      if (widget.hasReward)
+        Positioned(
+          right: 5,
+          top: 5,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(0, -4 * math.sin(_controller.value * math.pi)),
+              child: child,
+            ),
+            child: const CircleAvatar(
+              radius: 5,
+              backgroundColor: HomeScreen._pink,
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+class _ShopButton extends StatelessWidget {
+  const _ShopButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Ink(
+        height: 52,
+        decoration: BoxDecoration(
+          color: OnboardingTheme.gold,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(color: OnboardingTheme.goldDark, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.storefront_rounded,
+              size: 22,
+              color: OnboardingTheme.deepPurple,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: OnboardingTheme.deepPurple,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _GiftChip extends StatelessWidget {
+  const _GiftChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(18),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: HomeScreen._pink.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: HomeScreen._pink.withValues(alpha: 0.7)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.card_giftcard_rounded,
+            size: 18,
+            color: HomeScreen._pink,
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: OnboardingTheme.cream,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _LevelPill extends StatelessWidget {
+  const _LevelPill({
+    required this.label,
+    required this.level,
+    required this.onTap,
+  });
+
+  final String label;
+  final int level;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(20),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+      decoration: BoxDecoration(
+        color: OnboardingTheme.deepPurple.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: OnboardingTheme.muted,
+              fontSize: 12,
+              letterSpacing: 2,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$level',
+            style: const TextStyle(
+              color: OnboardingTheme.gold,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _DailyRushCard extends StatelessWidget {
+  const _DailyRushCard({
+    required this.strings,
+    required this.streak,
+    required this.onTap,
+  });
+
+  final ClearwayStrings strings;
+  final int streak;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(20),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: OnboardingTheme.teal.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: OnboardingTheme.teal, width: 2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: HomeScreen._pink.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.local_fire_department_rounded,
+              color: HomeScreen._pink,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _DailyRushLabel(strings: strings, streak: streak),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: OnboardingTheme.muted,
+            size: 24,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Owns its own 1-second timer so only this label rebuilds for the
+/// countdown; the timer is cancelled on dispose.
+class _DailyRushLabel extends StatefulWidget {
+  const _DailyRushLabel({required this.strings, required this.streak});
+
+  final ClearwayStrings strings;
+  final int streak;
+
+  @override
+  State<_DailyRushLabel> createState() => _DailyRushLabelState();
+}
+
+class _DailyRushLabelState extends State<_DailyRushLabel> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _countdown() {
+    final s = DailyClock.untilNextUtcDay().inSeconds.clamp(0, 86399);
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(s ~/ 3600)}:${two((s % 3600) ~/ 60)}:${two(s % 60)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.dailyWithStreak(widget.streak),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: OnboardingTheme.cream,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          strings.newPuzzleIn(_countdown()),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: OnboardingTheme.teal,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BoardCard extends StatelessWidget {
+  const _BoardCard();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [OnboardingTheme.cardPurple, OnboardingTheme.cardPurpleDark],
+      ),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: OnboardingTheme.gold, width: 3),
+    ),
+    child: const AspectRatio(aspectRatio: 1.6, child: _PreviewBoard()),
+  );
+}
+
+/// Bunting flags along the top edge.
+class _Bunting extends StatelessWidget {
+  const _Bunting();
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(painter: _BuntingPainter());
+}
+
+class _BuntingPainter extends CustomPainter {
+  static const _colors = [
+    Color(0xff22c7b0),
+    Color(0xffff5c8d),
+    Color(0xffffb627),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const flagW = 22.0;
+    const flagH = 20.0;
+    final count = (size.width / flagW).ceil();
+    for (var i = 0; i < count; i++) {
+      final x = i * flagW;
+      final path = Path()
+        ..moveTo(x, 0)
+        ..lineTo(x + flagW, 0)
+        ..lineTo(x + flagW / 2, flagH)
+        ..close();
+      canvas.drawPath(path, Paint()..color = _colors[i % _colors.length]);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _HomeBackdrop extends StatelessWidget {
+  const _HomeBackdrop();
+
+  @override
+  Widget build(BuildContext context) =>
+      CustomPaint(painter: _BackdropPainter());
+}
+
+class _BackdropPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    void glow(Offset c, double r, Color color) {
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0)],
+          ).createShader(Rect.fromCircle(center: c, radius: r)),
+      );
+    }
+
+    glow(Offset(size.width * .15, size.height * .35), size.width * .7,
+        const Color(0xffff5c8d));
+    glow(Offset(size.width * .9, size.height * .7), size.width * .8,
+        const Color(0xff22c7b0));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Play button gently pulses (scale + gold glow) to draw attention.
 class _PlayPulse extends StatefulWidget {
   const _PlayPulse({required this.child});
 
@@ -1085,15 +1467,14 @@ class _PlayPulseState extends State<_PlayPulse>
     builder: (context, child) {
       final e = Curves.easeInOut.transform(_controller.value);
       return Transform.scale(
-        scale: 1 + 0.02 * e,
+        scale: 1 + 0.025 * e,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xffff5c8d)
-                    .withValues(alpha: 0.12 + 0.22 * e),
-                blurRadius: 10 + 12 * e,
+                color: OnboardingTheme.gold.withValues(alpha: 0.12 + 0.25 * e),
+                blurRadius: 12 + 14 * e,
                 spreadRadius: 1 + 2 * e,
               ),
             ],
@@ -1103,70 +1484,4 @@ class _PlayPulseState extends State<_PlayPulse>
       );
     },
   );
-}
-
-class _ClearwayMark extends StatelessWidget {
-  const _ClearwayMark({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(size * 0.26),
-    child: Image.asset(
-      'assets/images/clearway_mark.png',
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
-      filterQuality: FilterQuality.medium,
-    ),
-  );
-}
-
-class _YardBackdrop extends StatelessWidget {
-  const _YardBackdrop();
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(painter: _BackdropPainter());
-}
-
-class _BackdropPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final glow = Paint()
-      ..shader =
-          const RadialGradient(
-            colors: [Color(0xff12323d), Color(0xff0b232e)],
-            stops: [0, 1],
-          ).createShader(
-            Rect.fromCircle(
-              center: Offset(size.width * .52, size.height * .42),
-              radius: size.width * .78,
-            ),
-          );
-    canvas.drawRect(Offset.zero & size, glow);
-    final paint = Paint()
-      ..color = const Color(0xff516c63).withValues(alpha: .14)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final path = Path()
-      ..moveTo(size.width * .78, 0)
-      ..cubicTo(
-        size.width * .38,
-        size.height * .24,
-        size.width * .9,
-        size.height * .53,
-        size.width * .55,
-        size.height,
-      );
-    canvas.drawPath(path, paint);
-    canvas.drawPath(
-      path.shift(const Offset(13, 0)),
-      paint..color = const Color(0xffff5c8d).withValues(alpha: .10),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
