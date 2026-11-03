@@ -23,7 +23,8 @@ final class ClearwayStrings {
   String get claim => _ur ? 'حاصل کریں' : 'Claim';
   String get claimed => _ur ? 'حاصل ہو گیا' : 'Claimed';
   String get missionComplete => _ur ? 'مشن مکمل!' : 'Mission complete!';
-  String get achievementComplete => _ur ? 'کامیابی مکمل!' : 'Achievement complete!';
+  String get achievementComplete =>
+      _ur ? 'کامیابی مکمل!' : 'Achievement complete!';
   String achievementName(String id) => _ur
       ? switch (id) {
           'clear-10-no-hints' => 'اشارے کے بغیر ۱۰ لیول',
@@ -52,8 +53,7 @@ final class ClearwayStrings {
             : 'Clear a boss level');
   String progressLabel(int value, int target) =>
       _ur ? '${_digits(value)} / ${_digits(target)}' : '$value / $target';
-  String coinsReward(int coins) =>
-      _ur ? '+🪙${_digits(coins)}' : '+🪙$coins';
+  String coinsReward(int coins) => _ur ? '+🪙${_digits(coins)}' : '+🪙$coins';
   String get yardShop => _ur ? 'دکان' : 'Shop';
   String get settings => _ur ? 'ترتیبات' : 'Settings';
   String get shopTitle => _ur ? 'دکان' : 'Shop';
@@ -69,10 +69,18 @@ final class ClearwayStrings {
   String get insufficientCoins => _ur ? 'سکے کم ہیں' : 'Not enough coins';
   String get settingsAccount => _ur ? 'اکاؤنٹ' : 'Account';
   String get username => _ur ? 'صارف نام' : 'Username';
-  String get usernameHelp => _ur ? 'صرف انگریزی حروف، اعداد اور _ (۳ تا ۱۵ حروف)۔' : 'English letters, numbers and _ only (3-15 characters).';
-  String get usernameTooShort => _ur ? 'صارف نام کم از کم ۳ حروف کا ہونا چاہیے۔' : 'Username must be at least 3 characters.';
-  String get usernameTooLong => _ur ? 'صارف نام زیادہ سے زیادہ ۱۵ حروف کا ہو سکتا ہے۔' : 'Username can be at most 15 characters.';
-  String get usernameInvalid => _ur ? 'صرف انگریزی حروف، اعداد اور انڈر سکور (_) استعمال کریں۔' : 'Use only English letters, numbers and underscore (_).';
+  String get usernameHelp => _ur
+      ? 'صرف انگریزی حروف، اعداد اور _ (۳ تا ۱۵ حروف)۔'
+      : 'English letters, numbers and _ only (3-15 characters).';
+  String get usernameTooShort => _ur
+      ? 'صارف نام کم از کم ۳ حروف کا ہونا چاہیے۔'
+      : 'Username must be at least 3 characters.';
+  String get usernameTooLong => _ur
+      ? 'صارف نام زیادہ سے زیادہ ۱۵ حروف کا ہو سکتا ہے۔'
+      : 'Username can be at most 15 characters.';
+  String get usernameInvalid => _ur
+      ? 'صرف انگریزی حروف، اعداد اور انڈر سکور (_) استعمال کریں۔'
+      : 'Use only English letters, numbers and underscore (_).';
   String get anonymousAccount => _ur ? 'گمنام اکاؤنٹ' : 'Anonymous account';
   String get notifications => _ur ? 'اطلاعات' : 'Notifications';
   String get notificationPermissionTitle =>
@@ -100,7 +108,8 @@ final class ClearwayStrings {
       : 'Optional reminders for unfinished levels and daily challenges.';
   String get rateUs => _ur ? 'ہمیں ریٹ کریں' : 'Rate Us';
   String get ratingTitle => _ur ? 'Clearway کو ریٹ کریں' : 'Rate Clearway';
-  String get ratingQuestion => _ur ? 'آپ کو کھیل کیسا لگا؟' : 'How are you enjoying the game?';
+  String get ratingQuestion =>
+      _ur ? 'آپ کو کھیل کیسا لگا؟' : 'How are you enjoying the game?';
   String get ratingStorePrompt => _ur
       ? 'کیا آپ Clearway کو Play Store پر ریٹ کرنا چاہیں گے؟'
       : 'Would you like to rate Clearway on the Play Store?';
@@ -126,15 +135,26 @@ final class ClearwayStrings {
       ? 'یہ کارروائی واپس نہیں ہو سکتی۔ اکاؤنٹ اور اس سے منسلک آن لائن ڈیٹا حذف ہو جائے گا۔'
       : 'This cannot be undone. Your account and associated online data will be deleted.';
   String get accountDeleted => _ur ? 'اکاؤنٹ حذف ہو گیا' : 'Account deleted';
-  String get accountDeleteFailed => _ur ? 'اکاؤنٹ حذف نہیں ہو سکا۔ دوبارہ کوشش کریں۔' : 'Account deletion failed. Please retry.';
-  String get feedbackUnavailable => _ur ? 'رائے بھیجنے کے لیے آن لائن کنکشن درکار ہے۔' : 'An online connection is required to send feedback.';
+  String get accountDeleteFailed => _ur
+      ? 'اکاؤنٹ حذف نہیں ہو سکا۔ دوبارہ کوشش کریں۔'
+      : 'Account deletion failed. Please retry.';
+  String get feedbackUnavailable => _ur
+      ? 'رائے بھیجنے کے لیے آن لائن کنکشن درکار ہے۔'
+      : 'An online connection is required to send feedback.';
   String get feedbackSent => _ur ? 'رائے بھیج دی گئی۔' : 'Feedback sent.';
-  String get feedbackQueued => _ur ? 'رائے محفوظ ہو گئی۔ انٹرنیٹ آنے پر بھیج دی جائے گی۔' : 'Saved. It will be sent when you are back online.';
-  String get feedbackQueueFull => _ur ? 'بھیجنے کے منتظر پیغامات کی حد پوری ہو گئی ہے۔ آن لائن ہو کر دوبارہ کوشش کریں۔' : 'Too many messages are waiting to be sent. Please go online and try again.';
+  String get feedbackQueued => _ur
+      ? 'رائے محفوظ ہو گئی۔ انٹرنیٹ آنے پر بھیج دی جائے گی۔'
+      : 'Saved. It will be sent when you are back online.';
+  String get feedbackQueueFull => _ur
+      ? 'بھیجنے کے منتظر پیغامات کی حد پوری ہو گئی ہے۔ آن لائن ہو کر دوبارہ کوشش کریں۔'
+      : 'Too many messages are waiting to be sent. Please go online and try again.';
   String get feedbackPrompt => _ur ? 'اپنی رائے لکھیں' : 'Write your feedback';
-  String get feedbackEmpty => _ur ? 'رائے خالی نہیں ہو سکتی۔' : 'Feedback cannot be empty.';
-  String get linkOpenError => _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
-  String get rateUnavailable => _ur ? 'ریٹنگ ابھی دستیاب نہیں۔' : 'Rating is not available yet.';
+  String get feedbackEmpty =>
+      _ur ? 'رائے خالی نہیں ہو سکتی۔' : 'Feedback cannot be empty.';
+  String get linkOpenError =>
+      _ur ? 'لنک نہیں کھل سکا۔' : 'Could not open the link.';
+  String get rateUnavailable =>
+      _ur ? 'ریٹنگ ابھی دستیاب نہیں۔' : 'Rating is not available yet.';
   String skinName(String id) => _ur
       ? switch (id) {
           'classic' => 'کلاسک',
@@ -163,7 +183,8 @@ final class ClearwayStrings {
         };
   String get unlockAt80 => _ur ? 'لیول ۸۰ پر کھلے گا' : 'Unlocks at level 80';
   String get skinPurchased => _ur ? 'اسکن خرید لیا گیا' : 'Skin purchased';
-  String get skinUnlocked => _ur ? 'نیا اسکن مفت کھل گیا!' : 'New skin unlocked for free!';
+  String get skinUnlocked =>
+      _ur ? 'نیا اسکن مفت کھل گیا!' : 'New skin unlocked for free!';
   String get rewardSummary => _ur ? 'سنگ میل کا انعام' : 'Milestone reward';
   String shopOfferTitle(String id) => _ur
       ? switch (id) {
@@ -250,8 +271,8 @@ final class ClearwayStrings {
       _ur ? 'تحفہ مل گیا! +🪙$coins' : 'Gift claimed! +🪙$coins';
   String freeRewardLeft(int left) => left > 0
       ? (_ur
-      ? 'اشتہار دیکھیں · آج ${_digits(left)} باقی'
-      : 'Watch an ad · $left left today')
+            ? 'اشتہار دیکھیں · آج ${_digits(left)} باقی'
+            : 'Watch an ad · $left left today')
       : (_ur ? 'کل دوبارہ آئیں' : 'Come back tomorrow');
   String get adLimitReached => _ur
       ? 'آج کا اشتہاری انعام مکمل ہو گیا۔'
@@ -274,6 +295,11 @@ final class ClearwayStrings {
   String get allVehiclesOut => _ur
       ? 'آپ نے تمام سواریوں کو باہر نکال دیا۔'
       : 'You guided every vehicle out.';
+  String get levelCleared => _ur ? 'لیول مکمل!' : 'Level cleared!';
+  String coinsGained(int coins) =>
+      _ur ? '+${_digits(coins)} سکے' : '+$coins coins';
+  String starsEarned(int stars) =>
+      _ur ? '۳ میں سے ${_digits(stars)} ستارے' : '$stars of 3 stars';
   String get trafficJam => _ur ? 'ٹریفک جام!' : 'Traffic jam!';
   String get retryMessage => _ur
       ? 'وقفہ لیں اور دوسری ترتیب آزمائیں۔'

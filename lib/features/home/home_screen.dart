@@ -265,12 +265,13 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _showGoals(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: OnboardingTheme.cardPurpleDark,
-      showDragHandle: true,
-      builder: (context) => _GoalsSheet(save: save, strings: strings),
+    _showClearwaySheet(
+      context,
+      title: strings.achievements,
+      icon: Icons.emoji_events_rounded,
+      accent: OnboardingTheme.gold,
+      heightFactor: 0.88,
+      builder: (_) => _GoalsSheet(save: save, strings: strings),
     );
   }
 
@@ -279,87 +280,34 @@ class HomeScreen extends StatelessWidget {
     LocalSave save,
     ValueChanged<int> onPlay,
   ) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: OnboardingTheme.cardPurpleDark,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * .72,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  strings.chooseYard,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                  ),
-                  itemCount: LevelCatalog.totalLevels,
-                  itemBuilder: (context, index) {
-                    final number = index + 1;
-                    final unlocked = number <= save.level;
-                    final stars = save.stars[number] ?? 0;
-                    return InkWell(
-                      onTap: unlocked
-                          ? () {
-                              Navigator.pop(context);
-                              onPlay(number);
-                            }
-                          : null,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: unlocked
-                              ? const Color(0xff3A2F8F)
-                              : const Color(0xff1B1440),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: number == currentLevel
-                                ? const Color(0xffffb347)
-                                : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              unlocked ? '$number' : '🔒',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            if (unlocked)
-                              Text(
-                                '★' * stars + '☆' * (3 - stars),
-                                style: const TextStyle(
-                                  fontSize: 8,
-                                  color: Color(0xffffb347),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+    _showClearwaySheet(
+      context,
+      title: strings.chooseYard,
+      icon: Icons.grid_view_rounded,
+      accent: _pink,
+      heightFactor: 0.8,
+      fill: true,
+      builder: (sheetContext) => GridView.builder(
+        padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 5,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
         ),
+        itemCount: LevelCatalog.totalLevels,
+        itemBuilder: (context, index) {
+          final number = index + 1;
+          return _LevelTile(
+            number: number,
+            unlocked: number <= save.level,
+            current: number == currentLevel,
+            stars: save.stars[number] ?? 0,
+            onTap: () {
+              Navigator.pop(sheetContext);
+              onPlay(number);
+            },
+          );
+        },
       ),
     );
   }
@@ -368,116 +316,103 @@ class HomeScreen extends StatelessWidget {
     final strings = ClearwayStrings(save.language);
     final currentUtc = DailyClock.utcNow();
     var month = DateTime.utc(currentUtc.year, currentUtc.month);
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: OnboardingTheme.cardPurpleDark,
-      showDragHandle: true,
-      builder: (context) => StatefulBuilder(
+    _showClearwaySheet(
+      context,
+      title: strings.dailyCalendar,
+      icon: Icons.calendar_month_rounded,
+      accent: OnboardingTheme.teal,
+      builder: (_) => StatefulBuilder(
         builder: (context, update) {
           final daysInMonth = DateTime.utc(month.year, month.month + 1, 0).day;
           final leading = DateTime.utc(month.year, month.month, 1).weekday - 1;
-          final currentMonth = DailyClock.utcNow();
-          final completed = [
+          final now = DailyClock.utcNow();
+          final isCurrentMonth =
+              month.year == now.year && month.month == now.month;
+          final completed = <int>{
             for (var day = 1; day <= daysInMonth; day++)
               if (save.completedDailies.contains(
                 _dateKey(month.year, month.month, day),
               ))
                 day,
-          ];
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 5, 18, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => update(
-                          () =>
-                              month = DateTime.utc(month.year, month.month - 1),
-                        ),
-                        icon: const Icon(Icons.chevron_left_rounded),
+          };
+          final weekdays = save.language == 'ur'
+              ? ['د', 'پ', 'م', 'ب', 'ج', 'ہ', 'ا']
+              : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    _SheetNavButton(
+                      icon: Icons.chevron_left_rounded,
+                      onTap: () => update(
+                        () => month = DateTime.utc(month.year, month.month - 1),
                       ),
-                      Expanded(
-                        child: Text(
-                          '${strings.monthName(month.month)} ${month.year}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed:
-                            month.year == currentMonth.year &&
-                                month.month == currentMonth.month
-                            ? null
-                            : () => update(
-                                () => month = DateTime.utc(
-                                  month.year,
-                                  month.month + 1,
-                                ),
-                              ),
-                        icon: const Icon(Icons.chevron_right_rounded),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    strings.calendarProgress(completed.length, daysInMonth),
-                    style: const TextStyle(
-                      color: Color(0xffc6d2ca),
-                      fontSize: 12,
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  GridView.count(
-                    shrinkWrap: true,
-                    crossAxisCount: 7,
-                    mainAxisSpacing: 6,
-                    crossAxisSpacing: 6,
-                    children: [
-                      for (final weekday
-                          in (save.language == 'ur'
-                              ? ['د', 'پ', 'م', 'ب', 'ج', 'ہ', 'ا']
-                              : ['M', 'T', 'W', 'T', 'F', 'S', 'S']))
-                        Center(
-                          child: Text(
-                            weekday,
-                            style: const TextStyle(
-                              color: Color(0xff91a49e),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                    Expanded(
+                      child: Text(
+                        '${strings.monthName(month.month)} ${month.year}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: OnboardingTheme.cream,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
                         ),
-                      for (var i = 0; i < leading; i++) const SizedBox.shrink(),
-                      for (var day = 1; day <= daysInMonth; day++)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: completed.contains(day)
-                                ? const Color(0xff3A2F8F)
-                                : const Color(0xff150F33),
-                            borderRadius: BorderRadius.circular(11),
-                            border: Border.all(color: const Color(0xff4B3FA8)),
-                          ),
-                          child: Center(
-                            child: Text(
-                              completed.contains(day) ? '★' : '$day',
-                              style: TextStyle(
-                                color: completed.contains(day)
-                                    ? const Color(0xffffb347)
-                                    : const Color(0xfffff3d8),
-                                fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    _SheetNavButton(
+                      icon: Icons.chevron_right_rounded,
+                      onTap: isCurrentMonth
+                          ? null
+                          : () => update(
+                              () => month = DateTime.utc(
+                                month.year,
+                                month.month + 1,
                               ),
                             ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  strings.calendarProgress(completed.length, daysInMonth),
+                  style: const TextStyle(
+                    color: OnboardingTheme.teal,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 7,
+                  mainAxisSpacing: 6,
+                  crossAxisSpacing: 6,
+                  children: [
+                    for (final weekday in weekdays)
+                      Center(
+                        child: Text(
+                          weekday,
+                          style: const TextStyle(
+                            color: OnboardingTheme.muted,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                    ],
-                  ),
-                ],
-              ),
+                      ),
+                    for (var i = 0; i < leading; i++) const SizedBox.shrink(),
+                    for (var day = 1; day <= daysInMonth; day++)
+                      _CalendarDay(
+                        day: day,
+                        done: completed.contains(day),
+                        today: isCurrentMonth && day == now.day,
+                        future: isCurrentMonth && day > now.day,
+                      ),
+                  ],
+                ),
+              ],
             ),
           );
         },
@@ -487,6 +422,300 @@ class HomeScreen extends StatelessWidget {
 
   static String _dateKey(int year, int month, int day) =>
       '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+}
+
+// ---------------------------------------------------------------------------
+// Shared bottom-sheet look (Choose a level / Achievements / Daily calendar)
+// ---------------------------------------------------------------------------
+
+Future<void> _showClearwaySheet(
+  BuildContext context, {
+  required String title,
+  required IconData icon,
+  required Color accent,
+  required WidgetBuilder builder,
+  double heightFactor = 0.85,
+  bool fill = false,
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  barrierColor: Colors.black.withValues(alpha: 0.6),
+  builder: (sheetContext) => _SheetShell(
+    title: title,
+    icon: icon,
+    accent: accent,
+    heightFactor: heightFactor,
+    fill: fill,
+    child: Builder(builder: builder),
+  ),
+);
+
+class _SheetShell extends StatelessWidget {
+  const _SheetShell({
+    required this.title,
+    required this.icon,
+    required this.accent,
+    required this.heightFactor,
+    required this.fill,
+    required this.child,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color accent;
+  final double heightFactor;
+  final bool fill;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.sizeOf(context).height * heightFactor;
+    final body = Column(
+      mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        const SizedBox(height: 10),
+        Container(
+          width: 44,
+          height: 5,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 14, 12),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: accent, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: OnboardingTheme.cream,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              _SheetNavButton(
+                icon: Icons.close_rounded,
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+        if (fill) Expanded(child: child) else Flexible(child: child),
+      ],
+    );
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: SizedBox(
+        height: fill ? maxHeight : null,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                OnboardingTheme.cardPurple,
+                OnboardingTheme.cardPurpleDark,
+              ],
+            ),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(32),
+            ),
+            border: Border.all(color: OnboardingTheme.gold, width: 2.5),
+          ),
+          // Ink (level tiles, Claim button) must paint on a Material that
+          // sits ABOVE the gradient, otherwise it would be hidden behind it.
+          child: Material(
+            type: MaterialType.transparency,
+            child: SafeArea(top: false, child: body),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetNavButton extends StatelessWidget {
+  const _SheetNavButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(14),
+    onTap: onTap,
+    child: Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: onTap == null ? 0.03 : 0.1),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(
+        icon,
+        size: 22,
+        color: onTap == null
+            ? OnboardingTheme.muted.withValues(alpha: 0.3)
+            : OnboardingTheme.cream,
+      ),
+    ),
+  );
+}
+
+class _LevelTile extends StatelessWidget {
+  const _LevelTile({
+    required this.number,
+    required this.unlocked,
+    required this.current,
+    required this.stars,
+    required this.onTap,
+  });
+
+  final int number;
+  final bool unlocked;
+  final bool current;
+  final int stars;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final BoxDecoration decoration;
+    if (current) {
+      decoration = BoxDecoration(
+        color: OnboardingTheme.gold,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: OnboardingTheme.goldDark, offset: Offset(0, 3)),
+        ],
+      );
+    } else if (unlocked) {
+      decoration = BoxDecoration(
+        color: const Color(0xff4A3EB0).withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      );
+    } else {
+      decoration = BoxDecoration(
+        color: OnboardingTheme.deepPurple.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      );
+    }
+    final numberColor = current
+        ? OnboardingTheme.deepPurple
+        : OnboardingTheme.cream;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: unlocked ? onTap : null,
+      child: Ink(
+        decoration: decoration,
+        child: Center(
+          child: unlocked
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$number',
+                      style: TextStyle(
+                        color: numberColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < 3; i++)
+                          Icon(
+                            Icons.star_rounded,
+                            size: 12,
+                            color: i < stars
+                                ? (current
+                                      ? OnboardingTheme.deepPurple
+                                      : OnboardingTheme.gold)
+                                : numberColor.withValues(alpha: 0.2),
+                          ),
+                      ],
+                    ),
+                  ],
+                )
+              : Icon(
+                  Icons.lock_rounded,
+                  size: 20,
+                  color: OnboardingTheme.muted.withValues(alpha: 0.45),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarDay extends StatelessWidget {
+  const _CalendarDay({
+    required this.day,
+    required this.done,
+    required this.today,
+    required this.future,
+  });
+
+  final int day;
+  final bool done;
+  final bool today;
+  final bool future;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color border = done
+        ? OnboardingTheme.teal
+        : today
+        ? OnboardingTheme.gold
+        : Colors.white.withValues(alpha: 0.08);
+    return Container(
+      decoration: BoxDecoration(
+        color: done
+            ? OnboardingTheme.teal.withValues(alpha: 0.2)
+            : OnboardingTheme.deepPurple.withValues(alpha: future ? 0.25 : 0.55),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border, width: done || today ? 2 : 1),
+      ),
+      child: Center(
+        child: done
+            ? const Icon(
+                Icons.star_rounded,
+                color: OnboardingTheme.gold,
+                size: 20,
+              )
+            : Text(
+                '$day',
+                style: TextStyle(
+                  color: today
+                      ? OnboardingTheme.gold
+                      : OnboardingTheme.cream.withValues(
+                          alpha: future ? 0.35 : 0.9,
+                        ),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+      ),
+    );
+  }
 }
 
 class _GoalsSheet extends StatefulWidget {
@@ -509,43 +738,51 @@ class _GoalsSheetState extends State<_GoalsSheet> {
   @override
   Widget build(BuildContext context) {
     final daily = widget.save.dailyMissions!;
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-        shrinkWrap: true,
-        children: [
-          Text(
-            widget.strings.achievements,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+    return ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.fromLTRB(18, 2, 18, 28),
+      children: [
+        for (final definition in AchievementCatalog.definitions)
+          _goalCard(
+            icon: Icons.emoji_events_rounded,
+            color: OnboardingTheme.gold,
+            title: widget.strings.achievementName(definition.id),
+            progress: widget.save.achievementProgress[definition.id] ?? 0,
+            target: definition.target,
+            claimed: widget.save.claimedAchievements.contains(definition.id),
+            onClaim: () => _claimAchievement(definition.id),
           ),
-          for (final definition in AchievementCatalog.definitions)
-            _goalTile(
-              title: widget.strings.achievementName(definition.id),
-              progress: widget.save.achievementProgress[definition.id] ?? 0,
-              target: definition.target,
-              claimed: widget.save.claimedAchievements.contains(definition.id),
-              onClaim: () => _claimAchievement(definition.id),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 10),
+          child: Text(
+            widget.strings.missions.toUpperCase(),
+            style: const TextStyle(
+              color: OnboardingTheme.muted,
+              fontSize: 12,
+              letterSpacing: 2,
+              fontWeight: FontWeight.w900,
             ),
-          const SizedBox(height: 18),
-          Text(
-            widget.strings.missions,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
-          for (final mission in daily.missions)
-            _goalTile(
-              title: widget.strings.missionName(mission.id),
-              subtitle: widget.strings.coinsReward(mission.coins),
-              progress: daily.progress[mission.id] ?? 0,
-              target: mission.target,
-              claimed: daily.claimed.contains(mission.id),
-              onClaim: () => _claimMission(mission.id),
-            ),
-        ],
-      ),
+        ),
+        for (final mission in daily.missions)
+          _goalCard(
+            icon: Icons.flag_rounded,
+            color: OnboardingTheme.teal,
+            title: widget.strings.missionName(mission.id),
+            subtitle: widget.strings.coinsReward(mission.coins),
+            progress: daily.progress[mission.id] ?? 0,
+            target: mission.target,
+            claimed: daily.claimed.contains(mission.id),
+            onClaim: () => _claimMission(mission.id),
+          ),
+      ],
     );
   }
 
-  Widget _goalTile({
+  Widget _goalCard({
+    required IconData icon,
+    required Color color,
     required String title,
     String? subtitle,
     required int progress,
@@ -553,31 +790,146 @@ class _GoalsSheetState extends State<_GoalsSheet> {
     required bool claimed,
     required VoidCallback onClaim,
   }) {
+    final shown = progress.clamp(0, target);
     final complete = progress >= target;
-    return Card(
-      child: ListTile(
-        title: Text(title),
-        subtitle: Text(
-          '${widget.strings.progressLabel(progress.clamp(0, target), target)}'
-          '${subtitle == null ? '' : '  •  $subtitle'}',
+    final ready = complete && !claimed;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: claimed
+            ? Colors.white.withValues(alpha: 0.04)
+            : OnboardingTheme.deepPurple.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: ready
+              ? OnboardingTheme.gold
+              : Colors.white.withValues(alpha: 0.1),
+          width: ready ? 2 : 1,
         ),
-        trailing: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 260),
-          transitionBuilder: (child, animation) =>
-              ScaleTransition(scale: animation, child: child),
-          child: claimed
-              ? Text(
-                  widget.strings.claimed,
-                  key: const ValueKey('claimed'),
-                )
-              : complete
-              ? FilledButton(
-                  key: const ValueKey('claim'),
-                  onPressed: onClaim,
-                  child: Text(widget.strings.claim),
-                )
-              : const SizedBox.shrink(),
-        ),
+        boxShadow: ready
+            ? [
+                BoxShadow(
+                  color: OnboardingTheme.gold.withValues(alpha: 0.25),
+                  blurRadius: 14,
+                ),
+              ]
+            : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: claimed ? 0.08 : 0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              icon,
+              color: claimed ? color.withValues(alpha: 0.5) : color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: OnboardingTheme.cream.withValues(
+                      alpha: claimed ? 0.6 : 1,
+                    ),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: target == 0 ? 1 : shown / target,
+                    minHeight: 8,
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    valueColor: AlwaysStoppedAnimation(color),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '${widget.strings.progressLabel(shown, target)}'
+                  '${subtitle == null ? '' : '  •  $subtitle'}',
+                  style: const TextStyle(
+                    color: OnboardingTheme.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            transitionBuilder: (child, animation) =>
+                ScaleTransition(scale: animation, child: child),
+            child: claimed
+                ? Row(
+                    key: const ValueKey('claimed'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_rounded,
+                        color: OnboardingTheme.teal,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        widget.strings.claimed,
+                        style: const TextStyle(
+                          color: OnboardingTheme.teal,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  )
+                : complete
+                ? InkWell(
+                    key: const ValueKey('claim'),
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: onClaim,
+                    child: Ink(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: OnboardingTheme.gold,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: OnboardingTheme.goldDark,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        widget.strings.claim,
+                        style: const TextStyle(
+                          color: OnboardingTheme.deepPurple,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('none')),
+          ),
+        ],
       ),
     );
   }

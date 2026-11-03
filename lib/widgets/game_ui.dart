@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme_pack.dart';
+import '../features/onboarding/onboarding_theme.dart';
 
 /// Optional bundled fonts. Without them Flutter falls back to the system font.
 abstract final class GameFonts {
@@ -12,54 +13,57 @@ abstract final class GameFonts {
 double letterSpacingFor(String language, double value) =>
     language == 'ur' ? 0 : value;
 
-/// Dark yard gradient, soft colour glows and the hanging flag bunting.
+/// Purple gradient, soft colour glows and the hanging flag bunting.
+/// The bunting sits just below the status bar (same as the home screen) and
+/// the child is pushed below it, so the child must NOT add its own top inset.
 class GameBackdrop extends StatelessWidget {
   const GameBackdrop({super.key, required this.child, this.bunting = true});
 
   final Widget child;
   final bool bunting;
 
+  static const double buntingHeight = 26;
+
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.truckArt;
+    const pack = ThemePack.arrowNight;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [pack.asphalt, pack.panel],
-        ),
-      ),
+      decoration: const BoxDecoration(gradient: OnboardingTheme.background),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Align(
             alignment: const Alignment(-1.3, -0.65),
-            child: _Glow(color: pack.accent, size: 300),
+            child: _Glow(color: pack.floralMagenta, size: 300),
           ),
           Align(
             alignment: const Alignment(1.3, 0.45),
             child: _Glow(color: pack.turquoise, size: 340),
           ),
-          Align(
-            alignment: const Alignment(-1.2, 0.95),
-            child: _Glow(color: pack.floralMagenta, size: 260),
-          ),
-          if (bunting)
-            const Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: SizedBox(
-                    height: 40,
-                    child: CustomPaint(painter: _BuntingPainter()),
-                  ),
+          SafeArea(
+            bottom: false,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(top: bunting ? buntingHeight : 0),
+                  child: child,
                 ),
-              ),
+                if (bunting)
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: buntingHeight,
+                    child: IgnorePointer(
+                      child: RepaintBoundary(
+                        child: CustomPaint(painter: _BuntingPainter()),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          child,
+          ),
         ],
       ),
     );
@@ -90,31 +94,25 @@ class _Glow extends StatelessWidget {
 class _BuntingPainter extends CustomPainter {
   const _BuntingPainter();
 
+  static const _colors = [
+    Color(0xff22c7b0),
+    Color(0xffff5c8d),
+    Color(0xffffb627),
+  ];
+
   @override
   void paint(Canvas canvas, Size size) {
-    const pack = ThemePack.truckArt;
-    final colors = [
-      pack.accent,
-      pack.coral,
-      pack.turquoise,
-      pack.floralMagenta,
-    ];
-    final string = Paint()
-      ..color = pack.ivory.withValues(alpha: 0.5)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(const Offset(0, 8), Offset(size.width, 8), string);
-    final flag = Paint();
-    final count = (size.width / 26).ceil();
+    const flagW = 22.0;
+    const flagH = 20.0;
+    final count = (size.width / flagW).ceil();
     for (var i = 0; i < count; i++) {
-      final x = i * 26.0;
-      flag.color = colors[i % colors.length];
+      final x = i * flagW;
       final path = Path()
-        ..moveTo(x + 2, 10)
-        ..lineTo(x + 24, 10)
-        ..lineTo(x + 13, 36)
+        ..moveTo(x, 0)
+        ..lineTo(x + flagW, 0)
+        ..lineTo(x + flagW / 2, flagH)
         ..close();
-      canvas.drawPath(path, flag);
+      canvas.drawPath(path, Paint()..color = _colors[i % _colors.length]);
     }
   }
 
@@ -131,7 +129,7 @@ class GameToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.truckArt;
+    const pack = ThemePack.arrowNight;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutBack,
@@ -174,7 +172,7 @@ class LanguageSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.truckArt;
+    const pack = ThemePack.arrowNight;
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
@@ -254,7 +252,7 @@ class _BusPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const pack = ThemePack.truckArt;
+    const pack = ThemePack.arrowNight;
     canvas.save();
     canvas.scale(size.width / 220);
     final paint = Paint();
@@ -362,7 +360,7 @@ class _GameButtonState extends State<GameButton> {
 
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.truckArt;
+    const pack = ThemePack.arrowNight;
     final color = widget.color ?? pack.accent;
     final edge = Color.lerp(color, Colors.black, 0.32)!;
     final pressed = _down && _enabled;
