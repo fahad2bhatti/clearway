@@ -1,133 +1,76 @@
-<div align="center">
+# Waqt
 
-# Clearway: Arrow Puzzle
+Waqt is an Android app for accurate prayer times and a calm Azan, built with Flutter. Prayer times are calculated on your phone, your prayer history stays on your phone, and there are no accounts and no ads.
 
-**Tap a vehicle. Clear the way. Empty the yard.**
-
-A tap-to-clear puzzle game for Android, built with Flutter and Flame. Fully playable offline.
-
-`com.fahadapps.clearway`
-
-</div>
-
----
-
-## About
-
-Every level is a yard packed with vehicles. Tap a vehicle and it drives out along its lane, but only if nothing blocks it. Work out the right order, empty the board and earn up to three stars. A blocked vehicle bumps and costs one of your 3 lives.
-
-All levels are generated on the device from fixed seeds and checked with a solver, so the game never needs a network connection. The cloud features are optional and never block play.
+Developed by **Fahad Apps** · Android only · Status: preparing for Google Play closed testing
 
 ## Features
 
-- **80 levels** in 8 chapters of 10 (`LevelCatalog.totalLevels`). The same level number always produces the same board. Boss levels start at level 5 and come every 5 levels; every 10th level is a silhouette board. Large boards support pinch-to-zoom and pan.
-- **Daily challenge ("Rush Hour")**: a 100+ vehicle board for each UTC day. The seed comes from the date alone (`DailyClock.seedFor`, SHA-256 of `clearway:<yyyy-MM-dd>`), so every player gets the same board. The daily screen has a calendar and a streak.
-- **Hints, undo, lives and revive**: solver-backed hints, one undo per attempt, 3 lives, and a 30-coin revive.
-- **Local economy**: coins, hints and undos live on the device (SharedPreferences). A shop sells hint and undo packs and the Sunset arrow skin for coins; rewarded ads give coins and hints with daily limits. A third skin unlocks free at level 80.
-- **Progress extras**: milestones, achievements and daily missions.
-- **Safe tapping**: a vehicle moves only on a quick, still, single-finger tap. Panning, zooming and long presses never cost a life.
-- **Onboarding**: a first-launch gate (terms and a username, 3-15 characters, letters, digits and `_`) and a guided tutorial for the first three levels.
-- **Settings**: sound, haptics, notifications, English and Urdu (right-to-left), rate us, send feedback, and Delete Account.
-- **Notifications**: optional reminders scheduled on the device (no push server).
-- **Rating prompt** after winning level 10, 25 or 50, and offline-safe feedback (queued on the device and sent when online).
-
-### Online parts (optional)
-
-- Anonymous sign-in with Firebase Authentication.
-- Progress sync to Cloud Firestore (`users/{uid}/progress/state`): level, stars, skins, milestones, achievements and missions. The username is not part of it.
-- Feedback reports in Firestore (`reports`).
-- Firebase Crashlytics crash reports.
-- Google AdMob ads (banner, interstitial every 5 levels with a cooldown, rewarded) with the Google consent form (UMP).
-
-## Spark plan limitations
-
-The Firebase project (`clearway-ac80b`) is on the free **Spark** plan, so no server code runs:
-
-- Coins, hints, undos and ad rewards are **local** and can be edited by a determined player. A server-authoritative economy needs the Blaze plan.
-- The username is stored on the device only. It is not unique and not synced.
-- Anonymous accounts: reinstalling the app loses progress. Google account linking is planned for version 1.1.
-- No leaderboard yet.
-
-### Restoring Cloud Functions (when Blaze is available)
-
-The old Cloud Functions backend (daily reward ledger, server economy, username claim, scheduled daily seed) is archived in git. Nothing in the app calls it.
-
-```bash
-git fetch --tags
-git checkout archive/functions-blaze -- functions
-```
-
-That brings back the `functions/` folder. You also need to restore the `functions` block and emulator in `firebase.json` (see that tag), the removed collections in `firestore.rules`, the matching tests, and a client that calls the functions. Never deploy rules from an older branch: the account-deletion rules would be lost.
+- **Prayer times** calculated on-device, with 6 calculation methods, Hanafi or Shafi Asr, and per-prayer minute adjustments
+- **Azan alarms** scheduled 30 days ahead, set again after a reboot or time zone change
+- **Azan screen** that opens over the lock screen, from the background, and after swiping the app from recents
+- **Vibration** that keeps going with the Azan even when the phone is on silent
+- **Reminders** after the Azan if the prayer is not ticked, with "I prayed", "Remind again" and 10/20/30 minute options
+- **Prayer log** with a month calendar and streaks
+- **Qibla compass** using the phone's sensors, pointing to true north
+- **Azan protection** check that shows which permissions are missing
+- **Delete all data** in Settings
+- Prayer Mode (app blocker) is planned and shown as "coming soon"
 
 ## Tech stack
 
-| Layer | Technology |
-|---|---|
-| App | Flutter (Dart SDK `^3.13.5`) |
-| Board rendering | [Flame](https://flame-engine.org/) `^1.38.2`, `flame_audio` |
-| Local storage | `shared_preferences` (versioned JSON with a last-known-good backup) |
-| Backend | Firebase Auth, Cloud Firestore, Crashlytics |
-| Ads | `google_mobile_ads` (AdMob + UMP) |
-| Other | `flutter_local_notifications`, `in_app_review`, `url_launcher`, `package_info_plus` |
+- Flutter and Dart, feature-first folders (`lib/features/<feature>/{data,providers,presentation}`)
+- Riverpod for state, GoRouter for navigation
+- `adhan_dart` for prayer time calculation
+- `flutter_local_notifications` and native Kotlin code for exact alarms and the lock-screen Azan
+- Firebase Crashlytics for crash reports (release builds only)
 
-## Project structure
+## Getting started
 
-```
-clearway/
-├── lib/
-│   ├── game/        # engine (pure Dart), generator, Flame renderer, game screen
-│   ├── features/    # home, shop, settings, onboarding
-│   ├── services/    # cloud sync, economy, ads, notifications, feedback queue
-│   ├── data/        # local save and progress codec
-│   └── core/        # strings (English + Urdu), daily clock, username rules
-├── test/            # engine, generator, save, service and widget tests
-├── rules_test/      # Firestore security rules tests (Node, emulator)
-├── bin/             # dev tools (level_generation_report.dart, maze_preview.dart)
-├── docs/            # privacy policy, terms, roadmap, security notes (GitHub Pages)
-├── firestore.rules
-├── firestore.indexes.json
-└── firebase.json
-```
-
-## Run, test, build
+Requirements: Flutter (Dart `^3.12`), Android SDK, a device or emulator.
 
 ```bash
+git clone https://github.com/fahad2bhatti/waqt.git
+cd waqt
 flutter pub get
-flutter run                 # needs android/app/google-services.json
-dart format .
-flutter analyze
-flutter test
-dart run bin/level_generation_report.dart
+flutter run
 ```
 
-### Firestore rules tests
-
-Needs Node 22, Java and the Firebase CLI:
-
-```bash
-cd rules_test
-npm install
-npm run test:rules:emulator
-```
-
-### Deploy (Spark plan)
-
-Deploy **only the rules**, and only from the newest branch:
-
-```bash
-firebase deploy --only firestore:rules
-```
-
-Never run `firebase deploy` for functions on this plan.
+Firebase config (`android/app/google-services.json`) is not in the repository. Create your own Firebase project, add an Android app with the package name `com.fahadapps.waqt`, and place its `google-services.json` in `android/app/`.
 
 ### Release build
+
+Create an upload keystore, then add `android/key.properties` (this file and `*.jks` are git-ignored):
+
+```properties
+storeFile=/absolute/path/to/waqt-upload.jks
+storePassword=...
+keyAlias=upload
+keyPassword=...
+```
 
 ```bash
 flutter build appbundle --release
 ```
 
-`build_release.sh` does the same and passes the AdMob unit IDs. Signing needs your own `android/key.properties` and keystore; they are git-ignored and must never be committed.
+## Tests
+
+```bash
+flutter analyze
+flutter test
+```
+
+## Documentation
+
+- [Roadmap](docs/ROADMAP.md)
+- [Project documentation](docs/DOCUMENTATION.md)
+- [Terms & Conditions](docs/terms.md)
+- [Privacy Policy](docs/privacy.md)
 
 ## License
 
-© Fahad Apps. All rights reserved.
+Copyright (c) 2026 Fahad Apps. All rights reserved. See [LICENSE](LICENSE). Third-party packages remain under their own licenses.
+
+## Contact
+
+Fahad Apps, Faisalabad, Pakistan · fahadsaeed2622@gmail.com
