@@ -22,16 +22,14 @@ final class ProgressSyncSignature {
 
   factory ProgressSyncSignature.fromProgress(
     int highestLevel,
-    Map<int, int> stars,
-    {
+    Map<int, int> stars, {
     Set<String> arrowSkins = const {'classic'},
     String selectedArrowSkin = 'classic',
     Set<String> claimedMilestones = const {},
     Map<String, int> achievementProgress = const {},
     Set<String> claimedAchievements = const {},
     DailyMissionState? dailyMissions,
-    }
-  ) {
+  }) {
     return ProgressSyncSignature._(
       '$highestLevel|${ProgressCodec.encode(stars, throughLevel: highestLevel)}'
       '|${(arrowSkins.toList()..sort()).join(",")}'

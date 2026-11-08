@@ -128,8 +128,9 @@ class _UsernameScreenState extends State<UsernameScreen> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: OnboardingTheme.gold
-                                    .withValues(alpha: 0.35),
+                                color: OnboardingTheme.gold.withValues(
+                                  alpha: 0.35,
+                                ),
                                 blurRadius: 24,
                               ),
                             ],
@@ -246,8 +247,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
                             return GestureDetector(
                               onTap: () {
                                 _controller.text = name;
-                                _controller.selection =
-                                    TextSelection.collapsed(
+                                _controller.selection = TextSelection.collapsed(
                                   offset: name.length,
                                 );
                                 setState(() {});
@@ -258,8 +258,9 @@ class _UsernameScreenState extends State<UsernameScreen> {
                                   vertical: 9,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: OnboardingTheme.gold
-                                      .withValues(alpha: 0.15),
+                                  color: OnboardingTheme.gold.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                     color: OnboardingTheme.gold,

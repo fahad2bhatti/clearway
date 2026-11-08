@@ -8,11 +8,7 @@ import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
 
 class TermsScreen extends StatefulWidget {
-  const TermsScreen({
-    super.key,
-    required this.save,
-    required this.onContinue,
-  });
+  const TermsScreen({super.key, required this.save, required this.onContinue});
 
   final LocalSave save;
   final VoidCallback onContinue;
@@ -31,9 +27,8 @@ class _TermsScreenState extends State<TermsScreen> {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.linkOpenError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.linkOpenError)));
       }
     }
   }
@@ -83,16 +78,31 @@ class _TermsScreenState extends State<TermsScreen> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          _rule(1, 'Play fair',
-                              'No cheats, bots or hacks. Be kind with your driver name.'),
-                          _rule(2, 'Your data',
-                              'Progress and coins are stored on your device and in your account.'),
-                          _rule(3, 'Ads & shop',
-                              'Rewarded ads are optional. Coins and hints have no real-money value.'),
-                          _rule(4, 'You are in control',
-                              'You can delete your account any time from Settings.'),
-                          _rule(5, 'Updates',
-                              'We may improve these rules. Big changes are shown in the app.'),
+                          _rule(
+                            1,
+                            'Play fair',
+                            'No cheats, bots or hacks. Be kind with your driver name.',
+                          ),
+                          _rule(
+                            2,
+                            'Your data',
+                            'Progress and coins are stored on your device and in your account.',
+                          ),
+                          _rule(
+                            3,
+                            'Ads & shop',
+                            'Rewarded ads are optional. Coins and hints have no real-money value.',
+                          ),
+                          _rule(
+                            4,
+                            'You are in control',
+                            'You can delete your account any time from Settings.',
+                          ),
+                          _rule(
+                            5,
+                            'Updates',
+                            'We may improve these rules. Big changes are shown in the app.',
+                          ),
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,

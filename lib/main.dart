@@ -254,7 +254,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
     home: !_saveLoaded
         ? const Scaffold(body: SizedBox.shrink())
         : !_save.onboardingComplete
-         ? OnboardingFlow(save: _save)
+        ? OnboardingFlow(save: _save)
         : _playing
         ? GameScreen(
             startingLevel: _level,

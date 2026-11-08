@@ -162,8 +162,9 @@ class TourStepScreen extends StatelessWidget {
                     height: 56,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color:
-                          isLast ? OnboardingTheme.gold : OnboardingTheme.teal,
+                      color: isLast
+                          ? OnboardingTheme.gold
+                          : OnboardingTheme.teal,
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(

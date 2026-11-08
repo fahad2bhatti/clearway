@@ -15,10 +15,10 @@ final class PendingFeedback {
   final String appVersion;
 
   Map<String, String> toJson() => {
-        'id': id,
-        'text': text,
-        'appVersion': appVersion,
-      };
+    'id': id,
+    'text': text,
+    'appVersion': appVersion,
+  };
 
   static PendingFeedback? fromJson(Object? raw) {
     if (raw is! Map) return null;
@@ -69,28 +69,27 @@ abstract final class FeedbackQueue {
   static Future<PendingFeedback?> enqueue({
     required String text,
     required String appVersion,
-  }) =>
-      _serialized<PendingFeedback?>(() async {
-        final items = await pending();
-        if (items.length >= maxItems) return null;
-        final item = PendingFeedback(
-          id: _newId(),
-          text: text,
-          appVersion: appVersion,
-        );
-        await _write([...items, item]);
-        return item;
-      });
+  }) => _serialized<PendingFeedback?>(() async {
+    final items = await pending();
+    if (items.length >= maxItems) return null;
+    final item = PendingFeedback(
+      id: _newId(),
+      text: text,
+      appVersion: appVersion,
+    );
+    await _write([...items, item]);
+    return item;
+  });
 
   static Future<void> remove(String id) => _serialized<void>(() async {
-        final items = await pending();
-        await _write(items.where((item) => item.id != id).toList());
-      });
+    final items = await pending();
+    await _write(items.where((item) => item.id != id).toList());
+  });
 
   static Future<void> clear() => _serialized<void>(() async {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(storageKey);
-      });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(storageKey);
+  });
 
   static Future<void> _write(List<PendingFeedback> items) async {
     final prefs = await SharedPreferences.getInstance();

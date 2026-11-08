@@ -21,27 +21,27 @@ final class ShopOffer {
 }
 
 List<ShopOffer> shopOffers() => [
-      ShopOffer(
-        id: 'hint-pack',
-        kind: ShopOfferKind.coinPurchase,
-        coinCost: LocalSave.hintPackCost,
-        hintReward: LocalSave.hintPackSize,
-      ),
-      const ShopOffer(
-        id: 'undo-pack',
-        kind: ShopOfferKind.coinPurchase,
-        coinCost: 30,
-      ),
-      ShopOffer(
-        id: 'ad-coins',
-        kind: ShopOfferKind.freeReward,
-        coinReward: LocalSave.adCoinsReward,
-        dailyLimit: LocalSave.maxAdCoinsPerDay,
-      ),
-      ShopOffer(
-        id: 'ad-hints',
-        kind: ShopOfferKind.freeReward,
-        hintReward: LocalSave.adHintsReward,
-        dailyLimit: LocalSave.maxAdHintsPerDay,
-      ),
-    ];
+  ShopOffer(
+    id: 'hint-pack',
+    kind: ShopOfferKind.coinPurchase,
+    coinCost: LocalSave.hintPackCost,
+    hintReward: LocalSave.hintPackSize,
+  ),
+  const ShopOffer(
+    id: 'undo-pack',
+    kind: ShopOfferKind.coinPurchase,
+    coinCost: 30,
+  ),
+  ShopOffer(
+    id: 'ad-coins',
+    kind: ShopOfferKind.freeReward,
+    coinReward: LocalSave.adCoinsReward,
+    dailyLimit: LocalSave.maxAdCoinsPerDay,
+  ),
+  ShopOffer(
+    id: 'ad-hints',
+    kind: ShopOfferKind.freeReward,
+    hintReward: LocalSave.adHintsReward,
+    dailyLimit: LocalSave.maxAdHintsPerDay,
+  ),
+];

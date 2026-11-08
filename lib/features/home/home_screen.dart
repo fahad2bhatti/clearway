@@ -355,6 +355,7 @@ Future<void> _showClearwaySheet(
   ),
 );
 
+// sheets-v2
 class _SheetShell extends StatelessWidget {
   const _SheetShell({
     required this.title,
@@ -380,37 +381,25 @@ class _SheetShell extends StatelessWidget {
       children: [
         const SizedBox(height: 10),
         Container(
-          width: 44,
-          height: 5,
+          width: 40,
+          height: 4,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(3),
+            color: OnboardingTheme.line,
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 14, 12),
+          padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
           child: Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: accent, size: 24),
-              ),
-              const SizedBox(width: 12),
+              Icon(icon, color: accent, size: 22),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: OnboardingTheme.cream,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: OnboardingTheme.display(26),
                 ),
               ),
               _SheetNavButton(
@@ -429,19 +418,12 @@ class _SheetShell extends StatelessWidget {
         height: fill ? maxHeight : null,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                OnboardingTheme.cardPurple,
-                OnboardingTheme.cardPurpleDark,
-              ],
-            ),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border.all(color: OnboardingTheme.gold, width: 2.5),
+            color: OnboardingTheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: OnboardingTheme.line),
           ),
           // Ink (level tiles, Claim button) must paint on a Material that
-          // sits ABOVE the gradient, otherwise it would be hidden behind it.
+          // sits ABOVE the decoration, otherwise it would be hidden.
           child: Material(
             type: MaterialType.transparency,
             child: SafeArea(top: false, child: body),
@@ -460,14 +442,15 @@ class _SheetNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(12),
     onTap: onTap,
     child: Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: onTap == null ? 0.03 : 0.1),
-        borderRadius: BorderRadius.circular(14),
+        color: OnboardingTheme.surfaceAlt,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: OnboardingTheme.line),
       ),
       child: Icon(
         icon,
@@ -500,30 +483,26 @@ class _LevelTile extends StatelessWidget {
     final BoxDecoration decoration;
     if (current) {
       decoration = BoxDecoration(
-        color: OnboardingTheme.gold,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: OnboardingTheme.goldDark, offset: Offset(0, 3)),
-        ],
+        color: OnboardingTheme.accent,
+        borderRadius: BorderRadius.circular(14),
       );
     } else if (unlocked) {
       decoration = BoxDecoration(
-        color: const Color(0xff4A3EB0).withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        color: OnboardingTheme.surfaceAlt,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: OnboardingTheme.line),
       );
     } else {
       decoration = BoxDecoration(
-        color: OnboardingTheme.deepPurple.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: OnboardingTheme.line.withValues(alpha: 0.5)),
       );
     }
     final numberColor = current
-        ? OnboardingTheme.deepPurple
+        ? OnboardingTheme.onAccent
         : OnboardingTheme.cream;
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       onTap: unlocked ? onTap : null,
       child: Ink(
         decoration: decoration,
@@ -534,13 +513,9 @@ class _LevelTile extends StatelessWidget {
                   children: [
                     Text(
                       '$number',
-                      style: TextStyle(
-                        color: numberColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: OnboardingTheme.display(22, color: numberColor),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -550,8 +525,8 @@ class _LevelTile extends StatelessWidget {
                             size: 12,
                             color: i < stars
                                 ? (current
-                                      ? OnboardingTheme.deepPurple
-                                      : OnboardingTheme.gold)
+                                      ? OnboardingTheme.onAccent
+                                      : OnboardingTheme.accent)
                                 : numberColor.withValues(alpha: 0.2),
                           ),
                       ],
@@ -560,7 +535,7 @@ class _LevelTile extends StatelessWidget {
                 )
               : Icon(
                   Icons.lock_rounded,
-                  size: 20,
+                  size: 18,
                   color: OnboardingTheme.muted.withValues(alpha: 0.45),
                 ),
         ),
@@ -585,36 +560,34 @@ class _CalendarDay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color border = done
-        ? OnboardingTheme.teal
+        ? OnboardingTheme.accent
         : today
-        ? OnboardingTheme.gold
-        : Colors.white.withValues(alpha: 0.08);
+        ? OnboardingTheme.cream
+        : OnboardingTheme.line;
     return Container(
       decoration: BoxDecoration(
         color: done
-            ? OnboardingTheme.teal.withValues(alpha: 0.2)
-            : OnboardingTheme.deepPurple.withValues(
-                alpha: future ? 0.25 : 0.55,
-              ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border, width: done || today ? 2 : 1),
+            ? OnboardingTheme.accent.withValues(alpha: 0.16)
+            : OnboardingTheme.surfaceAlt.withValues(alpha: future ? 0.4 : 1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border, width: today ? 1.5 : 1),
       ),
       child: Center(
         child: done
             ? const Icon(
                 Icons.star_rounded,
-                color: OnboardingTheme.gold,
+                color: OnboardingTheme.accent,
                 size: 20,
               )
             : Text(
                 '$day',
                 style: TextStyle(
                   color: today
-                      ? OnboardingTheme.gold
+                      ? OnboardingTheme.cream
                       : OnboardingTheme.cream.withValues(
                           alpha: future ? 0.35 : 0.9,
                         ),
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
       ),
@@ -700,41 +673,20 @@ class _GoalsSheetState extends State<_GoalsSheet> {
     final ready = complete && !claimed;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: claimed
-            ? Colors.white.withValues(alpha: 0.04)
-            : OnboardingTheme.deepPurple.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(20),
+        color: OnboardingTheme.surfaceAlt,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: ready
-              ? OnboardingTheme.gold
-              : Colors.white.withValues(alpha: 0.1),
-          width: ready ? 2 : 1,
+          color: ready ? OnboardingTheme.accent : OnboardingTheme.line,
         ),
-        boxShadow: ready
-            ? [
-                BoxShadow(
-                  color: OnboardingTheme.gold.withValues(alpha: 0.25),
-                  blurRadius: 14,
-                ),
-              ]
-            : null,
       ),
       child: Row(
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: claimed ? 0.08 : 0.2),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              icon,
-              color: claimed ? color.withValues(alpha: 0.5) : color,
-              size: 24,
-            ),
+          Icon(
+            icon,
+            color: claimed ? color.withValues(alpha: 0.4) : color,
+            size: 22,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -747,30 +699,30 @@ class _GoalsSheetState extends State<_GoalsSheet> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: OnboardingTheme.cream.withValues(
-                      alpha: claimed ? 0.6 : 1,
+                      alpha: claimed ? 0.55 : 1,
                     ),
                     fontSize: 15,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 8),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
                     value: target == 0 ? 1 : shown / target,
-                    minHeight: 8,
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    minHeight: 6,
+                    backgroundColor: OnboardingTheme.line,
                     valueColor: AlwaysStoppedAnimation(color),
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Text(
                   '${widget.strings.progressLabel(shown, target)}'
                   '${subtitle == null ? '' : '  •  $subtitle'}',
                   style: const TextStyle(
                     color: OnboardingTheme.muted,
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -797,7 +749,7 @@ class _GoalsSheetState extends State<_GoalsSheet> {
                         style: const TextStyle(
                           color: OnboardingTheme.teal,
                           fontSize: 12,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -813,25 +765,20 @@ class _GoalsSheetState extends State<_GoalsSheet> {
                       onTap: onClaim,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                          horizontal: 18,
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: OnboardingTheme.gold,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: OnboardingTheme.goldDark,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
+                          color: OnboardingTheme.accent,
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          widget.strings.claim,
+                          widget.strings.claim.toUpperCase(),
                           style: const TextStyle(
-                            color: OnboardingTheme.deepPurple,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
+                            color: OnboardingTheme.onAccent,
+                            fontSize: 12,
+                            letterSpacing: 1,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),

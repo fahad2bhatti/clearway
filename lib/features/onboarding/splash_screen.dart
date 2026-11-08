@@ -132,8 +132,9 @@ class _SplashScreenState extends State<SplashScreen>
                           child: LinearProgressIndicator(
                             value: _bar.value,
                             minHeight: 12,
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.14),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.14,
+                            ),
                             color: OnboardingTheme.gold,
                           ),
                         ),

@@ -7,8 +7,9 @@ bool shouldShowRatingPrompt({
   required Set<int> shownMilestones,
 }) {
   if (!won || daily || !ratingPromptMilestones.contains(level)) return false;
-  final shownCount =
-      shownMilestones.intersection(ratingPromptMilestones).length;
+  final shownCount = shownMilestones
+      .intersection(ratingPromptMilestones)
+      .length;
   return shownCount < ratingPromptMilestones.length &&
       !shownMilestones.contains(level);
 }
