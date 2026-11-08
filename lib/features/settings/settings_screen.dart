@@ -5,12 +5,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_identity.dart';
 import '../../app/legal_links.dart';
-import '../../app/theme_pack.dart';
 import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import '../../services/cloud_progress_sync.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/game_ui.dart';
+import '../onboarding/onboarding_theme.dart';
 
 const _playStoreUrl =
     'https://play.google.com/store/apps/details?id=${AppIdentity.applicationId}';
@@ -52,85 +52,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.arrowNight;
-    final ur = widget.save.language == 'ur';
-    return Scaffold(
-      body: GameBackdrop(
-        child: SafeArea(
+    final language = widget.save.language;
+    return RedesignTheme(
+      child: Scaffold(
+        backgroundColor: OnboardingTheme.bgTop,
+        body: SafeArea(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 20, 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: widget.onBack,
-                      tooltip: MaterialLocalizations.of(context)
-                          .backButtonTooltip,
-                      style: IconButton.styleFrom(
-                        backgroundColor: pack.ivory.withValues(alpha: 0.1),
-                        minimumSize: const Size(44, 44),
-                      ),
-                      icon: Icon(Icons.arrow_back_rounded, color: pack.ivory),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        strings.settings,
-                        style: TextStyle(
-                          fontFamily: GameFonts.display,
-                          fontSize: 30,
-                          color: pack.ivory,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ScreenHeader(title: strings.settings, onBack: widget.onBack),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
-                    _profileCard(pack),
+                    _profileCard(),
                     const SizedBox(height: 20),
-                    _heading(pack, strings.settingsPreferences, ur),
-                    _group(pack, [
+                    SectionLabel(
+                      title: strings.settingsPreferences,
+                      language: language,
+                    ),
+                    _group([
                       _toggleRow(
-                        pack,
                         Icons.volume_up_rounded,
-                        pack.accent,
+                        OnboardingTheme.accent,
                         strings.sound,
                         widget.save.sound,
                         (value) => _update(() => widget.save.sound = value),
                       ),
                       _toggleRow(
-                        pack,
                         Icons.music_note_rounded,
-                        pack.floralMagenta,
+                        OnboardingTheme.hot,
                         strings.music,
                         widget.save.music,
                         (value) => _update(() => widget.save.music = value),
                       ),
                       _toggleRow(
-                        pack,
                         Icons.vibration_rounded,
-                        pack.turquoise,
+                        OnboardingTheme.teal,
                         strings.haptics,
                         widget.save.haptics,
                         (value) => _update(() => widget.save.haptics = value),
                       ),
                       _toggleRow(
-                        pack,
                         Icons.notifications_rounded,
-                        pack.coral,
+                        OnboardingTheme.coin,
                         strings.notifications,
                         widget.save.notifications,
                         _toggleNotifications,
                       ),
                       _row(
-                        pack,
                         icon: Icons.language_rounded,
-                        color: pack.accent,
+                        color: OnboardingTheme.accent,
                         label: strings.languageLabel,
                         trailing: LanguageSwitch(
                           value: widget.save.language,
@@ -140,33 +111,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ]),
                     const SizedBox(height: 20),
-                    _heading(pack, strings.settingsAbout, ur),
-                    _group(pack, [
+                    SectionLabel(
+                      title: strings.settingsAbout,
+                      language: language,
+                    ),
+                    _group([
                       _linkRow(
-                        pack,
                         Icons.star_rounded,
-                        pack.accent,
+                        OnboardingTheme.coin,
                         strings.rateUs,
                         _rateUs,
                       ),
                       _linkRow(
-                        pack,
                         Icons.chat_bubble_rounded,
-                        pack.turquoise,
+                        OnboardingTheme.teal,
                         strings.sendFeedback,
                         _sendFeedback,
                       ),
                       _linkRow(
-                        pack,
                         Icons.privacy_tip_rounded,
-                        pack.floralMagenta,
+                        OnboardingTheme.accent,
                         strings.privacyPolicy,
                         () => _open(LegalLinks.privacyUrl),
                       ),
                       _linkRow(
-                        pack,
                         Icons.gavel_rounded,
-                        pack.textMuted,
+                        OnboardingTheme.muted,
                         strings.terms,
                         () => _open(LegalLinks.termsUrl),
                       ),
@@ -175,8 +145,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     OutlinedButton.icon(
                       onPressed: _busy ? null : _confirmDelete,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: pack.coral,
-                        side: BorderSide(color: pack.coral, width: 2),
+                        foregroundColor: OnboardingTheme.hot,
+                        side: const BorderSide(color: OnboardingTheme.hot),
                         minimumSize: const Size.fromHeight(50),
                         shape: const StadiumBorder(),
                       ),
@@ -197,7 +167,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         '${strings.appVersion} $_version',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: pack.textMuted, fontSize: 12),
+                        style: const TextStyle(
+                          color: OnboardingTheme.muted,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ],
@@ -210,36 +183,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _profileCard(ThemePack pack) {
+  Widget _profileCard() {
     final name = widget.save.username.isEmpty
         ? AppIdentity.name
         : widget.save.username;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: pack.accent, width: 3),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [pack.panelActive, pack.panel],
-        ),
+        color: OnboardingTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: OnboardingTheme.line),
       ),
       child: Row(
         children: [
           Container(
-            width: 60,
-            height: 60,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: pack.asphalt,
-              border: Border.all(color: pack.accent, width: 3),
+              color: OnboardingTheme.accent,
             ),
-            child: BusIllustration(
-              body: pack.floralMagenta,
-              stripe: pack.coral,
-              width: 44,
+            child: const Icon(
+              Icons.person_rounded,
+              color: OnboardingTheme.onAccent,
+              size: 30,
             ),
           ),
           const SizedBox(width: 14),
@@ -252,26 +219,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textDirection: TextDirection.ltr,
-                  style: TextStyle(
-                    fontFamily: GameFonts.display,
-                    fontSize: 22,
-                    color: pack.ivory,
-                  ),
+                  style: OnboardingTheme.display(24),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: pack.turquoise.withValues(alpha: 0.2),
+                    color: OnboardingTheme.teal.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     strings.anonymousAccount,
-                    style: TextStyle(
-                      color: pack.turquoise,
+                    style: const TextStyle(
+                      color: OnboardingTheme.teal,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
@@ -285,35 +248,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _heading(ThemePack pack, String title, bool ur) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 6, right: 6),
-    child: Text(
-      ur ? title : title.toUpperCase(),
-      style: TextStyle(
-        color: pack.textMuted,
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        letterSpacing: letterSpacingFor(widget.save.language, 2),
-      ),
-    ),
-  );
-
-  Widget _group(ThemePack pack, List<Widget> rows) => Material(
-    color: pack.panel,
+  Widget _group(List<Widget> rows) => Material(
+    color: OnboardingTheme.surface,
     clipBehavior: Clip.antiAlias,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(24),
-      side: BorderSide(color: pack.panelActive, width: 2),
+      borderRadius: BorderRadius.circular(20),
+      side: const BorderSide(color: OnboardingTheme.line),
     ),
     child: Column(
       children: [
         for (var i = 0; i < rows.length; i++) ...[
           if (i > 0)
-            Divider(
+            const Divider(
               height: 1,
               indent: 16,
               endIndent: 16,
-              color: pack.ivory.withValues(alpha: 0.08),
+              color: OnboardingTheme.line,
             ),
           rows[i],
         ],
@@ -321,8 +271,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ),
   );
 
-  Widget _row(
-    ThemePack pack, {
+  Widget _row({
     required IconData icon,
     required Color color,
     required String label,
@@ -331,7 +280,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) => InkWell(
     onTap: onTap,
     child: ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 54),
+      constraints: const BoxConstraints(minHeight: 56),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
@@ -340,7 +289,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.18),
+                color: color.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(11),
               ),
               child: Icon(icon, size: 20, color: color),
@@ -349,8 +298,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  color: pack.ivory,
+                style: const TextStyle(
+                  color: OnboardingTheme.cream,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -364,7 +313,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
 
   Widget _toggleRow(
-    ThemePack pack,
     IconData icon,
     Color color,
     String label,
@@ -373,7 +321,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ) => Semantics(
     toggled: value,
     child: _row(
-      pack,
       icon: icon,
       color: color,
       label: label,
@@ -383,17 +330,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
 
   Widget _linkRow(
-    ThemePack pack,
     IconData icon,
     Color color,
     String label,
     VoidCallback onTap,
   ) => _row(
-    pack,
     icon: icon,
     color: color,
     label: label,
-    trailing: Icon(Icons.chevron_right_rounded, color: pack.textMuted),
+    trailing: const Icon(
+      Icons.chevron_right_rounded,
+      color: OnboardingTheme.muted,
+    ),
     onTap: onTap,
   );
 
@@ -411,7 +359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => RedesignTheme(child: AlertDialog(
         title: Text(strings.notificationPermissionTitle),
         content: Text(strings.notificationPermissionMessage),
         actions: [
@@ -424,7 +372,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Text(strings.notificationPermissionEnable),
           ),
         ],
-      ),
+      )),
     );
     if (confirmed != true || !mounted) return;
     final granted = await NotificationService.instance.requestPermission();
@@ -454,7 +402,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<bool> _confirm(String message) async =>
       await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => RedesignTheme(child: AlertDialog(
           content: Text(message),
           actions: [
             TextButton(
@@ -466,7 +414,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(strings.confirm),
             ),
           ],
-        ),
+        )),
       ) ??
       false;
 
@@ -479,7 +427,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (rating >= 4) {
       final rateNow = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => RedesignTheme(child: AlertDialog(
           title: Text(strings.ratingTitle),
           content: Text(strings.ratingStorePrompt),
           actions: [
@@ -492,7 +440,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(strings.ratingNow),
             ),
           ],
-        ),
+        )),
       );
       if (rateNow == true) await _requestStoreRating();
       return;
@@ -572,7 +520,7 @@ final class _RatingDialogState extends State<_RatingDialog> {
   var _rating = 0;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => RedesignTheme(child: AlertDialog(
     title: Text(widget.strings.ratingTitle),
     content: Column(
       mainAxisSize: MainAxisSize.min,
@@ -608,7 +556,7 @@ final class _RatingDialogState extends State<_RatingDialog> {
         child: Text(widget.strings.confirm),
       ),
     ],
-  );
+  ));
 }
 
 final class _FeedbackDialog extends StatefulWidget {
@@ -636,7 +584,7 @@ final class _FeedbackDialogState extends State<_FeedbackDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => RedesignTheme(child: AlertDialog(
     title: Text(widget.strings.sendFeedback),
     content: TextField(
       controller: _controller,
@@ -655,5 +603,5 @@ final class _FeedbackDialogState extends State<_FeedbackDialog> {
         child: Text(widget.strings.confirm),
       ),
     ],
-  );
+  ));
 }

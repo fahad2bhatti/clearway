@@ -13,111 +13,117 @@ abstract final class GameFonts {
 double letterSpacingFor(String language, double value) =>
     language == 'ur' ? 0 : value;
 
-/// Purple gradient, soft colour glows and the hanging flag bunting.
-/// The bunting sits just below the status bar (same as the home screen) and
-/// the child is pushed below it, so the child must NOT add its own top inset.
-class GameBackdrop extends StatelessWidget {
-  const GameBackdrop({super.key, required this.child, this.bunting = true});
+/// Dark theme for the redesigned full screens (Shop, Settings). It re-skins
+/// the dialogs, snackbars and buttons they open so nothing falls back to the
+/// old slate palette, whatever the app-wide light/dark setting is.
+final _redesignTheme = ThemeData(
+  useMaterial3: true,
+  brightness: Brightness.dark,
+  scaffoldBackgroundColor: OnboardingTheme.bgTop,
+  colorScheme: const ColorScheme.dark(
+    primary: OnboardingTheme.accent,
+    onPrimary: OnboardingTheme.onAccent,
+    secondary: OnboardingTheme.teal,
+    surface: OnboardingTheme.surface,
+    onSurface: OnboardingTheme.cream,
+    error: OnboardingTheme.hot,
+  ),
+  dialogTheme: const DialogThemeData(
+    backgroundColor: OnboardingTheme.surface,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(20)),
+      side: BorderSide(color: OnboardingTheme.line),
+    ),
+  ),
+  snackBarTheme: const SnackBarThemeData(
+    backgroundColor: OnboardingTheme.line,
+    contentTextStyle: TextStyle(color: OnboardingTheme.cream),
+    actionTextColor: OnboardingTheme.accent,
+  ),
+);
+
+class RedesignTheme extends StatelessWidget {
+  const RedesignTheme({super.key, required this.child});
 
   final Widget child;
-  final bool bunting;
-
-  static const double buntingHeight = 26;
 
   @override
-  Widget build(BuildContext context) {
-    const pack = ThemePack.arrowNight;
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: OnboardingTheme.background),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Align(
-            alignment: const Alignment(-1.3, -0.65),
-            child: _Glow(color: pack.floralMagenta, size: 300),
-          ),
-          Align(
-            alignment: const Alignment(1.3, 0.45),
-            child: _Glow(color: pack.turquoise, size: 340),
-          ),
-          SafeArea(
-            bottom: false,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(top: bunting ? buntingHeight : 0),
-                  child: child,
-                ),
-                if (bunting)
-                  const Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: buntingHeight,
-                    child: IgnorePointer(
-                      child: RepaintBoundary(
-                        child: CustomPaint(painter: _BuntingPainter()),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      Theme(data: _redesignTheme, child: child);
 }
 
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color, required this.size});
+/// Flat bordered back button + display title (+ optional trailing widget).
+class ScreenHeader extends StatelessWidget {
+  const ScreenHeader({
+    super.key,
+    required this.title,
+    required this.onBack,
+    this.trailing,
+  });
 
-  final Color color;
-  final double size;
+  final String title;
+  final VoidCallback onBack;
+  final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) => IgnorePointer(
-    child: Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0)],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 10, 20, 8),
+    child: Row(
+      children: [
+        Tooltip(
+          message: MaterialLocalizations.of(context).backButtonTooltip,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onBack,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: OnboardingTheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: OnboardingTheme.line),
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: OnboardingTheme.cream,
+                size: 22,
+              ),
+            ),
+          ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: OnboardingTheme.display(30),
+          ),
+        ),
+        ?trailing,
+      ],
     ),
   );
 }
 
-class _BuntingPainter extends CustomPainter {
-  const _BuntingPainter();
+/// Small muted uppercase label above a group of cards.
+class SectionLabel extends StatelessWidget {
+  const SectionLabel({super.key, required this.title, required this.language});
 
-  static const _colors = [
-    Color(0xff22c7b0),
-    Color(0xffff5c8d),
-    Color(0xffffb627),
-  ];
+  final String title;
+  final String language;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    const flagW = 22.0;
-    const flagH = 20.0;
-    final count = (size.width / flagW).ceil();
-    for (var i = 0; i < count; i++) {
-      final x = i * flagW;
-      final path = Path()
-        ..moveTo(x, 0)
-        ..lineTo(x + flagW, 0)
-        ..lineTo(x + flagW / 2, flagH)
-        ..close();
-      canvas.drawPath(path, Paint()..color = _colors[i % _colors.length]);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 6, right: 6),
+    child: Text(
+      language == 'ur' ? title : title.toUpperCase(),
+      style: OnboardingTheme.label.copyWith(
+        letterSpacing: letterSpacingFor(language, 1.6),
+      ),
+    ),
+  );
 }
 
 /// Round on/off switch with a sliding knob. Purely visual: the row around it
@@ -128,35 +134,35 @@ class GameToggle extends StatelessWidget {
   final bool value;
 
   @override
-  Widget build(BuildContext context) {
-    const pack = ThemePack.arrowNight;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutBack,
-      width: 48,
-      height: 28,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: value ? pack.turquoise : pack.ivory.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(14),
+  Widget build(BuildContext context) => AnimatedContainer(
+    duration: const Duration(milliseconds: 180),
+    curve: Curves.easeOut,
+    width: 48,
+    height: 28,
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: value ? OnboardingTheme.accent : OnboardingTheme.surfaceAlt,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: value ? OnboardingTheme.accent : OnboardingTheme.line,
       ),
-      child: AnimatedAlign(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutBack,
-        alignment: value
-            ? AlignmentDirectional.centerEnd
-            : AlignmentDirectional.centerStart,
-        child: Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: value ? pack.asphalt : pack.ivory,
-          ),
+    ),
+    child: AnimatedAlign(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      alignment: value
+          ? AlignmentDirectional.centerEnd
+          : AlignmentDirectional.centerStart,
+      child: Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: value ? OnboardingTheme.onAccent : OnboardingTheme.muted,
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// EN / Urdu pill switch.
@@ -171,26 +177,24 @@ class LanguageSwitch extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    const pack = ThemePack.arrowNight;
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: pack.ivory.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _segment(pack, 'en', 'EN'),
-          const SizedBox(width: 2),
-          _segment(pack, 'ur', 'اردو'),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: OnboardingTheme.surfaceAlt,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: OnboardingTheme.line),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _segment('en', 'EN'),
+        const SizedBox(width: 2),
+        _segment('ur', 'اردو'),
+      ],
+    ),
+  );
 
-  Widget _segment(ThemePack pack, String code, String label) {
+  Widget _segment(String code, String label) {
     final selected = value == code;
     return Semantics(
       button: true,
@@ -204,7 +208,7 @@ class LanguageSwitch extends StatelessWidget {
           duration: const Duration(milliseconds: 160),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: selected ? pack.accent : Colors.transparent,
+            color: selected ? OnboardingTheme.accent : Colors.transparent,
             borderRadius: BorderRadius.circular(15),
           ),
           child: Text(
@@ -212,122 +216,13 @@ class LanguageSwitch extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 13,
-              color: selected ? pack.asphalt : pack.textMuted,
+              color: selected ? OnboardingTheme.onAccent : OnboardingTheme.muted,
             ),
           ),
         ),
       ),
     );
   }
-}
-
-/// The game's bus, drawn with the active theme colours.
-class BusIllustration extends StatelessWidget {
-  const BusIllustration({
-    super.key,
-    required this.body,
-    required this.stripe,
-    this.width = 200,
-  });
-
-  final Color body;
-  final Color stripe;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: width,
-    height: width * 140 / 220,
-    child: CustomPaint(
-      painter: _BusPainter(body: body, stripe: stripe),
-    ),
-  );
-}
-
-class _BusPainter extends CustomPainter {
-  const _BusPainter({required this.body, required this.stripe});
-
-  final Color body;
-  final Color stripe;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const pack = ThemePack.arrowNight;
-    canvas.save();
-    canvas.scale(size.width / 220);
-    final paint = Paint();
-
-    final bodyShape = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(8, 40, 204, 72),
-      const Radius.circular(20),
-    );
-    paint.color = body;
-    canvas.drawRRect(bodyShape, paint);
-
-    canvas.save();
-    canvas.clipRRect(bodyShape);
-    paint.color = stripe;
-    canvas.drawRect(const Rect.fromLTWH(8, 88, 204, 14), paint);
-    canvas.restore();
-
-    for (var i = 0; i < 4; i++) {
-      final x = 24.0 + i * 38;
-      paint.color = pack.asphalt;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, 52, 30, 24),
-          const Radius.circular(6),
-        ),
-        paint,
-      );
-      paint.color = pack.ivory.withValues(alpha: 0.5);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x + 3, 55, 10, 8),
-          const Radius.circular(3),
-        ),
-        paint,
-      );
-    }
-
-    paint.color = pack.ivory;
-    for (var i = 0; i < 9; i++) {
-      canvas.drawCircle(Offset(22.0 + i * 22, 95), 4, paint);
-    }
-
-    paint.color = pack.accent;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(190, 60, 16, 22),
-        const Radius.circular(5),
-      ),
-      paint,
-    );
-
-    for (final cx in const [56.0, 164.0]) {
-      paint.color = pack.asphalt;
-      canvas.drawCircle(Offset(cx, 114), 17, paint);
-      paint.color = pack.ivory;
-      canvas.drawCircle(Offset(cx, 114), 7, paint);
-    }
-
-    final arrow = Path()
-      ..moveTo(96, 12)
-      ..lineTo(124, 12)
-      ..lineTo(124, 2)
-      ..lineTo(146, 20)
-      ..lineTo(124, 38)
-      ..lineTo(124, 28)
-      ..lineTo(96, 28)
-      ..close();
-    paint.color = pack.ivory;
-    canvas.drawPath(arrow, paint);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _BusPainter oldDelegate) =>
-      oldDelegate.body != body || oldDelegate.stripe != stripe;
 }
 
 /// Chunky game button with a 3D edge that presses down when tapped.

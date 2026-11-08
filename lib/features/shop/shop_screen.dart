@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme_pack.dart';
 import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import '../../services/ad_service.dart';
 import '../../services/economy_repository.dart';
 import '../../game/skins/arrow_skin.dart';
 import '../../widgets/game_ui.dart';
+import '../onboarding/onboarding_theme.dart';
 import 'shop_catalog.dart';
 
 class ShopScreen extends StatefulWidget {
@@ -27,8 +27,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const pack = ThemePack.arrowNight;
-    final ur = widget.save.language == 'ur';
+    final language = widget.save.language;
     final offers = shopOffers();
     final coinOffers = offers
         .where((o) => o.kind == ShopOfferKind.coinPurchase)
@@ -36,60 +35,37 @@ class _ShopScreenState extends State<ShopScreen> {
     final adOffers = offers
         .where((o) => o.kind == ShopOfferKind.freeReward)
         .toList();
-    return Scaffold(
-      body: GameBackdrop(
-        child: SafeArea(
+    return RedesignTheme(
+      child: Scaffold(
+        backgroundColor: OnboardingTheme.bgTop,
+        body: SafeArea(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 20, 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: widget.onBack,
-                      tooltip: MaterialLocalizations.of(context)
-                          .backButtonTooltip,
-                      style: IconButton.styleFrom(
-                        backgroundColor: pack.ivory.withValues(alpha: 0.1),
-                        minimumSize: const Size(44, 44),
-                      ),
-                      icon: Icon(Icons.arrow_back_rounded, color: pack.ivory),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        strings.shopTitle,
-                        style: TextStyle(
-                          fontFamily: GameFonts.display,
-                          fontSize: 30,
-                          color: pack.ivory,
-                        ),
-                      ),
-                    ),
-                    _balance(pack),
-                  ],
-                ),
+              ScreenHeader(
+                title: strings.shopTitle,
+                onBack: widget.onBack,
+                trailing: _balance(),
               ),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
-                    for (final offer in adOffers) _adBanner(pack, offer),
+                    for (final offer in adOffers) _adBanner(offer),
                     const SizedBox(height: 8),
-                    _heading(pack, strings.shopCoins, ur),
+                    SectionLabel(title: strings.shopCoins, language: language),
                     IntrinsicHeight(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           for (var i = 0; i < coinOffers.length; i++) ...[
                             if (i > 0) const SizedBox(width: 10),
-                            Expanded(child: _coinCard(pack, coinOffers[i])),
+                            Expanded(child: _coinCard(coinOffers[i])),
                           ],
                         ],
                       ),
                     ),
                     const SizedBox(height: 20),
-                    _heading(pack, strings.shopSkins, ur),
+                    SectionLabel(title: strings.shopSkins, language: language),
                     IntrinsicHeight(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -100,9 +76,7 @@ class _ShopScreenState extends State<ShopScreen> {
                             i++
                           ) ...[
                             if (i > 0) const SizedBox(width: 10),
-                            Expanded(
-                              child: _skinTile(pack, ArrowSkinCatalog.all[i]),
-                            ),
+                            Expanded(child: _skinTile(ArrowSkinCatalog.all[i])),
                           ],
                         ],
                       ),
@@ -117,106 +91,89 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  Widget _balance(ThemePack pack) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+  Widget _balance() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(
-      color: pack.ivory.withValues(alpha: 0.12),
+      color: OnboardingTheme.surface,
       borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: OnboardingTheme.line),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.monetization_on_rounded, color: pack.accent, size: 22),
+        _coinDot(),
         const SizedBox(width: 8),
-        Text(
-          '${widget.save.coins}',
-          style: TextStyle(
-            fontFamily: GameFonts.display,
-            fontSize: 20,
-            color: pack.accent,
-          ),
-        ),
+        Text('${widget.save.coins}', style: OnboardingTheme.display(18)),
       ],
     ),
   );
 
-  Widget _heading(ThemePack pack, String title, bool ur) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 6, right: 6),
-    child: Text(
-      ur ? title : title.toUpperCase(),
-      style: TextStyle(
-        color: pack.textMuted,
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        letterSpacing: letterSpacingFor(widget.save.language, 2),
-      ),
+  Widget _coinDot() => Container(
+    width: 8,
+    height: 8,
+    decoration: const BoxDecoration(
+      color: OnboardingTheme.coin,
+      shape: BoxShape.circle,
     ),
   );
 
   /// A small rounded button used for every shop action.
-  Widget _pill(
-    ThemePack pack, {
+  Widget _pill({
     required Widget child,
     required VoidCallback? onTap,
-    Color? color,
+    Color color = OnboardingTheme.accent,
   }) => Opacity(
     opacity: onTap == null ? 0.5 : 1,
     child: Material(
-      color: color ?? pack.accent,
+      color: color,
       shape: const StadiumBorder(),
       child: InkWell(
         customBorder: const StadiumBorder(),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: child,
         ),
       ),
     ),
   );
 
-  TextStyle _pillText(ThemePack pack) => TextStyle(
-    fontFamily: GameFonts.display,
-    fontSize: 16,
-    color: pack.asphalt,
-  );
+  TextStyle _pillText([Color color = OnboardingTheme.onAccent]) =>
+      OnboardingTheme.display(17, color: color);
 
-  Widget _price(ThemePack pack, int cost) => Row(
+  Widget _price(int cost) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(Icons.monetization_on_rounded, size: 18, color: pack.asphalt),
-      const SizedBox(width: 5),
-      Text('$cost', style: _pillText(pack)),
+      _coinDot(),
+      const SizedBox(width: 7),
+      Text('$cost', style: _pillText()),
     ],
   );
 
-  Widget _adBanner(ThemePack pack, ShopOffer offer) {
+  Widget _adBanner(ShopOffer offer) {
     final remaining = _remaining(offer);
-    final color = offer.id == 'ad-hints' ? pack.floralMagenta : pack.turquoise;
-    final edge = Color.lerp(color, Colors.black, 0.35)!;
     final canWatch = !_busy && !AdService.adsRemoved && remaining > 0;
+    final soft = OnboardingTheme.onAccent.withValues(alpha: 0.8);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [color, edge],
-        ),
-        boxShadow: [BoxShadow(offset: const Offset(0, 5), color: edge)],
+        color: OnboardingTheme.accent,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: pack.ivory.withValues(alpha: 0.25),
+              color: OnboardingTheme.onAccent.withValues(alpha: 0.2),
             ),
-            child: Icon(Icons.play_arrow_rounded, color: pack.asphalt),
+            child: const Icon(
+              Icons.play_arrow_rounded,
+              color: OnboardingTheme.onAccent,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -225,16 +182,16 @@ class _ShopScreenState extends State<ShopScreen> {
               children: [
                 Text(
                   strings.shopOfferTitle(offer.id),
-                  style: TextStyle(
-                    fontFamily: GameFonts.display,
-                    fontSize: 22,
-                    color: pack.asphalt,
+                  style: OnboardingTheme.display(
+                    22,
+                    color: OnboardingTheme.onAccent,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   strings.freeRewardLeft(remaining),
                   style: TextStyle(
-                    color: pack.asphalt.withValues(alpha: 0.8),
+                    color: soft,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -242,91 +199,86 @@ class _ShopScreenState extends State<ShopScreen> {
                 if (remaining == 0)
                   Text(
                     strings.dailyOfferReset,
-                    style: TextStyle(
-                      color: pack.asphalt.withValues(alpha: 0.8),
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: soft, fontSize: 12),
                   ),
               ],
             ),
           ),
           const SizedBox(width: 8),
           _pill(
-            pack,
+            color: OnboardingTheme.onAccent,
             onTap: canWatch ? () => _claimAdReward(offer) : null,
             child: _busy
-                ? SizedBox(
+                ? const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: pack.asphalt,
+                      color: OnboardingTheme.accent,
                     ),
                   )
-                : Text(strings.watchAd, style: _pillText(pack)),
+                : Text(
+                    strings.watchAd,
+                    style: _pillText(OnboardingTheme.accent),
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _coinCard(ThemePack pack, ShopOffer offer) {
+  Widget _coinCard(ShopOffer offer) {
     final cost = offer.coinCost ?? 0;
     final insufficient = widget.save.coins < cost;
     final isHint = offer.id == 'hint-pack';
-    final color = isHint ? pack.turquoise : pack.floralMagenta;
+    final color = isHint ? OnboardingTheme.teal : OnboardingTheme.hot;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: pack.panel,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: pack.panelActive, width: 2),
+        color: OnboardingTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: OnboardingTheme.line),
       ),
       child: Column(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withValues(alpha: 0.2),
+              color: color.withValues(alpha: 0.16),
             ),
             child: Icon(
               isHint ? Icons.lightbulb_rounded : Icons.undo_rounded,
               color: color,
-              size: 28,
+              size: 26,
             ),
           ),
           const SizedBox(height: 10),
           Text(
             strings.shopOfferTitle(offer.id),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: GameFonts.display,
-              fontSize: 20,
-              color: pack.ivory,
-            ),
+            style: OnboardingTheme.display(20),
           ),
           const SizedBox(height: 4),
           Text(
             strings.shopOfferDescription(offer.id),
             textAlign: TextAlign.center,
-            style: TextStyle(color: pack.textMuted, fontSize: 12),
+            style: const TextStyle(color: OnboardingTheme.muted, fontSize: 12),
           ),
           const Spacer(),
           const SizedBox(height: 10),
           _pill(
-            pack,
             onTap: _busy || insufficient ? null : () => _buy(offer),
-            child: _price(pack, cost),
+            child: _price(cost),
           ),
           if (insufficient) ...[
             const SizedBox(height: 6),
             Text(
               strings.insufficientCoins,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: pack.coral,
+              style: const TextStyle(
+                color: OnboardingTheme.hot,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -337,7 +289,7 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  Widget _skinTile(ThemePack pack, ArrowSkin skin) {
+  Widget _skinTile(ArrowSkin skin) {
     final owned = widget.save.ownedArrowSkins.contains(skin.id);
     final selected = widget.save.selectedArrowSkin == skin.id;
     final available =
@@ -345,11 +297,11 @@ class _ShopScreenState extends State<ShopScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
       decoration: BoxDecoration(
-        color: pack.panel,
-        borderRadius: BorderRadius.circular(24),
+        color: OnboardingTheme.surface,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: selected ? pack.accent : pack.panelActive,
-          width: selected ? 3 : 2,
+          color: selected ? OnboardingTheme.accent : OnboardingTheme.line,
+          width: selected ? 2 : 1,
         ),
       ),
       child: Column(
@@ -363,70 +315,63 @@ class _ShopScreenState extends State<ShopScreen> {
           Text(
             skin.name(strings),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: pack.ivory,
+            style: const TextStyle(
+              color: OnboardingTheme.cream,
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
           ),
           const Spacer(),
           const SizedBox(height: 8),
-          _skinAction(pack, skin, owned, selected, available),
+          _skinAction(skin, owned, selected, available),
         ],
       ),
     );
   }
 
-  Widget _chip(ThemePack pack, String label, {Color? color, IconData? icon}) {
-    final tint = color ?? pack.textMuted;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 13, color: tint),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: tint,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+  Widget _chip(
+    String label, {
+    Color color = OnboardingTheme.muted,
+    IconData? icon,
+  }) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+        ],
+        Flexible(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 
-  Widget _skinAction(
-    ThemePack pack,
-    ArrowSkin skin,
-    bool owned,
-    bool selected,
-    bool available,
-  ) {
+  Widget _skinAction(ArrowSkin skin, bool owned, bool selected, bool available) {
     if (selected) {
       return _chip(
-        pack,
         strings.selected,
-        color: pack.turquoise,
+        color: OnboardingTheme.teal,
         icon: Icons.check_rounded,
       );
     }
     if (owned) {
       return _pill(
-        pack,
-        color: pack.turquoise,
+        color: OnboardingTheme.teal,
         onTap: _busy
             ? null
             : () async {
@@ -434,21 +379,20 @@ class _ShopScreenState extends State<ShopScreen> {
                   setState(() {});
                 }
               },
-        child: Text(strings.select, style: _pillText(pack)),
+        child: Text(strings.select, style: _pillText(OnboardingTheme.bgTop)),
       );
     }
     if (!available) {
-      return _chip(pack, strings.unlockAt80, icon: Icons.lock_rounded);
+      return _chip(strings.unlockAt80, icon: Icons.lock_rounded);
     }
     if (skin.price == 0) {
-      return _chip(pack, strings.skinUnlocked, color: pack.turquoise);
+      return _chip(strings.skinUnlocked, color: OnboardingTheme.teal);
     }
     return _pill(
-      pack,
       onTap: _busy || widget.save.coins < skin.price
           ? null
           : () => _buySkin(skin),
-      child: _price(pack, skin.price),
+      child: _price(skin.price),
     );
   }
 
