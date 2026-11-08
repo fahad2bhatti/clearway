@@ -6,6 +6,7 @@ import '../../core/username_rules.dart';
 import '../../data/local_save.dart';
 import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
+import 'onboarding_widgets.dart';
 
 class UsernameScreen extends StatefulWidget {
   const UsernameScreen({
@@ -71,266 +72,171 @@ class _UsernameScreenState extends State<UsernameScreen> {
     }
   }
 
+  OutlineInputBorder _border(Color color, [double width = 1]) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: color, width: width),
+      );
+
   @override
   Widget build(BuildContext context) {
     final length = _controller.text.length;
     final isValid = _validate() == null && length >= 3;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final hasError = _error != null;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: OnboardingTheme.background),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(24, 16, 24, bottomInset > 0 ? 12 : 32),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    child: Column(
+    return OnboardingPage(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, bottomInset > 0 ? 12 : 28),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const OnboardingKicker('Last step'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pick your driver name',
+                    style: OnboardingTheme.display(44),
+                  ),
+                  const SizedBox(height: 28),
+                  TextField(
+                    controller: _controller,
+                    maxLength: UsernameRules.maxLength,
+                    style: const TextStyle(
+                      color: OnboardingTheme.cream,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    cursorColor: OnboardingTheme.accent,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (isValid && !_busy) _submit();
+                    },
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
+                    ],
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: OnboardingTheme.surface,
+                      counterText: '',
+                      hintText: 'DriverName',
+                      hintStyle: const TextStyle(color: OnboardingTheme.muted),
+                      suffixText: '$length/${UsernameRules.maxLength}',
+                      suffixStyle: const TextStyle(
+                        color: OnboardingTheme.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
+                      ),
+                      border: _border(OnboardingTheme.line),
+                      enabledBorder: _border(
+                        hasError ? OnboardingTheme.hot : OnboardingTheme.line,
+                      ),
+                      focusedBorder: _border(
+                        hasError ? OnboardingTheme.hot : OnboardingTheme.accent,
+                        1.5,
+                      ),
+                    ),
+                  ),
+                  if (hasError) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      _error!,
+                      style: const TextStyle(
+                        color: OnboardingTheme.hot,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ] else if (isValid) ...[
+                    const SizedBox(height: 10),
+                    const Row(
                       children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: OnboardingTheme.teal,
+                          size: 18,
+                        ),
+                        SizedBox(width: 6),
                         Text(
-                          'STEP 1 OF 1',
+                          'Nice! This name looks good.',
                           style: TextStyle(
                             color: OnboardingTheme.teal,
+                            fontWeight: FontWeight.w700,
                             fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 2,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Pick your driver name',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: OnboardingTheme.cream,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          width: 96,
-                          height: 96,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF4B3AB5), Color(0xFF241A4A)],
-                            ),
-                            border: Border.all(
-                              color: OnboardingTheme.gold,
-                              width: 4,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: OnboardingTheme.gold
-                                    .withValues(alpha: 0.35),
-                                blurRadius: 24,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.directions_bus_filled_rounded,
-                            size: 44,
-                            color: OnboardingTheme.gold,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          height: 60,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF33256B),
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: OnboardingTheme.gold,
-                              width: 2.5,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _controller,
-                                  maxLength: UsernameRules.maxLength,
-                                  style: const TextStyle(
-                                    color: OnboardingTheme.cream,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  cursorColor: OnboardingTheme.gold,
-                                  textInputAction: TextInputAction.done,
-                                  onSubmitted: (_) {
-                                    if (isValid && !_busy) _submit();
-                                  },
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp(r'[a-zA-Z0-9_]'),
-                                    ),
-                                  ],
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                    counterText: '',
-                                    hintText: 'DriverName',
-                                    hintStyle: TextStyle(
-                                      color: OnboardingTheme.muted,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '$length/${UsernameRules.maxLength}',
-                                style: TextStyle(
-                                  color: OnboardingTheme.muted,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (_error != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            _error!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Color(0xFFFF6B6B),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ] else if (isValid) ...[
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: OnboardingTheme.teal,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Nice! This name looks good.',
-                                style: TextStyle(
-                                  color: OnboardingTheme.teal,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 18),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Suggestions',
-                            style: TextStyle(
-                              color: OnboardingTheme.muted,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _suggestions.map((name) {
-                            return GestureDetector(
-                              onTap: () {
-                                _controller.text = name;
-                                _controller.selection =
-                                    TextSelection.collapsed(
-                                  offset: name.length,
-                                );
-                                setState(() {});
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 9,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: OnboardingTheme.gold
-                                      .withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: OnboardingTheme.gold,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Text(
-                                  name,
-                                  style: const TextStyle(
-                                    color: OnboardingTheme.gold,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          strings.usernameHelp,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: OnboardingTheme.muted,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                       ],
                     ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: isValid && !_busy
-                      ? () {
-                          OnboardingFeedback.tap(widget.save);
-                          _submit();
-                        }
-                      : null,
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 180),
-                    opacity: isValid && !_busy ? 1.0 : 0.45,
-                    child: Container(
-                      height: 56,
-                      width: double.infinity,
-                      decoration: OnboardingTheme.primaryButton,
-                      alignment: Alignment.center,
-                      child: _busy
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: OnboardingTheme.deepPurple,
-                              ),
-                            )
-                          : const Text(
-                              'START DRIVING',
-                              style: TextStyle(
-                                color: OnboardingTheme.deepPurple,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                              ),
+                  ],
+                  const SizedBox(height: 28),
+                  const Text('SUGGESTIONS', style: OnboardingTheme.label),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _suggestions.map((name) {
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          _controller.text = name;
+                          _controller.selection = TextSelection.collapsed(
+                            offset: name.length,
+                          );
+                          setState(() {});
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: OnboardingTheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: OnboardingTheme.line),
+                          ),
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              color: OnboardingTheme.cream,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
                             ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    strings.usernameHelp,
+                    style: const TextStyle(
+                      color: OnboardingTheme.muted,
+                      fontSize: 12,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
-        ),
+          OnboardingButton(
+            label: 'Start driving',
+            busy: _busy,
+            onTap: isValid && !_busy
+                ? () {
+                    OnboardingFeedback.tap(widget.save);
+                    _submit();
+                  }
+                : null,
+          ),
+        ],
       ),
     );
   }

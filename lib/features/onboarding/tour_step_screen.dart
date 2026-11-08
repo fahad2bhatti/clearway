@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/local_save.dart';
 import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
+import 'onboarding_widgets.dart';
 
 class TourStep {
   const TourStep({
@@ -14,7 +15,11 @@ class TourStep {
 
   final String title;
   final String body;
+
+  /// Kept for callers; the illustration itself is drawn by [ArrowGridArt].
   final IconData icon;
+
+  /// Colour of the highlighted tile in this step's illustration.
   final Color accent;
 }
 
@@ -39,174 +44,125 @@ class TourStepScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLast = index == total - 1;
+    final counter = display(22);
+    final totalLabel = '$total'.padLeft(2, '0');
 
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: OnboardingTheme.background),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: onSkip,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        'Skip',
-                        style: TextStyle(
-                          color: OnboardingTheme.muted,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
+    return OnboardingPage(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '${index + 1}'.padLeft(2, '0'),
+                      style: counter,
+                    ),
+                    TextSpan(
+                      text: ' / $totalLabel',
+                      style: display(22, color: OnboardingTheme.muted),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: onSkip,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: OnboardingTheme.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: OnboardingTheme.line),
+                  ),
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(
+                      color: OnboardingTheme.muted,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          OnboardingTheme.cardPurple,
-                          OnboardingTheme.cardPurpleDark,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(36),
-                      border: Border.all(color: OnboardingTheme.gold, width: 3),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(step.icon, size: 96, color: step.accent),
-                        if (index == 0) ...[
-                          const SizedBox(height: 16),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 40),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _miniBus(const Color(0xFFFF6B6B)),
-                                _miniBus(const Color(0xFF4ECDC4)),
-                                _miniBus(const Color(0xFFFFB627)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  step.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: OnboardingTheme.cream,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  step.body,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: OnboardingTheme.muted,
-                    fontSize: 15,
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(total, (i) {
-                    final active = i == index;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: active ? 28 : 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: active
-                            ? OnboardingTheme.gold
-                            : Colors.white.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 22),
-                GestureDetector(
-                  onTap: () {
-                    OnboardingFeedback.tap(save);
-                    onNext();
-                  },
-                  child: Container(
-                    height: 56,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color:
-                          isLast ? OnboardingTheme.gold : OnboardingTheme.teal,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isLast
-                              ? OnboardingTheme.goldDark
-                              : const Color(0xFF138A7A),
-                          offset: const Offset(0, 5),
-                          blurRadius: 0,
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      isLast ? 'START PLAYING' : 'NEXT',
-                      style: const TextStyle(
-                        color: OnboardingTheme.deepPurple,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(child: _heroCard()),
+          const SizedBox(height: 24),
+          Text(step.title, style: OnboardingTheme.display(40)),
+          const SizedBox(height: 10),
+          Text(
+            step.body,
+            style: const TextStyle(
+              color: OnboardingTheme.muted,
+              fontSize: 16,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ),
+          const SizedBox(height: 24),
+          OnboardingProgress(index: index, total: total),
+          const SizedBox(height: 20),
+          OnboardingButton(
+            label: isLast ? 'Start playing' : 'Next',
+            onTap: () {
+              OnboardingFeedback.tap(save);
+              onNext();
+            },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _miniBus(Color color) {
+  TextStyle display(double size, {Color color = OnboardingTheme.cream}) =>
+      OnboardingTheme.display(size, color: color);
+
+  Widget _heroCard() {
+    final onHero = step.accent.computeLuminance() > 0.5
+        ? OnboardingTheme.bgTop
+        : OnboardingTheme.onAccent;
     return Container(
-      width: 56,
-      height: 36,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(10),
+        color: OnboardingTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: OnboardingTheme.line),
       ),
-      child: const Icon(
-        Icons.arrow_forward_rounded,
-        color: Colors.white,
-        size: 22,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -6,
+            bottom: -34,
+            child: Text(
+              '${index + 1}',
+              style: OnboardingTheme.display(
+                190,
+                color: step.accent.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: ArrowGridArt(
+                step: index,
+                tile: OnboardingTheme.line,
+                glyph: OnboardingTheme.muted.withValues(alpha: 0.7),
+                hero: step.accent,
+                heroGlyph: onHero,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
