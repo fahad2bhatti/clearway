@@ -43,43 +43,19 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     resizeToAvoidBottomInset: false,
+    backgroundColor: OnboardingTheme.bgTop,
     bottomNavigationBar: const ClearwayBanner(),
-    body: DecoratedBox(
-      decoration: const BoxDecoration(gradient: OnboardingTheme.background),
-      child: SafeArea(
-        child: Stack(
-          children: [
-            const Positioned.fill(
-              child: RepaintBoundary(child: _HomeBackdrop()),
-            ),
-            const Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 26,
-              child: RepaintBoundary(child: _Bunting()),
-            ),
-            LayoutBuilder(
-              builder: (context, constraints) => SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: IntrinsicHeight(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 34, 22, 12),
-                      child: _content(context),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+    body: SafeArea(
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        child: _content(context),
       ),
     ),
   );
 
   Widget _content(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Row(
         children: [
@@ -100,121 +76,47 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      const SizedBox(height: 18),
-      Text(
-        strings.homeHeadline,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 36,
-          height: 1.05,
-          fontWeight: FontWeight.w900,
-          color: OnboardingTheme.cream,
-          letterSpacing: -0.5,
-          shadows: [Shadow(color: Color(0x66000000), offset: Offset(0, 3))],
-        ),
-      ),
-      const SizedBox(height: 6),
-      Text(
-        strings.homeDescription,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: OnboardingTheme.muted,
-          fontSize: 13,
-          height: 1.35,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      const Spacer(),
-      const RepaintBoundary(child: _BoardCard()),
-      const SizedBox(height: 14),
-      _LevelPill(
+      const SizedBox(height: 20),
+      _HeroCard(
         label: strings.level,
         level: currentLevel,
-        onTap: () => _showLevels(context, save, onPlay),
+        playLabel: strings.startDriving,
+        levelsTooltip: strings.chooseYard,
+        onPlay: () => onPlay(currentLevel),
+        onLevels: () => _showLevels(context, save, onPlay),
       ),
-      const Spacer(),
-      _PlayPulse(
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(28),
-            onTap: () => onPlay(currentLevel),
-            child: Ink(
-              height: 60,
-              decoration: OnboardingTheme.primaryButton,
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.play_arrow_rounded,
-                      size: 30,
-                      color: OnboardingTheme.deepPurple,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      strings.startDriving.toUpperCase(),
-                      style: const TextStyle(
-                        color: OnboardingTheme.deepPurple,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+      const SizedBox(height: 12),
+      const RepaintBoundary(child: _BoardCard()),
+      const SizedBox(height: 12),
+      _DailyRushCard(
+        strings: strings,
+        streak: save.streak,
+        onTap: onDaily,
+        onCalendar: () => showCalendar(context, save),
       ),
-      const SizedBox(height: 16),
-      _DailyRushCard(strings: strings, streak: save.streak, onTap: onDaily),
       const SizedBox(height: 12),
       Row(
         children: [
-          _TrophyButton(
-            hasReward: _hasClaimableReward(save),
-            tooltip: strings.achievements,
-            onTap: () => _showGoals(context),
-          ),
-          const SizedBox(width: 10),
-          _SquareAction(
-            icon: Icons.calendar_month_rounded,
-            color: OnboardingTheme.teal,
-            tooltip: strings.dailyCalendar,
-            onTap: () => showCalendar(context, save),
-          ),
-          const SizedBox(width: 10),
-          _SquareAction(
-            icon: Icons.grid_view_rounded,
-            color: _pink,
-            tooltip: strings.chooseYard,
-            onTap: () => _showLevels(context, save, onPlay),
-          ),
-          const SizedBox(width: 10),
           Expanded(
-            child: _ShopButton(label: strings.yardShop, onTap: onShop),
+            child: _MenuTile(
+              label: strings.achievements,
+              showDot: _hasClaimableReward(save),
+              onTap: () => _showGoals(context),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _MenuTile(label: strings.yardShop, onTap: onShop),
           ),
         ],
       ),
       if (save.giftDay != DailyClock.dayKey()) ...[
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         _GiftChip(
           label: strings.dailyGift(LocalSave.dailyGiftCoins),
           onTap: () => _claimDailyGift(context),
         ),
       ],
-      const SizedBox(height: 14),
-      Text(
-        strings.tagline,
-        style: TextStyle(
-          color: OnboardingTheme.muted.withValues(alpha: 0.75),
-          fontSize: 11,
-          letterSpacing: 1.5,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     ],
   );
 
@@ -1087,7 +989,7 @@ class _PreviewBoardPainter extends CustomPainter {
       Offset.zero & size,
       const Radius.circular(13),
     );
-    canvas.drawRRect(boardRect, Paint()..color = const Color(0xff241A5E));
+    canvas.drawRRect(boardRect, Paint()..color = OnboardingTheme.surfaceAlt);
     final grid = Paint()
       ..color = Colors.white.withValues(alpha: 0.07)
       ..strokeWidth = 1;
@@ -1249,402 +1151,6 @@ class _PreviewBoardPainter extends CustomPainter {
 // New home widgets (Figma design)
 // ---------------------------------------------------------------------------
 
-class _SyncPill extends StatelessWidget {
-  const _SyncPill({
-    required this.status,
-    required this.strings,
-    required this.ur,
-    required this.onTap,
-  });
-
-  final CloudSyncStatus status;
-  final ClearwayStrings strings;
-  final bool ur;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ok = status == CloudSyncStatus.synced;
-    final label = switch (status) {
-      CloudSyncStatus.synced => ur ? strings.synced : 'Synced',
-      CloudSyncStatus.syncing => ur ? strings.syncing : 'Syncing…',
-      CloudSyncStatus.offline => ur ? strings.offline : 'Offline',
-      CloudSyncStatus.failed => ur ? strings.cloudError : 'Sync error',
-      CloudSyncStatus.notConfigured =>
-        ur ? strings.cloudUnavailable : 'Local only',
-    };
-    final color = ok ? OnboardingTheme.teal : OnboardingTheme.muted;
-    return Semantics(
-      button: true,
-      label: label,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: OnboardingTheme.deepPurple.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: 0.5)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                ok ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                size: 16,
-                color: color,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CoinChip extends StatelessWidget {
-  const _CoinChip({required this.coins});
-
-  final int coins;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: OnboardingTheme.deepPurple.withValues(alpha: 0.75),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: OnboardingTheme.gold.withValues(alpha: 0.5)),
-    ),
-    child: Text(
-      '🪙 $coins',
-      style: const TextStyle(
-        color: OnboardingTheme.cream,
-        fontSize: 13,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
-}
-
-/// Rounded-square outlined icon button (settings / calendar / levels).
-class _SquareAction extends StatelessWidget {
-  const _SquareAction({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    this.tooltip,
-  });
-
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  final String? tooltip;
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip ?? '',
-    child: InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color, width: 2),
-        ),
-        child: Icon(icon, color: color, size: 24),
-      ),
-    ),
-  );
-}
-
-/// Trophy button: the pink dot bounces when a reward is ready to claim.
-class _TrophyButton extends StatefulWidget {
-  const _TrophyButton({
-    required this.hasReward,
-    required this.onTap,
-    this.tooltip,
-  });
-
-  final bool hasReward;
-  final VoidCallback onTap;
-  final String? tooltip;
-
-  @override
-  State<_TrophyButton> createState() => _TrophyButtonState();
-}
-
-class _TrophyButtonState extends State<_TrophyButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  );
-
-  void _sync() {
-    final reduce = MediaQuery.of(context).disableAnimations;
-    if (widget.hasReward && !reduce) {
-      if (!_controller.isAnimating) _controller.repeat();
-    } else {
-      _controller.stop();
-      _controller.value = 0;
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(covariant _TrophyButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _sync();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Stack(
-    clipBehavior: Clip.none,
-    children: [
-      _SquareAction(
-        icon: Icons.emoji_events_rounded,
-        color: OnboardingTheme.gold,
-        tooltip: widget.tooltip,
-        onTap: widget.onTap,
-      ),
-      if (widget.hasReward)
-        Positioned(
-          right: 5,
-          top: 5,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) => Transform.translate(
-              offset: Offset(0, -4 * math.sin(_controller.value * math.pi)),
-              child: child,
-            ),
-            child: const CircleAvatar(
-              radius: 5,
-              backgroundColor: HomeScreen._pink,
-            ),
-          ),
-        ),
-    ],
-  );
-}
-
-class _ShopButton extends StatelessWidget {
-  const _ShopButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Ink(
-        height: 52,
-        decoration: BoxDecoration(
-          color: OnboardingTheme.gold,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(color: OnboardingTheme.goldDark, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.storefront_rounded,
-              size: 22,
-              color: OnboardingTheme.deepPurple,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: OnboardingTheme.deepPurple,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _GiftChip extends StatelessWidget {
-  const _GiftChip({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(18),
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: HomeScreen._pink.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: HomeScreen._pink.withValues(alpha: 0.7)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.card_giftcard_rounded,
-            size: 18,
-            color: HomeScreen._pink,
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: OnboardingTheme.cream,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _LevelPill extends StatelessWidget {
-  const _LevelPill({
-    required this.label,
-    required this.level,
-    required this.onTap,
-  });
-
-  final String label;
-  final int level;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(20),
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
-      decoration: BoxDecoration(
-        color: OnboardingTheme.deepPurple.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: OnboardingTheme.muted,
-              fontSize: 12,
-              letterSpacing: 2,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$level',
-            style: const TextStyle(
-              color: OnboardingTheme.gold,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _DailyRushCard extends StatelessWidget {
-  const _DailyRushCard({
-    required this.strings,
-    required this.streak,
-    required this.onTap,
-  });
-
-  final ClearwayStrings strings;
-  final int streak;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(20),
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: OnboardingTheme.teal.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: OnboardingTheme.teal, width: 2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: HomeScreen._pink.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.local_fire_department_rounded,
-              color: HomeScreen._pink,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _DailyRushLabel(strings: strings, streak: streak),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: OnboardingTheme.muted,
-            size: 24,
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 /// Owns its own 1-second timer so only this label rebuilds for the
 /// countdown; the timer is cancelled on dispose.
 class _DailyRushLabel extends StatefulWidget {
@@ -1713,154 +1219,381 @@ class _DailyRushLabelState extends State<_DailyRushLabel> {
   }
 }
 
+// home-v2
+class _SyncPill extends StatelessWidget {
+  const _SyncPill({
+    required this.status,
+    required this.strings,
+    required this.ur,
+    required this.onTap,
+  });
+
+  final CloudSyncStatus status;
+  final ClearwayStrings strings;
+  final bool ur;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ok = status == CloudSyncStatus.synced;
+    final label = switch (status) {
+      CloudSyncStatus.synced => ur ? strings.synced : 'Synced',
+      CloudSyncStatus.syncing => ur ? strings.syncing : 'Syncing…',
+      CloudSyncStatus.offline => ur ? strings.offline : 'Offline',
+      CloudSyncStatus.failed => ur ? strings.cloudError : 'Sync error',
+      CloudSyncStatus.notConfigured =>
+        ur ? strings.cloudUnavailable : 'Local only',
+    };
+    final color = ok ? OnboardingTheme.teal : OnboardingTheme.muted;
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: label,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(
+              ok ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+              size: 22,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoinChip extends StatelessWidget {
+  const _CoinChip({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: OnboardingTheme.surface,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: OnboardingTheme.line),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            color: OnboardingTheme.coin,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text('$coins', style: OnboardingTheme.display(18)),
+      ],
+    ),
+  );
+}
+
+/// Flat bordered icon button (settings / calendar).
+class _SquareAction extends StatelessWidget {
+  const _SquareAction({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: tooltip ?? '',
+    child: InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: OnboardingTheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: OnboardingTheme.line),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+    ),
+  );
+}
+
+/// Level + PLAY. Ghost level number sits behind, cropped by the card.
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.label,
+    required this.level,
+    required this.playLabel,
+    required this.levelsTooltip,
+    required this.onPlay,
+    required this.onLevels,
+  });
+
+  final String label;
+  final int level;
+  final String playLabel;
+  final String levelsTooltip;
+  final VoidCallback onPlay;
+  final VoidCallback onLevels;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: OnboardingTheme.accent,
+    borderRadius: BorderRadius.circular(20),
+    clipBehavior: Clip.antiAlias,
+    child: Stack(
+      children: [
+        Positioned(
+          right: -8,
+          bottom: -28,
+          child: Text(
+            '$level',
+            style: OnboardingTheme.display(
+              150,
+              color: OnboardingTheme.onAccent.withValues(alpha: 0.14),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: OnboardingTheme.label.copyWith(
+                  color: OnboardingTheme.onAccent.withValues(alpha: 0.75),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$level',
+                style: OnboardingTheme.display(
+                  76,
+                  color: OnboardingTheme.onAccent,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Material(
+                color: OnboardingTheme.onAccent,
+                borderRadius: BorderRadius.circular(30),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(30),
+                  onTap: onPlay,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 14,
+                    ),
+                    child: Text(
+                      playLabel.toUpperCase(),
+                      style: const TextStyle(
+                        color: OnboardingTheme.accent,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: Tooltip(
+            message: levelsTooltip,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onLevels,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(
+                  Icons.grid_view_rounded,
+                  size: 22,
+                  color: OnboardingTheme.onAccent.withValues(alpha: 0.85),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _BoardCard extends StatelessWidget {
   const _BoardCard();
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [OnboardingTheme.cardPurple, OnboardingTheme.cardPurpleDark],
-      ),
-      borderRadius: BorderRadius.circular(28),
-      border: Border.all(color: OnboardingTheme.gold, width: 3),
+      color: OnboardingTheme.surface,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: OnboardingTheme.line),
     ),
     child: const AspectRatio(aspectRatio: 1.6, child: _PreviewBoard()),
   );
 }
 
-/// Bunting flags along the top edge.
-class _Bunting extends StatelessWidget {
-  const _Bunting();
+class _DailyRushCard extends StatelessWidget {
+  const _DailyRushCard({
+    required this.strings,
+    required this.streak,
+    required this.onTap,
+    required this.onCalendar,
+  });
+
+  final ClearwayStrings strings;
+  final int streak;
+  final VoidCallback onTap;
+  final VoidCallback onCalendar;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: _BuntingPainter());
-}
-
-class _BuntingPainter extends CustomPainter {
-  static const _colors = [
-    Color(0xff22c7b0),
-    Color(0xffff5c8d),
-    Color(0xffffb627),
-  ];
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const flagW = 22.0;
-    const flagH = 20.0;
-    final count = (size.width / flagW).ceil();
-    for (var i = 0; i < count; i++) {
-      final x = i * flagW;
-      final path = Path()
-        ..moveTo(x, 0)
-        ..lineTo(x + flagW, 0)
-        ..lineTo(x + flagW / 2, flagH)
-        ..close();
-      canvas.drawPath(path, Paint()..color = _colors[i % _colors.length]);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _HomeBackdrop extends StatelessWidget {
-  const _HomeBackdrop();
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(painter: _BackdropPainter());
-}
-
-class _BackdropPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    void glow(Offset c, double r, Color color) {
-      canvas.drawCircle(
-        c,
-        r,
-        Paint()
-          ..shader = RadialGradient(
-            colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0)],
-          ).createShader(Rect.fromCircle(center: c, radius: r)),
-      );
-    }
-
-    glow(
-      Offset(size.width * .15, size.height * .35),
-      size.width * .7,
-      const Color(0xffff5c8d),
-    );
-    glow(
-      Offset(size.width * .9, size.height * .7),
-      size.width * .8,
-      const Color(0xff22c7b0),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Play button gently pulses (scale + gold glow) to draw attention.
-class _PlayPulse extends StatefulWidget {
-  const _PlayPulse({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_PlayPulse> createState() => _PlayPulseState();
-}
-
-class _PlayPulseState extends State<_PlayPulse>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.of(context).disableAnimations) {
-      _controller.stop();
-      _controller.value = 0;
-    } else if (!_controller.isAnimating) {
-      _controller.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _controller,
-    child: widget.child,
-    builder: (context, child) {
-      final e = Curves.easeInOut.transform(_controller.value);
-      return Transform.scale(
-        scale: 1 + 0.025 * e,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: OnboardingTheme.gold.withValues(alpha: 0.12 + 0.25 * e),
-                blurRadius: 12 + 14 * e,
-                spreadRadius: 1 + 2 * e,
-              ),
-            ],
-          ),
-          child: child,
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: OnboardingTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: OnboardingTheme.line),
         ),
-      );
-    },
+        child: Row(
+          children: [
+            const Icon(
+              Icons.local_fire_department_rounded,
+              color: OnboardingTheme.hot,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _DailyRushLabel(strings: strings, streak: streak),
+            ),
+            const SizedBox(width: 8),
+            _SquareAction(
+              icon: Icons.calendar_month_rounded,
+              color: OnboardingTheme.muted,
+              tooltip: strings.dailyCalendar,
+              onTap: onCalendar,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _MenuTile extends StatelessWidget {
+  const _MenuTile({
+    required this.label,
+    required this.onTap,
+    this.showDot = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool showDot;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Ink(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: OnboardingTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: OnboardingTheme.line),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: OnboardingTheme.cream,
+                  fontSize: 13,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            if (showDot)
+              const CircleAvatar(radius: 4, backgroundColor: HomeScreen._pink),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _GiftChip extends StatelessWidget {
+  const _GiftChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: OnboardingTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: HomeScreen._pink.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            const CircleAvatar(radius: 4, backgroundColor: HomeScreen._pink),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: OnboardingTheme.cream,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }

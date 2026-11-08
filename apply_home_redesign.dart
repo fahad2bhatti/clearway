@@ -536,7 +536,7 @@ void main(List<String> args) {
   final home = Platform.environment['HOME'] ?? '.';
   final dir = Directory('$home/clearway_backups')..createSync(recursive: true);
   final backup =
-      '${dir.path}/home_screen_${DateTime.now().millisecondsStinceEpoch}.dart';
+      '${dir.path}/home_screen_${DateTime.now().millisecondsSinceEpoch}.dart';
   file.copySync(backup);
   stdout.writeln('✅ Backup: $backup');
 
