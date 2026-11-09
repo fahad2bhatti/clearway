@@ -140,10 +140,14 @@ class OnboardingProgress extends StatelessWidget {
 /// Flat illustration of the game board: a grid of arrow tiles with one
 /// highlighted. [step] picks what the highlight is showing:
 /// -1 plain, 0 tap ring, 1 laser path, 2 coins + hint outline.
+///
+/// With [fill] the grid takes all the space it is given and adds rows to fit
+/// (a fixed decorative pattern), instead of keeping the 6x4 tour layout.
 class ArrowGridArt extends StatelessWidget {
   const ArrowGridArt({
     super.key,
     this.step = -1,
+    this.fill = false,
     required this.tile,
     required this.glyph,
     required this.hero,
@@ -151,29 +155,34 @@ class ArrowGridArt extends StatelessWidget {
   });
 
   final int step;
+  final bool fill;
   final Color tile;
   final Color glyph;
   final Color hero;
   final Color heroGlyph;
 
   @override
-  Widget build(BuildContext context) => AspectRatio(
-    aspectRatio: 1.5,
-    child: CustomPaint(
+  Widget build(BuildContext context) {
+    final art = CustomPaint(
       painter: _ArrowGridPainter(
         step: step,
+        fill: fill,
         tile: tile,
         glyph: glyph,
         hero: hero,
         heroGlyph: heroGlyph,
       ),
-    ),
-  );
+    );
+    return fill
+        ? SizedBox.expand(child: art)
+        : AspectRatio(aspectRatio: 1.5, child: art);
+  }
 }
 
 class _ArrowGridPainter extends CustomPainter {
   const _ArrowGridPainter({
     required this.step,
+    required this.fill,
     required this.tile,
     required this.glyph,
     required this.hero,
@@ -181,18 +190,20 @@ class _ArrowGridPainter extends CustomPainter {
   });
 
   final int step;
+  final bool fill;
   final Color tile;
   final Color glyph;
   final Color hero;
   final Color heroGlyph;
 
   static const _cols = 6;
-  static const _rows = 4;
-  static const _heroIndex = 5;
+  static const _tourRows = 4;
+  static const _heroCol = 1;
+  static const _tourHeroRow = 1;
 
   /// column, row, direction (0 right, 1 down, 2 left, 3 up).
   /// Row 1 right of the hero tile is empty, so its exit path is clear.
-  static const _tiles = [
+  static const _tourTiles = [
     [0, 0, 0],
     [2, 0, 1],
     [4, 0, 3],
@@ -208,13 +219,47 @@ class _ArrowGridPainter extends CustomPainter {
     [4, 3, 3],
   ];
 
+  static const _mask = 0x7fffffff;
+
+  static int _hash(int col, int row) {
+    var x = (col * 73856093 + row * 19349663 + 83492791) & _mask;
+    x = ((x ^ (x >> 15)) * 40503) & _mask;
+    x = ((x ^ (x >> 13)) * 40503) & _mask;
+    return x ^ (x >> 16);
+  }
+
+  /// Same pattern on every launch. The 3x3 block around the hero is left
+  /// empty so the tap ring never cuts into a neighbouring tile.
+  static List<List<int>> _fillTiles(int rows, int heroRow) {
+    final tiles = <List<int>>[];
+    for (var row = 0; row < rows; row++) {
+      for (var col = 0; col < _cols; col++) {
+        if ((col - _heroCol).abs() <= 1 && (row - heroRow).abs() <= 1) continue;
+        final h = _hash(col, row);
+        if (h % 100 < 55) tiles.add([col, row, (h >> 8) % 4]);
+      }
+    }
+    tiles.add([_heroCol, heroRow, 0]);
+    return tiles;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    final cell = math.min(size.width / _cols, size.height / _rows);
+    final double cell;
+    final int rows;
+    if (fill) {
+      cell = size.width / _cols;
+      rows = math.max(1, (size.height / cell).floor());
+    } else {
+      cell = math.min(size.width / _cols, size.height / _tourRows);
+      rows = _tourRows;
+    }
     final dx = (size.width - cell * _cols) / 2;
-    final dy = (size.height - cell * _rows) / 2;
+    final dy = (size.height - cell * rows) / 2;
     final gap = cell * 0.08;
     final radius = Radius.circular(cell * 0.22);
+    final heroRow = fill ? (rows - 1) ~/ 2 : _tourHeroRow;
+    final tiles = fill ? _fillTiles(rows, heroRow) : _tourTiles;
 
     Rect rectFor(int col, int row) => Rect.fromLTWH(
       dx + col * cell + gap,
@@ -223,11 +268,10 @@ class _ArrowGridPainter extends CustomPainter {
       cell - 2 * gap,
     );
 
-    for (var i = 0; i < _tiles.length; i++) {
-      final t = _tiles[i];
+    for (final t in tiles) {
       final rect = rectFor(t[0], t[1]);
       final rrect = RRect.fromRectAndRadius(rect, radius);
-      final isHero = i == _heroIndex;
+      final isHero = t[0] == _heroCol && t[1] == heroRow;
       final outlined = isHero && step == 2;
       if (outlined) {
         canvas.drawRRect(
@@ -248,7 +292,7 @@ class _ArrowGridPainter extends CustomPainter {
       );
     }
 
-    final heroRect = rectFor(1, 1);
+    final heroRect = rectFor(_heroCol, heroRow);
     if (step == 0) {
       final ring = Paint()
         ..style = PaintingStyle.stroke
@@ -281,14 +325,12 @@ class _ArrowGridPainter extends CustomPainter {
         );
       }
     } else if (step == 2) {
+      final coin = Paint()..color = OnboardingTheme.coin;
+      final shine = Paint()..color = const Color(0x33000000);
       for (final col in const [3, 5]) {
-        final center = rectFor(col, 1).center;
-        canvas.drawCircle(center, cell * 0.2, Paint()..color = OnboardingTheme.coin);
-        canvas.drawCircle(
-          center,
-          cell * 0.11,
-          Paint()..color = const Color(0x33000000),
-        );
+        final center = rectFor(col, heroRow).center;
+        canvas.drawCircle(center, cell * 0.2, coin);
+        canvas.drawCircle(center, cell * 0.11, shine);
       }
     }
   }
@@ -314,6 +356,7 @@ class _ArrowGridPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ArrowGridPainter old) =>
       old.step != step ||
+      old.fill != fill ||
       old.tile != tile ||
       old.glyph != glyph ||
       old.hero != hero ||

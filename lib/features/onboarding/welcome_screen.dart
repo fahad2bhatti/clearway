@@ -33,18 +33,19 @@ class WelcomeScreen extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: OnboardingTheme.accent,
+                  color: OnboardingTheme.surface,
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: OnboardingTheme.line),
                 ),
-                child: const Center(
-                  child: ArrowGridArt(
-                    tile: Color(0x24000000),
-                    glyph: Color(0x66000000),
-                    hero: OnboardingTheme.onAccent,
-                    heroGlyph: OnboardingTheme.accent,
-                  ),
+                child: ArrowGridArt(
+                  fill: true,
+                  step: 0,
+                  tile: OnboardingTheme.line,
+                  glyph: OnboardingTheme.muted.withValues(alpha: 0.7),
+                  hero: OnboardingTheme.accent,
+                  heroGlyph: OnboardingTheme.onAccent,
                 ),
               ),
             ),
