@@ -1,49 +1,56 @@
-# Waqt
+# Clearway: Arrow Puzzle
 
-Waqt is an Android app for accurate prayer times and a calm Azan, built with Flutter. Prayer times are calculated on your phone, your prayer history stays on your phone, and there are no accounts and no ads.
+Clearway is a mobile puzzle game built with Flutter and Flame. Every board is packed with arrows, and your job is to tap each one so it slides out of the grid without hitting another. Clear the whole board to win.
 
-Developed by **Fahad Apps** · Android only · Status: preparing for Google Play closed testing
+Developed by **Fahad Apps** · Android first, iOS planned · Status: Google Play closed testing
 
-## Features
+## Gameplay
 
-- **Prayer times** calculated on-device, with 6 calculation methods, Hanafi or Shafi Asr, and per-prayer minute adjustments
-- **Azan alarms** scheduled 30 days ahead, set again after a reboot or time zone change
-- **Azan screen** that opens over the lock screen, from the background, and after swiping the app from recents
-- **Vibration** that keeps going with the Azan even when the phone is on silent
-- **Reminders** after the Azan if the prayer is not ticked, with "I prayed", "Remind again" and 10/20/30 minute options
-- **Prayer log** with a month calendar and streaks
-- **Qibla compass** using the phone's sensors, pointing to true north
-- **Azan protection** check that shows which permissions are missing
-- **Delete all data** in Settings
-- Prayer Mode (app blocker) is planned and shown as "coming soon"
+- **Tap to clear**: tap an arrow and it slides out along its direction. Blocked arrows cost you, so plan the order.
+- **Fully filled boards**: no empty cells, with different shapes and patterns across levels.
+- **Rising difficulty**: arrow count and difficulty grow every 10 levels.
+- **Monster stages**: a very hard level every 5 to 6 levels for players who want a real challenge.
+- **Daily Rush Hour level**: a fresh board every day.
+- **Hints, Undo and Grid Assist** to get unstuck.
+- **Coins and Shop**: earn coins, spend them on hints and undos.
+- **Daily offers**: watch a rewarded ad to get bonus hints and coins.
+- **Sound effects** that follow the media volume.
+- **Accounts**: unique username, with Terms & Conditions and Privacy Policy accepted before play.
 
 ## Tech stack
 
-- Flutter and Dart, feature-first folders (`lib/features/<feature>/{data,providers,presentation}`)
-- Riverpod for state, GoRouter for navigation
-- `adhan_dart` for prayer time calculation
-- `flutter_local_notifications` and native Kotlin code for exact alarms and the lock-screen Azan
-- Firebase Crashlytics for crash reports (release builds only)
+- Flutter and Dart
+- Flame for the game board and animations
+- `flame_audio` for sound effects
+- Firebase (Auth, Firestore)
+- Google Mobile Ads (AdMob) for banner and rewarded ads
+- `flutter_local_notifications` and `flutter_timezone` for reminders
 
 ## Getting started
 
-Requirements: Flutter (Dart `^3.12`), Android SDK, a device or emulator.
+Requirements: Flutter SDK, Android SDK, a device or emulator.
 
 ```bash
-git clone https://github.com/fahad2bhatti/waqt.git
-cd waqt
+git clone https://github.com/fahad2bhatti/clearway.git
+cd clearway
 flutter pub get
 flutter run
 ```
 
-Firebase config (`android/app/google-services.json`) is not in the repository. Create your own Firebase project, add an Android app with the package name `com.fahadapps.waqt`, and place its `google-services.json` in `android/app/`.
+### Firebase
+
+`android/app/google-services.json` is not in the repository. Create your own Firebase project, add an Android app with the package name `com.fahadapps.clearway`, and place its `google-services.json` in `android/app/`.
+
+### Ads
+
+The app ships with Google test ad unit IDs in debug. Release builds use the real AdMob unit IDs set as defaults in `ad_service.dart`. Use your own AdMob IDs if you fork this project.
 
 ### Release build
 
 Create an upload keystore, then add `android/key.properties` (this file and `*.jks` are git-ignored):
 
 ```properties
-storeFile=/absolute/path/to/waqt-upload.jks
+storeFile=/absolute/path/to/upload.jks
 storePassword=...
 keyAlias=upload
 keyPassword=...
@@ -60,17 +67,14 @@ flutter analyze
 flutter test
 ```
 
-## Documentation
+## Known notes
 
-- [Roadmap](docs/ROADMAP.md)
-- [Project documentation](docs/DOCUMENTATION.md)
-- [Terms & Conditions](docs/terms.md)
-- [Privacy Policy](docs/privacy.md)
+- Impeller is disabled in `AndroidManifest.xml` (`EnableImpeller=false`) because of a Vulkan crash seen on Pixel 7a.
 
 ## License
 
-Copyright (c) 2026 Fahad Apps. All rights reserved. See [LICENSE](LICENSE). Third-party packages remain under their own licenses.
+Copyright (c) 2026 Fahad Apps. All rights reserved. Third-party packages remain under their own licenses.
 
 ## Contact
 
-Fahad Apps, Faisalabad, Pakistan · fahadsaeed2622@gmail.com
+Fahad Apps, Faisalabad, Pakistan
