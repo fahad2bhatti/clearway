@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
@@ -36,6 +37,8 @@ class TourStepScreen extends StatelessWidget {
   final int total;
   final VoidCallback onNext;
   final VoidCallback onSkip;
+
+  ClearwayStrings get _s => ClearwayStrings(save.language);
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +81,9 @@ class TourStepScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: OnboardingTheme.line),
                   ),
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(
+                  child: Text(
+                    _s.obSkip,
+                    style: const TextStyle(
                       color: OnboardingTheme.muted,
                       fontWeight: FontWeight.w800,
                       fontSize: 14,
@@ -108,7 +111,7 @@ class TourStepScreen extends StatelessWidget {
           OnboardingProgress(index: index, total: total),
           const SizedBox(height: 20),
           OnboardingButton(
-            label: isLast ? 'Start playing' : 'Next',
+            label: isLast ? _s.obStartPlaying : _s.obNext,
             onTap: () {
               OnboardingFeedback.tap(save);
               onNext();

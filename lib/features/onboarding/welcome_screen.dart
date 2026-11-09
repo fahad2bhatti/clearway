@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
@@ -14,6 +15,8 @@ class WelcomeScreen extends StatelessWidget {
 
   final LocalSave save;
   final VoidCallback onContinue;
+
+  ClearwayStrings get _s => ClearwayStrings(save.language);
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +53,13 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 28),
-            const OnboardingKicker('Welcome to'),
+            OnboardingKicker(_s.obWelcomeKicker),
             const SizedBox(height: 6),
             Text('Clearway', style: OnboardingTheme.display(72)),
             const SizedBox(height: 10),
-            const Text(
-              'Tap the buses. Clear the road.\nBecome the boss of the yard.',
-              style: TextStyle(
+            Text(
+              _s.obWelcomeBody,
+              style: const TextStyle(
                 color: OnboardingTheme.muted,
                 fontSize: 16,
                 height: 1.4,
@@ -65,7 +68,7 @@ class WelcomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             OnboardingButton(
-              label: "Let's roll",
+              label: _s.obLetsRoll,
               onTap: () {
                 OnboardingFeedback.tap(save);
                 onContinue();

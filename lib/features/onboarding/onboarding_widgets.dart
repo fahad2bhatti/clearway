@@ -24,6 +24,36 @@ class OnboardingPage extends StatelessWidget {
   );
 }
 
+/// Small spaced-out caption. Letter spacing breaks joined Urdu letters, so it
+/// is dropped when the app is right-to-left.
+class OnboardingLabel extends StatelessWidget {
+  const OnboardingLabel(
+    this.text, {
+    super.key,
+    this.size = 11,
+    this.spacing = 1.6,
+    this.color = OnboardingTheme.muted,
+  });
+
+  final String text;
+  final double size;
+  final double spacing;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    return Text(
+      text.toUpperCase(),
+      style: OnboardingTheme.label.copyWith(
+        color: color,
+        fontSize: size,
+        letterSpacing: rtl ? 0 : spacing,
+      ),
+    );
+  }
+}
+
 /// Small accent label that sits above a headline.
 class OnboardingKicker extends StatelessWidget {
   const OnboardingKicker(this.text, {super.key});
@@ -31,13 +61,8 @@ class OnboardingKicker extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
-    style: OnboardingTheme.label.copyWith(
-      color: OnboardingTheme.accent,
-      fontSize: 12,
-    ),
-  );
+  Widget build(BuildContext context) =>
+      OnboardingLabel(text, size: 12, color: OnboardingTheme.accent);
 }
 
 /// Full-width pill button. Pass a null [onTap] to show it disabled.
@@ -54,7 +79,7 @@ class OnboardingButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool busy;
 
-  /// Letter spacing breaks joined Urdu letters, so Urdu callers pass 0.
+  /// Ignored (treated as 0) when the app is right-to-left.
   final double letterSpacing;
 
   @override
@@ -94,7 +119,10 @@ class OnboardingButton extends StatelessWidget {
                           color: OnboardingTheme.onAccent,
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: letterSpacing,
+                          letterSpacing:
+                              Directionality.of(context) == TextDirection.rtl
+                              ? 0
+                              : letterSpacing,
                         ),
                       ),
               ),

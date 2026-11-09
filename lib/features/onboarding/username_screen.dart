@@ -82,10 +82,10 @@ class _UsernameScreenState extends State<UsernameScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const OnboardingKicker('Last step'),
+                  OnboardingKicker(strings.obUsernameKicker),
                   const SizedBox(height: 8),
                   Text(
-                    'Pick your driver name',
+                    strings.obUsernameTitle,
                     style: OnboardingTheme.display(44),
                   ),
                   const SizedBox(height: 28),
@@ -149,17 +149,17 @@ class _UsernameScreenState extends State<UsernameScreen> {
                     ),
                   ] else if (isValid) ...[
                     const SizedBox(height: 10),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.check_circle_rounded,
                           color: OnboardingTheme.teal,
                           size: 18,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         Text(
-                          'Nice! This name looks good.',
-                          style: TextStyle(
+                          strings.obUsernameOk,
+                          style: const TextStyle(
                             color: OnboardingTheme.teal,
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
@@ -169,7 +169,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
                     ),
                   ],
                   const SizedBox(height: 28),
-                  const Text('SUGGESTIONS', style: OnboardingTheme.label),
+                  OnboardingLabel(strings.obSuggestions),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -220,7 +220,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
             ),
           ),
           OnboardingButton(
-            label: 'Start driving',
+            label: strings.obStartDriving,
             busy: _busy,
             onTap: isValid && !_busy
                 ? () {

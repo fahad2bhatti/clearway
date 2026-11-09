@@ -54,55 +54,35 @@ class _TermsScreenState extends State<TermsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const OnboardingKicker('One quick thing'),
+          OnboardingKicker(strings.obTermsKicker),
           const SizedBox(height: 8),
-          Text('Rules of the road', style: OnboardingTheme.display(44)),
+          Text(strings.obTermsTitle, style: OnboardingTheme.display(44)),
           const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _rule(
-                    1,
-                    'Play fair',
-                    'No cheats, bots or hacks. Be kind with your driver name.',
-                  ),
-                  _rule(
-                    2,
-                    'Your data',
-                    'Progress and coins are stored on your device and in your account.',
-                  ),
-                  _rule(
-                    3,
-                    'Ads & shop',
-                    'Rewarded ads are optional. Coins and hints have no real-money value.',
-                  ),
-                  _rule(
-                    4,
-                    'You are in control',
-                    'You can delete your account any time from Settings.',
-                  ),
-                  _rule(
-                    5,
-                    'Updates',
-                    'We may improve these rules. Big changes are shown in the app.',
-                  ),
+                  _rule(1, strings.obRule1Title, strings.obRule1Body),
+                  _rule(2, strings.obRule2Title, strings.obRule2Body),
+                  _rule(3, strings.obRule3Title, strings.obRule3Body),
+                  _rule(4, strings.obRule4Title, strings.obRule4Body),
+                  _rule(5, strings.obRule5Title, strings.obRule5Body),
                   const SizedBox(height: 8),
                   Wrap(
                     children: [
                       TextButton(
                         onPressed: () => _open(LegalLinks.termsUrl),
-                        child: const Text(
-                          'Read full Terms',
-                          style: TextStyle(color: OnboardingTheme.accent),
+                        child: Text(
+                          strings.obReadTerms,
+                          style: const TextStyle(color: OnboardingTheme.accent),
                         ),
                       ),
                       TextButton(
                         onPressed: () => _open(LegalLinks.privacyUrl),
-                        child: const Text(
-                          'Privacy Policy',
-                          style: TextStyle(color: OnboardingTheme.accent),
+                        child: Text(
+                          strings.privacyPolicy,
+                          style: const TextStyle(color: OnboardingTheme.accent),
                         ),
                       ),
                     ],
@@ -161,7 +141,6 @@ class _TermsScreenState extends State<TermsScreen> {
           const SizedBox(height: 20),
           OnboardingButton(
             label: strings.termsGateContinue,
-            letterSpacing: widget.save.language == 'ur' ? 0 : 1.2,
             onTap: _agreed && !_accepting ? _accept : null,
           ),
         ],

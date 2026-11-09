@@ -9,6 +9,7 @@ import 'terms_screen.dart';
 import 'username_screen.dart';
 import 'tour_offer_screen.dart';
 import 'tour_step_screen.dart';
+import '../../core/clearway_strings.dart';
 import 'onboarding_theme.dart';
 
 enum _Step { splash, welcome, terms, username, tourOffer, tour0, tour1, tour2 }
@@ -50,23 +51,26 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     // On success, LocalSave notifies → main.dart rebuilds to Home.
   }
 
-  static const _tourSteps = [
-    TourStep(
-      title: 'Tap a bus to send it out',
-      body: 'Pick any bus and tap it. If the road ahead is clear, it drives away.',
-      accent: OnboardingTheme.gold,
-    ),
-    TourStep(
-      title: 'Hold to see the path',
-      body: 'Press and hold a bus. A laser shows exactly where it will exit.',
-      accent: OnboardingTheme.hot,
-    ),
-    TourStep(
-      title: 'Hints & daily rewards',
-      body: 'Stuck? Spend coins on a hint. Come back every day for free coins.',
-      accent: OnboardingTheme.teal,
-    ),
-  ];
+  List<TourStep> get _tourSteps {
+    final s = ClearwayStrings(widget.save.language);
+    return [
+      TourStep(
+        title: s.obTour1Title,
+        body: s.obTour1Body,
+        accent: OnboardingTheme.gold,
+      ),
+      TourStep(
+        title: s.obTour2Title,
+        body: s.obTour2Body,
+        accent: OnboardingTheme.hot,
+      ),
+      TourStep(
+        title: s.obTour3Title,
+        body: s.obTour3Body,
+        accent: OnboardingTheme.teal,
+      ),
+    ];
+  }
 
   _Step? get _previous => switch (_step) {
     _Step.terms => _Step.welcome,
@@ -92,7 +96,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   Widget _buildStep() {
     return switch (_step) {
-      _Step.splash => SplashScreen(onFinished: () => _go(_Step.welcome)),
+      _Step.splash => SplashScreen(
+        save: widget.save,
+        onFinished: () => _go(_Step.welcome),
+      ),
       _Step.welcome => WelcomeScreen(
         save: widget.save,
         onContinue: () => _go(_Step.terms),
