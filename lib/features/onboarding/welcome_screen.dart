@@ -101,12 +101,14 @@ class _LanguageToggle extends StatelessWidget {
         children: [
           _chip('EN', isEn, () {
             if (!isEn) {
+              OnboardingFeedback.tap(save);
               save.language = 'en';
               save.save();
             }
           }),
           _chip('UR', !isEn, () {
             if (isEn) {
+              OnboardingFeedback.tap(save);
               save.language = 'ur';
               save.save();
             }

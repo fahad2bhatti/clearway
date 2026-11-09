@@ -64,7 +64,10 @@ class TourOfferScreen extends StatelessWidget {
           const SizedBox(height: 4),
           Center(
             child: TextButton(
-              onPressed: onSkip,
+              onPressed: () {
+                OnboardingFeedback.tap(save);
+                onSkip();
+              },
               style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
               child: Text(
                 _s.obSkipTour,

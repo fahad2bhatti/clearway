@@ -354,7 +354,8 @@ class _ArrowGridPainter extends CustomPainter {
       }
     } else if (step == 2) {
       final coin = Paint()..color = OnboardingTheme.coin;
-      final shine = Paint()..color = const Color(0x33000000);
+      final shine = Paint()
+        ..color = OnboardingTheme.bgTop.withValues(alpha: 0.2);
       for (final col in const [3, 5]) {
         final center = rectFor(col, heroRow).center;
         canvas.drawCircle(center, cell * 0.2, coin);

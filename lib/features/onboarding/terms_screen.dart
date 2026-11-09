@@ -96,7 +96,10 @@ class _TermsScreenState extends State<TermsScreen> {
             checked: _agreed,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _agreed = !_agreed),
+              onTap: () {
+                OnboardingFeedback.tap(widget.save);
+                setState(() => _agreed = !_agreed);
+              },
               child: Row(
                 children: [
                   AnimatedContainer(

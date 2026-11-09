@@ -178,6 +178,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
                       return InkWell(
                         borderRadius: BorderRadius.circular(20),
                         onTap: () {
+                          OnboardingFeedback.tap(widget.save);
                           _controller.text = name;
                           _controller.selection = TextSelection.collapsed(
                             offset: name.length,
@@ -222,12 +223,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
           OnboardingButton(
             label: strings.obStartDriving,
             busy: _busy,
-            onTap: isValid && !_busy
-                ? () {
-                    OnboardingFeedback.tap(widget.save);
-                    _submit();
-                  }
-                : null,
+            onTap: isValid && !_busy ? _submit : null,
           ),
         ],
       ),

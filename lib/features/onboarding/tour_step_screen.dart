@@ -70,7 +70,10 @@ class TourStepScreen extends StatelessWidget {
               const Spacer(),
               InkWell(
                 borderRadius: BorderRadius.circular(14),
-                onTap: onSkip,
+                onTap: () {
+                  OnboardingFeedback.tap(save);
+                  onSkip();
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 18,
