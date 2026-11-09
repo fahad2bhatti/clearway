@@ -12,6 +12,7 @@ import 'core/clearway_strings.dart';
 import 'core/daily_clock.dart';
 import 'features/home/home_screen.dart';
 import 'features/onboarding/onboarding_flow.dart';
+import 'features/onboarding/onboarding_theme.dart';
 import 'features/shop/shop_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'game/data/level_catalog.dart';
@@ -250,7 +251,7 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
           : TextDirection.ltr,
       child: child ?? const SizedBox.shrink(),
     ),
-    theme: _save.darkTheme ? _darkTheme : _lightTheme,
+    theme: OnboardingTheme.materialTheme,
     home: !_saveLoaded
         ? const Scaffold(body: SizedBox.shrink())
         : !_save.onboardingComplete
@@ -307,38 +308,3 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
 }
 
 enum _AppScreen { home, shop, settings }
-
-// Built once (top-level finals are lazy) instead of on every app rebuild.
-final _darkTheme = _buildTheme(dark: true);
-final _lightTheme = _buildTheme(dark: false);
-
-ThemeData _buildTheme({required bool dark}) {
-  final text = dark ? const Color(0xfffff3d8) : const Color(0xff273238);
-  return ThemeData(
-    useMaterial3: true,
-    brightness: dark ? Brightness.dark : Brightness.light,
-    scaffoldBackgroundColor: dark
-        ? const Color(0xff182329)
-        : const Color(0xfffff8e9),
-    colorScheme: dark
-        ? const ColorScheme.dark(
-            primary: Color(0xffffb347),
-            secondary: Color(0xff4ecac1),
-            surface: Color(0xff25343a),
-            onPrimary: Color(0xff182329),
-            onSurface: Color(0xfffff3d8),
-          )
-        : const ColorScheme.light(
-            primary: Color(0xffc47718),
-            secondary: Color(0xff148d83),
-          ),
-    textTheme: (dark ? ThemeData.dark() : ThemeData.light()).textTheme.apply(
-      bodyColor: text,
-      displayColor: text,
-    ),
-    snackBarTheme: const SnackBarThemeData(
-      backgroundColor: Color(0xff33434a),
-      contentTextStyle: TextStyle(color: Color(0xfffff3d8)),
-    ),
-  );
-}
