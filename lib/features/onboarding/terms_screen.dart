@@ -9,11 +9,7 @@ import 'onboarding_theme.dart';
 import 'onboarding_widgets.dart';
 
 class TermsScreen extends StatefulWidget {
-  const TermsScreen({
-    super.key,
-    required this.save,
-    required this.onContinue,
-  });
+  const TermsScreen({super.key, required this.save, required this.onContinue});
 
   final LocalSave save;
   final VoidCallback onContinue;
@@ -32,11 +28,23 @@ class _TermsScreenState extends State<TermsScreen> {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.linkOpenError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.linkOpenError)));
       }
     }
+  }
+
+  bool _accepting = false;
+
+  Future<void> _accept() async {
+    setState(() => _accepting = true);
+    OnboardingFeedback.tap(widget.save);
+    try {
+      await widget.save.acceptTerms();
+    } finally {
+      if (mounted) setState(() => _accepting = false);
+    }
+    if (mounted) widget.onContinue();
   }
 
   @override
@@ -55,16 +63,31 @@ class _TermsScreenState extends State<TermsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _rule(1, 'Play fair',
-                      'No cheats, bots or hacks. Be kind with your driver name.'),
-                  _rule(2, 'Your data',
-                      'Progress and coins are stored on your device and in your account.'),
-                  _rule(3, 'Ads & shop',
-                      'Rewarded ads are optional. Coins and hints have no real-money value.'),
-                  _rule(4, 'You are in control',
-                      'You can delete your account any time from Settings.'),
-                  _rule(5, 'Updates',
-                      'We may improve these rules. Big changes are shown in the app.'),
+                  _rule(
+                    1,
+                    'Play fair',
+                    'No cheats, bots or hacks. Be kind with your driver name.',
+                  ),
+                  _rule(
+                    2,
+                    'Your data',
+                    'Progress and coins are stored on your device and in your account.',
+                  ),
+                  _rule(
+                    3,
+                    'Ads & shop',
+                    'Rewarded ads are optional. Coins and hints have no real-money value.',
+                  ),
+                  _rule(
+                    4,
+                    'You are in control',
+                    'You can delete your account any time from Settings.',
+                  ),
+                  _rule(
+                    5,
+                    'Updates',
+                    'We may improve these rules. Big changes are shown in the app.',
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     children: [
@@ -139,13 +162,7 @@ class _TermsScreenState extends State<TermsScreen> {
           OnboardingButton(
             label: strings.termsGateContinue,
             letterSpacing: widget.save.language == 'ur' ? 0 : 1.2,
-            onTap: _agreed
-                ? () async {
-                    OnboardingFeedback.tap(widget.save);
-                    await widget.save.acceptTerms();
-                    widget.onContinue();
-                  }
-                : null,
+            onTap: _agreed && !_accepting ? _accept : null,
           ),
         ],
       ),

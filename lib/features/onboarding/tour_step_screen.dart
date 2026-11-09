@@ -9,15 +9,11 @@ class TourStep {
   const TourStep({
     required this.title,
     required this.body,
-    required this.icon,
     required this.accent,
   });
 
   final String title;
   final String body;
-
-  /// Kept for callers; the illustration itself is drawn by [ArrowGridArt].
-  final IconData icon;
 
   /// Colour of the highlighted tile in this step's illustration.
   final Color accent;

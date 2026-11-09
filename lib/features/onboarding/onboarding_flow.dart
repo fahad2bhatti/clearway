@@ -11,16 +11,7 @@ import 'tour_offer_screen.dart';
 import 'tour_step_screen.dart';
 import 'onboarding_theme.dart';
 
-enum _Step {
-  splash,
-  welcome,
-  terms,
-  username,
-  tourOffer,
-  tour0,
-  tour1,
-  tour2,
-}
+enum _Step { splash, welcome, terms, username, tourOffer, tour0, tour1, tour2 }
 
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key, required this.save});
@@ -34,6 +25,9 @@ class OnboardingFlow extends StatefulWidget {
 class _OnboardingFlowState extends State<OnboardingFlow> {
   _Step _step = _Step.splash;
 
+  // onboarding-fixes-a
+  bool _finishing = false;
+
   /// Username is kept here until tour finishes / is skipped.
   /// completeOnboarding() is only called at the very end so main.dart
   /// does not swap to Home mid-tour.
@@ -42,10 +36,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   void _go(_Step next) => setState(() => _step = next);
 
   Future<void> _finishOnboarding() async {
+    if (_finishing) return;
+    _finishing = true;
     if (_pendingUsername.isEmpty) {
       _pendingUsername = widget.save.username;
     }
     final ok = await widget.save.completeOnboarding(_pendingUsername);
+    if (!ok) _finishing = false;
     if (!ok && mounted) {
       // Validation failed somehow — send user back to username.
       _go(_Step.username);
@@ -56,85 +53,100 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   static const _tourSteps = [
     TourStep(
       title: 'Tap a bus to send it out',
-      body:
-          'Pick any bus and tap it. If the road ahead is clear, it drives away.',
-      icon: Icons.touch_app_rounded,
+      body: 'Pick any bus and tap it. If the road ahead is clear, it drives away.',
       accent: OnboardingTheme.gold,
     ),
     TourStep(
       title: 'Hold to see the path',
-      body:
-          'Press and hold a bus. A laser shows exactly where it will exit.',
-      icon: Icons.my_location_rounded,
+      body: 'Press and hold a bus. A laser shows exactly where it will exit.',
       accent: OnboardingTheme.hot,
     ),
     TourStep(
       title: 'Hints & daily rewards',
-      body:
-          'Stuck? Spend coins on a hint. Come back every day for free coins.',
-      icon: Icons.lightbulb_rounded,
+      body: 'Stuck? Spend coins on a hint. Come back every day for free coins.',
       accent: OnboardingTheme.teal,
     ),
   ];
 
+  _Step? get _previous => switch (_step) {
+    _Step.terms => _Step.welcome,
+    _Step.username => _Step.terms,
+    _Step.tourOffer => _Step.username,
+    _Step.tour0 => _Step.tourOffer,
+    _Step.tour1 => _Step.tour0,
+    _Step.tour2 => _Step.tour1,
+    _ => null,
+  };
+
   @override
   Widget build(BuildContext context) {
+    return PopScope(
+      canPop: _previous == null,
+      onPopInvokedWithResult: (didPop, _) {
+        final previous = _previous;
+        if (!didPop && previous != null) _go(previous);
+      },
+      child: _buildStep(),
+    );
+  }
+
+  Widget _buildStep() {
     return switch (_step) {
       _Step.splash => SplashScreen(onFinished: () => _go(_Step.welcome)),
       _Step.welcome => WelcomeScreen(
-          save: widget.save,
-          onContinue: () => _go(_Step.terms),
-        ),
+        save: widget.save,
+        onContinue: () => _go(_Step.terms),
+      ),
       _Step.terms => TermsScreen(
-          save: widget.save,
-          onContinue: () => _go(_Step.username),
-        ),
+        save: widget.save,
+        onContinue: () => _go(_Step.username),
+      ),
       _Step.username => UsernameScreen(
-          save: widget.save,
-          onFinished: (name) {
-            _pendingUsername = name;
-            _go(_Step.tourOffer);
-          },
-        ),
+        save: widget.save,
+        onFinished: (name) {
+          _pendingUsername = name;
+          _go(_Step.tourOffer);
+        },
+      ),
       _Step.tourOffer => TourOfferScreen(
-          save: widget.save,
-          onStartTour: () => _go(_Step.tour0),
-          onSkip: () {
-            unawaited(_finishOnboarding());
-          },
-        ),
+        save: widget.save,
+        onStartTour: () => _go(_Step.tour0),
+        onSkip: () {
+          unawaited(_finishOnboarding());
+        },
+      ),
       _Step.tour0 => TourStepScreen(
-          save: widget.save,
-          step: _tourSteps[0],
-          index: 0,
-          total: 3,
-          onNext: () => _go(_Step.tour1),
-          onSkip: () {
-            unawaited(_finishOnboarding());
-          },
-        ),
+        save: widget.save,
+        step: _tourSteps[0],
+        index: 0,
+        total: _tourSteps.length,
+        onNext: () => _go(_Step.tour1),
+        onSkip: () {
+          unawaited(_finishOnboarding());
+        },
+      ),
       _Step.tour1 => TourStepScreen(
-          save: widget.save,
-          step: _tourSteps[1],
-          index: 1,
-          total: 3,
-          onNext: () => _go(_Step.tour2),
-          onSkip: () {
-            unawaited(_finishOnboarding());
-          },
-        ),
+        save: widget.save,
+        step: _tourSteps[1],
+        index: 1,
+        total: _tourSteps.length,
+        onNext: () => _go(_Step.tour2),
+        onSkip: () {
+          unawaited(_finishOnboarding());
+        },
+      ),
       _Step.tour2 => TourStepScreen(
-          save: widget.save,
-          step: _tourSteps[2],
-          index: 2,
-          total: 3,
-          onNext: () {
-            unawaited(_finishOnboarding());
-          },
-          onSkip: () {
-            unawaited(_finishOnboarding());
-          },
-        ),
+        save: widget.save,
+        step: _tourSteps[2],
+        index: 2,
+        total: _tourSteps.length,
+        onNext: () {
+          unawaited(_finishOnboarding());
+        },
+        onSkip: () {
+          unawaited(_finishOnboarding());
+        },
+      ),
     };
   }
 }

@@ -21,6 +21,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _logoScale;
   late final Animation<double> _fade;
   late final Animation<double> _bar;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -52,13 +53,14 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-    Timer(const Duration(milliseconds: 2400), () {
+    _timer = Timer(const Duration(milliseconds: 2400), () {
       if (mounted) widget.onFinished();
     });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -120,10 +122,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      'LOADING THE YARD...',
-                      style: OnboardingTheme.label,
-                    ),
+                    Text('LOADING THE YARD...', style: OnboardingTheme.label),
                   ],
                 ),
               ),
