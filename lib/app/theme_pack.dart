@@ -57,7 +57,7 @@ final class ThemePack {
     gridLine: Color(0xff26262b),
     ivory: Color(0xfff4f4f0),
     panel: Color(0xff151518),
-    panelActive: Color(0xff28284b),
+    panelActive: Color(0xff3c2e13),
     textMuted: Color(0xff8e8e96),
     iconDisabled: Color(0xff4a4a52),
     textDisabled: Color(0xff5e5e66),

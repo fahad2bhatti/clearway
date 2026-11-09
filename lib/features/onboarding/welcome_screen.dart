@@ -40,8 +40,8 @@ class WelcomeScreen extends StatelessWidget {
                 ),
                 child: const Center(
                   child: ArrowGridArt(
-                    tile: Color(0x24FFFFFF),
-                    glyph: Color(0x80FFFFFF),
+                    tile: Color(0x24000000),
+                    glyph: Color(0x66000000),
                     hero: OnboardingTheme.onAccent,
                     heroGlyph: OnboardingTheme.accent,
                   ),
