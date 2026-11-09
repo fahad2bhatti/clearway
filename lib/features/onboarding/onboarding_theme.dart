@@ -3,19 +3,22 @@ import 'package:flutter/material.dart';
 /// Shared visual tokens for the onboarding flow (Figma-aligned).
 abstract final class OnboardingTheme {
   // onboarding-theme-v3
-  // FitGenie-style palette. Old names are kept so existing screens compile.
+  // Dark palette with a gold accent. Old names are kept so existing screens
+  // compile.
   static const Color bgTop = Color(0xFF0C0C0E);
   static const Color bgBottom = Color(0xFF0C0C0E);
   static const Color surface = Color(0xFF151518);
   static const Color surfaceAlt = Color(0xFF111114);
   static const Color line = Color(0xFF26262B);
-  static const Color accent = Color(0xFF6B6BFF);
-  static const Color onAccent = Color(0xFFFFFFFF);
+  static const Color accent = Color(0xFFD99400);
+  // Text and icons on accent surfaces. Near-black: white on this gold is
+  // only ~2.6:1, near-black is ~7.6:1.
+  static const Color onAccent = Color(0xFF0C0C0E);
   static const Color hot = Color(0xFFFF5B3A);
   static const Color coin = Color(0xFFFFB020);
   static const Color cream = Color(0xFFF4F4F0);
   static const Color gold = accent;
-  static const Color goldDark = Color(0xFFD99400);
+  static const Color goldDark = Color(0xFFA86F00);
   static const Color teal = Color(0xFF6EE7D8);
   static const Color muted = Color(0xFF8E8E96);
   static const Color deepPurple = Color(0xFF0C0C0E);
