@@ -6,6 +6,7 @@ import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
+import 'onboarding_widgets.dart';
 
 class TermsScreen extends StatefulWidget {
   const TermsScreen({
@@ -40,184 +41,133 @@ class _TermsScreenState extends State<TermsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: OnboardingTheme.background),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-            child: Column(
-              children: [
-                Text(
-                  'ONE QUICK THING',
-                  style: TextStyle(
-                    color: OnboardingTheme.teal,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Rules of the road',
-                  style: TextStyle(
-                    color: OnboardingTheme.cream,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF241A4A).withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: OnboardingTheme.gold.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _rule(1, 'Play fair',
-                              'No cheats, bots or hacks. Be kind with your driver name.'),
-                          _rule(2, 'Your data',
-                              'Progress and coins are stored on your device and in your account.'),
-                          _rule(3, 'Ads & shop',
-                              'Rewarded ads are optional. Coins and hints have no real-money value.'),
-                          _rule(4, 'You are in control',
-                              'You can delete your account any time from Settings.'),
-                          _rule(5, 'Updates',
-                              'We may improve these rules. Big changes are shown in the app.'),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              TextButton(
-                                onPressed: () => _open(LegalLinks.termsUrl),
-                                child: Text(
-                                  'Read full Terms',
-                                  style: TextStyle(color: OnboardingTheme.gold),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => _open(LegalLinks.privacyUrl),
-                                child: Text(
-                                  'Privacy Policy',
-                                  style: TextStyle(color: OnboardingTheme.gold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () => setState(() => _agreed = !_agreed),
-                  child: Row(
+    return OnboardingPage(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const OnboardingKicker('One quick thing'),
+          const SizedBox(height: 8),
+          Text('Rules of the road', style: OnboardingTheme.display(44)),
+          const SizedBox(height: 16),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _rule(1, 'Play fair',
+                      'No cheats, bots or hacks. Be kind with your driver name.'),
+                  _rule(2, 'Your data',
+                      'Progress and coins are stored on your device and in your account.'),
+                  _rule(3, 'Ads & shop',
+                      'Rewarded ads are optional. Coins and hints have no real-money value.'),
+                  _rule(4, 'You are in control',
+                      'You can delete your account any time from Settings.'),
+                  _rule(5, 'Updates',
+                      'We may improve these rules. Big changes are shown in the app.'),
+                  const SizedBox(height: 8),
+                  Wrap(
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: _agreed
-                              ? OnboardingTheme.gold
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: OnboardingTheme.gold,
-                            width: 2,
-                          ),
+                      TextButton(
+                        onPressed: () => _open(LegalLinks.termsUrl),
+                        child: const Text(
+                          'Read full Terms',
+                          style: TextStyle(color: OnboardingTheme.accent),
                         ),
-                        child: _agreed
-                            ? const Icon(
-                                Icons.check,
-                                size: 18,
-                                color: OnboardingTheme.deepPurple,
-                              )
-                            : null,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          strings.termsGateCheckbox,
-                          style: TextStyle(
-                            color: OnboardingTheme.cream,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      TextButton(
+                        onPressed: () => _open(LegalLinks.privacyUrl),
+                        child: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(color: OnboardingTheme.accent),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: _agreed
-                      ? () async {
-                          OnboardingFeedback.tap(widget.save);
-                          await widget.save.acceptTerms();
-                          widget.onContinue();
-                        }
-                      : null,
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 180),
-                    opacity: _agreed ? 1.0 : 0.45,
-                    child: Container(
-                      height: 56,
-                      width: double.infinity,
-                      decoration: OnboardingTheme.primaryButton,
-                      alignment: Alignment.center,
-                      child: Text(
-                        strings.termsGateContinue,
-                        style: const TextStyle(
-                          color: OnboardingTheme.deepPurple,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Semantics(
+            checked: _agreed,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _agreed = !_agreed),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: _agreed
+                          ? OnboardingTheme.accent
+                          : OnboardingTheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _agreed
+                            ? OnboardingTheme.accent
+                            : OnboardingTheme.line,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: _agreed
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 18,
+                            color: OnboardingTheme.onAccent,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      strings.termsGateCheckbox,
+                      style: const TextStyle(
+                        color: OnboardingTheme.cream,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+          const SizedBox(height: 20),
+          OnboardingButton(
+            label: strings.termsGateContinue,
+            letterSpacing: widget.save.language == 'ur' ? 0 : 1.2,
+            onTap: _agreed
+                ? () async {
+                    OnboardingFeedback.tap(widget.save);
+                    await widget.save.acceptTerms();
+                    widget.onContinue();
+                  }
+                : null,
+          ),
+        ],
       ),
     );
   }
 
   Widget _rule(int number, String title, String body) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: OnboardingTheme.line)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: OnboardingTheme.gold.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
+          SizedBox(
+            width: 44,
             child: Text(
-              '$number',
-              style: const TextStyle(
-                color: OnboardingTheme.gold,
-                fontWeight: FontWeight.w800,
-              ),
+              '$number'.padLeft(2, '0'),
+              style: OnboardingTheme.display(22, color: OnboardingTheme.accent),
             ),
           ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,13 +177,13 @@ class _TermsScreenState extends State<TermsScreen> {
                   style: const TextStyle(
                     color: OnboardingTheme.cream,
                     fontWeight: FontWeight.w800,
-                    fontSize: 15,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   body,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: OnboardingTheme.muted,
                     fontSize: 13,
                     height: 1.35,

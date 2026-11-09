@@ -76,4 +76,37 @@ abstract final class OnboardingTheme {
     letterSpacing: 3,
     fontWeight: FontWeight.w700,
   );
+
+  /// App-wide dark Material theme, so dialogs, sheets and snackbars match the
+  /// redesigned screens without every call site restyling them.
+  static final ThemeData materialTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: bgTop,
+    colorScheme: const ColorScheme.dark(
+      primary: accent,
+      onPrimary: onAccent,
+      secondary: teal,
+      surface: surface,
+      onSurface: cream,
+      error: hot,
+    ),
+    textTheme: ThemeData.dark().textTheme.apply(
+      bodyColor: cream,
+      displayColor: cream,
+    ),
+    dialogTheme: const DialogThemeData(
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+        side: BorderSide(color: line),
+      ),
+    ),
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: line,
+      contentTextStyle: TextStyle(color: cream),
+      actionTextColor: accent,
+    ),
+  );
 }

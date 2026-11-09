@@ -47,49 +47,27 @@ final class ThemePack {
   final String vehicleNoun;
   final String emptyYardMessage;
 
+  /// Board and HUD palette, matching [OnboardingTheme]. [accent] stays amber
+  /// because the board draws it as the traffic-cone colour.
   static const truckArt = ThemePack(
     id: 'truck_art_yard',
     name: 'Truck-art yard',
-    asphalt: Color(0xff182329),
-    yardSurface: Color(0xff202f35),
-    gridLine: Color(0xff3d5154),
-    ivory: Color(0xfffff3d8),
-    panel: Color(0xff25343a),
-    panelActive: Color(0xff38554f),
-    textMuted: Color(0xffc6d2ca),
-    iconDisabled: Color(0xff69777a),
-    textDisabled: Color(0xff758386),
-    accent: Color(0xffffb347),
-    floralMagenta: Color(0xffed6ca7),
+    asphalt: Color(0xff0c0c0e),
+    yardSurface: Color(0xff151518),
+    gridLine: Color(0xff26262b),
+    ivory: Color(0xfff4f4f0),
+    panel: Color(0xff151518),
+    panelActive: Color(0xff28284b),
+    textMuted: Color(0xff8e8e96),
+    iconDisabled: Color(0xff4a4a52),
+    textDisabled: Color(0xff5e5e66),
+    accent: Color(0xffffb020),
+    floralMagenta: Color(0xffff5c8d),
     emerald: Color(0xff61c69a),
-    turquoise: Color(0xff4ecac1),
-    coral: Color(0xffff796c),
+    turquoise: Color(0xff6ee7d8),
+    coral: Color(0xffff5b3a),
     showFloralMotifs: true,
     vehicleNoun: 'vehicle',
-    emptyYardMessage: 'All clear!',
-  );
-
-  /// Purple "arrow night" look shared by Home, Shop and Settings. The game
-  /// board keeps using [truckArt].
-  static const arrowNight = ThemePack(
-    id: 'arrow_night',
-    name: 'Arrow night',
-    asphalt: Color(0xff120d2b),
-    yardSurface: Color(0xff1b1440),
-    gridLine: Color(0xff4b3fa8),
-    ivory: Color(0xfffff4dc),
-    panel: Color(0xff2a1f63),
-    panelActive: Color(0xff3a2f8f),
-    textMuted: Color(0xffb8aedb),
-    iconDisabled: Color(0xff6b5fa0),
-    textDisabled: Color(0xff8379b8),
-    accent: Color(0xffffb627),
-    floralMagenta: Color(0xffff5c8d),
-    emerald: Color(0xff5fe6af),
-    turquoise: Color(0xff22c7b0),
-    coral: Color(0xffff796c),
-    showFloralMotifs: true,
-    vehicleNoun: 'arrow',
     emptyYardMessage: 'All clear!',
   );
 }

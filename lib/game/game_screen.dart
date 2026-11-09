@@ -10,6 +10,7 @@ import '../widgets/clearway_banner.dart';
 import 'package:flutter/services.dart';
 
 import '../app/theme_pack.dart';
+import '../features/onboarding/onboarding_theme.dart';
 import '../core/clearway_strings.dart';
 import '../core/daily_clock.dart';
 import '../data/local_save.dart';
@@ -399,8 +400,9 @@ class _GameScreenState extends State<GameScreen> {
           FilledButton.icon(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor: _themePack.turquoise,
-              foregroundColor: _themePack.asphalt,
+              backgroundColor: OnboardingTheme.accent,
+              foregroundColor: OnboardingTheme.onAccent,
+              shape: const StadiumBorder(),
             ),
             icon: const Icon(Icons.play_circle_fill),
             label: Text(strings.watchAd),
@@ -732,14 +734,10 @@ class _GameScreenState extends State<GameScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xff25343a),
-        title: Text(
-          strings.takeABreak,
-          style: const TextStyle(color: Color(0xfffff3d8)),
-        ),
+        title: Text(strings.takeABreak, style: OnboardingTheme.display(30)),
         content: Text(
           strings.pauseMessage,
-          style: const TextStyle(color: Color(0xffc6d2ca)),
+          style: const TextStyle(color: OnboardingTheme.muted, height: 1.4),
         ),
         actions: [
           TextButton(
@@ -775,7 +773,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     final tutorialTip = _tutorialTip;
     return Scaffold(
-      backgroundColor: _themePack.asphalt,
+      backgroundColor: OnboardingTheme.bgTop,
       bottomNavigationBar: const ClearwayBanner(),
       body: SafeArea(
         child: Padding(
@@ -803,14 +801,18 @@ class _GameScreenState extends State<GameScreen> {
                       vertical: 9,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xff38554f),
-                      borderRadius: BorderRadius.circular(13),
+                      color: OnboardingTheme.accent.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: OnboardingTheme.accent.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Text(
                       tutorialTip,
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xfffff3d8),
+                        fontSize: 13,
+                        height: 1.3,
+                        color: OnboardingTheme.cream,
                       ),
                     ),
                   ),
@@ -832,7 +834,6 @@ class _GameScreenState extends State<GameScreen> {
               Padding(
                 padding: _sidePad,
                 child: _ActionBar(
-                  theme: _themePack,
                   onHint: _useHint,
                   hintCount: widget.save.hints,
                   onUndo: _undo,
@@ -851,7 +852,7 @@ class _GameScreenState extends State<GameScreen> {
                     ? _themePack.emptyYardMessage
                     : strings.vehiclesRemaining(_remaining.length),
                 style: const TextStyle(
-                  color: Color(0xff91a49e),
+                  color: OnboardingTheme.muted,
                   fontSize: 12,
                   letterSpacing: 0.4,
                 ),
@@ -900,15 +901,28 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      IconButton.filledTonal(
-        onPressed: onPause,
-        style: IconButton.styleFrom(
-          backgroundColor: const Color(0xff25343a),
-          foregroundColor: const Color(0xfffff3d8),
+      Tooltip(
+        message: strings.takeABreak,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onPause,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: OnboardingTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: OnboardingTheme.line),
+            ),
+            child: const Icon(
+              Icons.pause_rounded,
+              color: OnboardingTheme.cream,
+              size: 22,
+            ),
+          ),
         ),
-        icon: const Icon(Icons.pause_rounded),
       ),
-      const SizedBox(width: 10),
+      const SizedBox(width: 12),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -917,18 +931,19 @@ class _TopBar extends StatelessWidget {
               daily
                   ? '${strings.rushHour}  •  ${strings.dailyLabel}'
                   : '${strings.levelNumber(level.number)}${level.boss ? '  •  ${strings.bossLevel}' : ''}',
-              style: const TextStyle(
-                color: Color(0xffffb347),
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
-                fontSize: 11,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: OnboardingTheme.label.copyWith(
+                color: OnboardingTheme.accent,
               ),
             ),
             if (!RegExp(r'^(Boss yard|Yard) \d+$').hasMatch(level.title))
               Text(
                 strings.levelTitle(level.title),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Color(0xfffff3d8),
+                  color: OnboardingTheme.cream,
                   fontWeight: FontWeight.w700,
                   fontSize: 17,
                 ),
@@ -945,21 +960,34 @@ class _TopBar extends StatelessWidget {
               index < lives
                   ? Icons.favorite_rounded
                   : Icons.favorite_border_rounded,
-              color: index < lives
-                  ? const Color(0xffed6ca7)
-                  : const Color(0xff59666a),
+              color: index < lives ? OnboardingTheme.hot : OnboardingTheme.line,
               size: 20,
             ),
           ),
         ),
       ),
-      const SizedBox(width: 8),
-      Text(
-        '🪙$coins',
-        style: const TextStyle(
-          color: Color(0xfffff3d8),
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
+      const SizedBox(width: 10),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+          color: OnboardingTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: OnboardingTheme.line),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                color: OnboardingTheme.coin,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text('$coins', style: OnboardingTheme.display(16)),
+          ],
         ),
       ),
     ],
@@ -968,7 +996,6 @@ class _TopBar extends StatelessWidget {
 
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
-    required this.theme,
     required this.onHint,
     required this.hintCount,
     required this.onUndo,
@@ -980,7 +1007,6 @@ class _ActionBar extends StatelessWidget {
     required this.strings,
   });
 
-  final ThemePack theme;
   final VoidCallback onHint;
   final int hintCount;
   final VoidCallback onUndo;
@@ -996,7 +1022,6 @@ class _ActionBar extends StatelessWidget {
     children: [
       Expanded(
         child: _ActionButton(
-          theme: theme,
           icon: Icons.lightbulb_rounded,
           label: strings.hintCount(hintCount),
           onTap: onHint,
@@ -1005,7 +1030,6 @@ class _ActionBar extends StatelessWidget {
       const SizedBox(width: 9),
       Expanded(
         child: _ActionButton(
-          theme: theme,
           icon: Icons.undo_rounded,
           label: strings.undoCount(undoCount),
           enabled: undoEnabled,
@@ -1016,7 +1040,6 @@ class _ActionBar extends StatelessWidget {
         const SizedBox(width: 9),
         Expanded(
           child: _ActionButton(
-            theme: theme,
             icon: zoomLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
             label: zoomLocked ? strings.zoomLocked : strings.lockZoom,
             onTap: () => onZoomLockChanged(!zoomLocked),
@@ -1030,7 +1053,6 @@ class _ActionBar extends StatelessWidget {
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
-    required this.theme,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -1038,7 +1060,6 @@ class _ActionButton extends StatelessWidget {
     this.selected = false,
   });
 
-  final ThemePack theme;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -1047,18 +1068,27 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: selected ? theme.panelActive : theme.panel,
-    borderRadius: BorderRadius.circular(16),
+    color: selected
+        ? OnboardingTheme.accent.withValues(alpha: 0.16)
+        : OnboardingTheme.surface,
+    clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(
+        color: selected ? OnboardingTheme.accent : OnboardingTheme.line,
+      ),
+    ),
     child: InkWell(
       onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 5),
         child: Column(
           children: [
             Icon(
               icon,
-              color: enabled ? theme.accent : theme.iconDisabled,
+              color: enabled
+                  ? (selected ? OnboardingTheme.accent : OnboardingTheme.cream)
+                  : const Color(0xff4a4a52),
               size: 20,
             ),
             const SizedBox(height: 4),
@@ -1067,7 +1097,9 @@ class _ActionButton extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: enabled ? theme.ivory : theme.textDisabled,
+                  color: enabled
+                      ? OnboardingTheme.cream
+                      : const Color(0xff5e5e66),
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1079,6 +1111,47 @@ class _ActionButton extends StatelessWidget {
     ),
   );
 }
+
+/// Shared flat shell for the lose and chapter-intro dialogs.
+class _DialogCard extends StatelessWidget {
+  const _DialogCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: OnboardingTheme.surface,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: const BorderSide(color: OnboardingTheme.line),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+      child: child,
+    ),
+  );
+}
+
+class _DialogBadge extends StatelessWidget {
+  const _DialogBadge({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 64,
+    height: 64,
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.16),
+      shape: BoxShape.circle,
+    ),
+    child: Icon(icon, color: color, size: 32),
+  );
+}
+
+const _pillShape = StadiumBorder();
 
 class _ResultDialog extends StatelessWidget {
   const _ResultDialog({
@@ -1114,106 +1187,102 @@ class _ResultDialog extends StatelessWidget {
   final Future<bool> Function()? onAd;
 
   @override
-  Widget build(BuildContext context) => Dialog(
-    backgroundColor: const Color(0xff25343a),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(24, 27, 24, 21),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: won ? const Color(0xff38554f) : const Color(0xff46363c),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              won ? Icons.arrow_outward_rounded : Icons.traffic_rounded,
-              color: won ? const Color(0xffffb347) : const Color(0xffed6ca7),
-              size: 34,
-            ),
+  Widget build(BuildContext context) => _DialogCard(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _DialogBadge(
+          icon: won ? Icons.arrow_outward_rounded : Icons.traffic_rounded,
+          color: won ? OnboardingTheme.teal : OnboardingTheme.hot,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: OnboardingTheme.display(38),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: OnboardingTheme.muted,
+            height: 1.45,
+            fontSize: 15,
           ),
-          const SizedBox(height: 17),
+        ),
+        if (note != null) ...[
+          const SizedBox(height: 8),
           Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xfffff3d8),
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 9),
-          Text(
-            message,
+            note!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xffc6d2ca), height: 1.45),
+            style: const TextStyle(color: OnboardingTheme.muted, fontSize: 12),
           ),
-          if (note != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              note!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xff91a49e), fontSize: 12),
-            ),
-          ],
-          const SizedBox(height: 24),
-          if (adLabel != null && onAd != null) ...[
-            _AdRewardButton(
-              label: adLabel!,
-              failedMessage: adFailedMessage,
-              onWatch: onAd!,
-            ),
-            const SizedBox(height: 10),
-          ],
-          if (reviveLabel != null && onRevive != null) ...[
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: reviveEnabled ? onRevive : null,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xffffb347),
-                  disabledForegroundColor: const Color(0xff758386),
-                  side: BorderSide(
-                    color: reviveEnabled
-                        ? const Color(0xffffb347)
-                        : const Color(0xff536165),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text(
-                  reviveLabel!,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
+        ],
+        const SizedBox(height: 24),
+        if (adLabel != null && onAd != null) ...[
+          _AdRewardButton(
+            label: adLabel!,
+            failedMessage: adFailedMessage,
+            onWatch: onAd!,
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (reviveLabel != null && onRevive != null) ...[
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
-              onPressed: onPrimary,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xffffb347),
-                foregroundColor: const Color(0xff182329),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            child: OutlinedButton(
+              onPressed: reviveEnabled ? onRevive : null,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: OnboardingTheme.coin,
+                disabledForegroundColor: const Color(0xff5e5e66),
+                shape: _pillShape,
+                side: BorderSide(
+                  color: reviveEnabled
+                      ? OnboardingTheme.coin
+                      : OnboardingTheme.line,
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 15),
               ),
               child: Text(
-                primaryLabel,
+                reviveLabel!,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
           ),
-          TextButton(
-            onPressed: onSecondary,
+          const SizedBox(height: 10),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: onPrimary,
+            style: FilledButton.styleFrom(
+              backgroundColor: OnboardingTheme.accent,
+              foregroundColor: OnboardingTheme.onAccent,
+              shape: _pillShape,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
             child: Text(
-              secondaryLabel,
-              style: const TextStyle(color: Color(0xffc6d2ca)),
+              primaryLabel,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+        TextButton(
+          onPressed: onSecondary,
+          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+          child: Text(
+            secondaryLabel,
+            style: const TextStyle(
+              color: OnboardingTheme.muted,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -1258,11 +1327,12 @@ class _AdRewardButtonState extends State<_AdRewardButton> {
     child: FilledButton.icon(
       onPressed: _busy || _done ? null : _watch,
       style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xff4ecac1),
-        foregroundColor: const Color(0xff182329),
-        disabledBackgroundColor: const Color(0xff38554f),
-        disabledForegroundColor: const Color(0xffc6d2ca),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        backgroundColor: OnboardingTheme.teal,
+        foregroundColor: OnboardingTheme.bgTop,
+        disabledBackgroundColor: OnboardingTheme.teal.withValues(alpha: 0.16),
+        disabledForegroundColor: OnboardingTheme.teal,
+        shape: _pillShape,
+        padding: const EdgeInsets.symmetric(vertical: 15),
       ),
       icon: _busy
           ? const SizedBox(
@@ -1295,75 +1365,65 @@ class _ChapterIntroDialog extends StatelessWidget {
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) => Dialog(
-    backgroundColor: const Color(0xff25343a),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(24, 27, 24, 21),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: const BoxDecoration(
-              color: Color(0xff38554f),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.map_rounded,
-              color: Color(0xffffb347),
-              size: 34,
-            ),
+  Widget build(BuildContext context) => _DialogCard(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const _DialogBadge(
+          icon: Icons.map_rounded,
+          color: OnboardingTheme.accent,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          label.toUpperCase(),
+          style: OnboardingTheme.label.copyWith(
+            color: OnboardingTheme.accent,
+            fontSize: 12,
           ),
-          const SizedBox(height: 17),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xffffb347),
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            name,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xfffff3d8),
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final line in lines)
-            Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Text(
-                line,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xffc6d2ca), height: 1.45),
-              ),
-            ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: onStart,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xffffb347),
-                foregroundColor: const Color(0xff182329),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(
-                buttonLabel,
-                style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          name,
+          textAlign: TextAlign.center,
+          style: OnboardingTheme.display(42),
+        ),
+        const SizedBox(height: 12),
+        for (final line in lines)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              line,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: OnboardingTheme.muted,
+                height: 1.4,
+                fontSize: 15,
               ),
             ),
           ),
-        ],
-      ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: onStart,
+            style: FilledButton.styleFrom(
+              backgroundColor: OnboardingTheme.accent,
+              foregroundColor: OnboardingTheme.onAccent,
+              shape: _pillShape,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: Text(
+              buttonLabel.toUpperCase(),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     ),
   );
 }

@@ -66,7 +66,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       body:
           'Press and hold a bus. A laser shows exactly where it will exit.',
       icon: Icons.my_location_rounded,
-      accent: Color(0xFFF0455A),
+      accent: OnboardingTheme.hot,
     ),
     TourStep(
       title: 'Hints & daily rewards',

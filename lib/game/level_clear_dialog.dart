@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../features/onboarding/onboarding_theme.dart';
 
-/// "Level cleared!" result dialog (Figma-aligned).
+/// "Level cleared!" result dialog.
 ///
 /// Motion: the card pops in with a bounce, the earned stars fly in one by one
 /// with a sparkle, the coin counter ticks up and confetti falls once. The
@@ -142,7 +142,7 @@ class _LevelClearDialogState extends State<LevelClearDialog>
   Widget build(BuildContext context) {
     final width = math.min(340.0, MediaQuery.sizeOf(context).width - 56);
     final confettiColors = <Color>[
-      OnboardingTheme.gold,
+      OnboardingTheme.coin,
       OnboardingTheme.teal,
       OnboardingTheme.cream,
       OnboardingTheme.muted,
@@ -181,34 +181,22 @@ class _LevelClearDialogState extends State<LevelClearDialog>
     final pop = const Interval(0, 0.25).transform(_master.value);
     final scale = 0.6 + 0.4 * Curves.easeOutBack.transform(pop);
     final fade = const Interval(0, 0.12).transform(_master.value);
-    final tealShadow = Color.lerp(OnboardingTheme.teal, Colors.black, 0.3)!;
     return Opacity(
       opacity: fade,
       child: Transform.scale(
         scale: scale,
         child: Container(
           width: width,
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                OnboardingTheme.cardPurple,
-                Color.lerp(
-                  OnboardingTheme.cardPurple,
-                  OnboardingTheme.cardPurpleDark,
-                  0.6,
-                )!,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: OnboardingTheme.gold, width: 2),
+            color: OnboardingTheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: OnboardingTheme.line),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 32,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
@@ -216,33 +204,25 @@ class _LevelClearDialogState extends State<LevelClearDialog>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
-                  color: OnboardingTheme.teal,
+                  color: OnboardingTheme.teal.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: tealShadow, offset: const Offset(0, 4)),
-                  ],
                 ),
                 child: const Icon(
                   Icons.arrow_outward_rounded,
-                  size: 34,
-                  color: OnboardingTheme.deepPurple,
+                  size: 32,
+                  color: OnboardingTheme.teal,
                 ),
               ),
               const SizedBox(height: 14),
               Text(
                 widget.title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: OnboardingTheme.cream,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                ),
+                style: OnboardingTheme.display(38),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Semantics(
                 label: widget.starsLabel,
                 child: ExcludeSemantics(
@@ -253,11 +233,11 @@ class _LevelClearDialogState extends State<LevelClearDialog>
                 ),
               ),
               if (widget.coinsEarned > 0) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 _coinPill(),
               ],
               if (widget.note != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   widget.note!,
                   textAlign: TextAlign.center,
@@ -268,26 +248,27 @@ class _LevelClearDialogState extends State<LevelClearDialog>
                 ),
               ],
               if (widget.adLabel != null && widget.onAd != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _adButton(),
               ],
-              const SizedBox(height: 18),
-              _ChunkyButton(
+              const SizedBox(height: 20),
+              _ResultButton(
                 label: widget.nextLabel,
-                color: OnboardingTheme.gold,
-                shadow: OnboardingTheme.goldDark,
+                primary: true,
                 onTap: widget.onNext,
               ),
               const SizedBox(height: 10),
-              _ChunkyButton(
+              _ResultButton(
                 label: widget.replayLabel,
-                color: OnboardingTheme.teal,
-                shadow: tealShadow,
+                primary: false,
                 onTap: widget.onReplay,
               ),
               if (widget.homeLabel != null && widget.onHome != null)
                 TextButton(
                   onPressed: widget.onHome,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                  ),
                   child: Text(
                     widget.homeLabel!,
                     style: const TextStyle(
@@ -333,8 +314,8 @@ class _LevelClearDialogState extends State<LevelClearDialog>
                   size: const Size(40, 40),
                   painter: _SparkleStarPainter(
                     filled
-                        ? OnboardingTheme.gold
-                        : OnboardingTheme.muted.withValues(alpha: 0.3),
+                        ? OnboardingTheme.coin
+                        : OnboardingTheme.line,
                   ),
                 ),
               ),
@@ -351,31 +332,27 @@ class _LevelClearDialogState extends State<LevelClearDialog>
   }
 
   Widget _coinPill() => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
     decoration: BoxDecoration(
-      color: OnboardingTheme.gold.withValues(alpha: 0.16),
+      color: OnboardingTheme.surfaceAlt,
       borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: OnboardingTheme.line),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            color: OnboardingTheme.gold,
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            color: OnboardingTheme.coin,
             shape: BoxShape.circle,
-            border: Border.all(color: OnboardingTheme.goldDark, width: 2),
           ),
         ),
         const SizedBox(width: 8),
         Text(
           widget.coinsLabel(_shownCoins),
-          style: const TextStyle(
-            color: OnboardingTheme.gold,
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-          ),
+          style: OnboardingTheme.display(20, color: OnboardingTheme.coin),
         ),
       ],
     ),
@@ -398,13 +375,13 @@ class _LevelClearDialogState extends State<LevelClearDialog>
             onTap: _adBusy || done ? null : _watchAd,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               decoration: BoxDecoration(
                 color: done
-                    ? OnboardingTheme.teal.withValues(alpha: 0.2)
+                    ? OnboardingTheme.teal.withValues(alpha: 0.16)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: OnboardingTheme.teal, width: 2),
+                border: Border.all(color: OnboardingTheme.teal),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -456,57 +433,49 @@ class _LevelClearDialogState extends State<LevelClearDialog>
   }
 }
 
-/// Chunky pill button with a hard bottom shadow that sinks when pressed.
-class _ChunkyButton extends StatefulWidget {
-  const _ChunkyButton({
+/// Flat pill button: accent fill for the main action, outlined for the rest.
+class _ResultButton extends StatelessWidget {
+  const _ResultButton({
     required this.label,
-    required this.color,
-    required this.shadow,
+    required this.primary,
     required this.onTap,
   });
 
   final String label;
-  final Color color;
-  final Color shadow;
+  final bool primary;
   final VoidCallback onTap;
-
-  @override
-  State<_ChunkyButton> createState() => _ChunkyButtonState();
-}
-
-class _ChunkyButtonState extends State<_ChunkyButton> {
-  var _down = false;
 
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: widget.label,
+    label: label,
+    onTap: onTap,
     excludeSemantics: true,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
-      onTapUp: (_) => setState(() => _down = false),
-      onTapCancel: () => setState(() => _down = false),
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 80),
-        margin: EdgeInsets.only(top: _down ? 4 : 0, bottom: _down ? 0 : 4),
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: widget.color,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: _down
-              ? const <BoxShadow>[]
-              : [BoxShadow(color: widget.shadow, offset: const Offset(0, 4))],
-        ),
-        child: Text(
-          widget.label.toUpperCase(),
-          style: const TextStyle(
-            color: OnboardingTheme.deepPurple,
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
+    child: Material(
+      color: primary ? OnboardingTheme.accent : OnboardingTheme.surfaceAlt,
+      shape: StadiumBorder(
+        side: primary
+            ? BorderSide.none
+            : const BorderSide(color: OnboardingTheme.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: 52,
+          width: double.infinity,
+          child: Center(
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: primary
+                    ? OnboardingTheme.onAccent
+                    : OnboardingTheme.cream,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
           ),
         ),
       ),

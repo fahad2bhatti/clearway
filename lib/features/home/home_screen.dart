@@ -967,7 +967,7 @@ class _PreviewBoardPainter extends CustomPainter {
       canvas.drawCircle(
         flecks[i],
         2,
-        Paint()..color = const Color(0xfffff3d8).withValues(alpha: alpha),
+        Paint()..color = OnboardingTheme.cream.withValues(alpha: alpha),
       );
     }
   }

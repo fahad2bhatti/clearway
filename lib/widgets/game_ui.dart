@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../app/theme_pack.dart';
 import '../features/onboarding/onboarding_theme.dart';
 
 /// Optional bundled fonts. Without them Flutter falls back to the system font.
@@ -217,89 +216,6 @@ class LanguageSwitch extends StatelessWidget {
               fontWeight: FontWeight.w800,
               fontSize: 13,
               color: selected ? OnboardingTheme.onAccent : OnboardingTheme.muted,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Chunky game button with a 3D edge that presses down when tapped.
-class GameButton extends StatefulWidget {
-  const GameButton({
-    super.key,
-    required this.label,
-    required this.onPressed,
-    this.color,
-    this.foreground,
-  });
-
-  final String label;
-  final VoidCallback? onPressed;
-  final Color? color;
-  final Color? foreground;
-
-  @override
-  State<GameButton> createState() => _GameButtonState();
-}
-
-class _GameButtonState extends State<GameButton> {
-  var _down = false;
-
-  bool get _enabled => widget.onPressed != null;
-
-  void _setDown(bool value) {
-    if (_down != value && mounted) setState(() => _down = value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const pack = ThemePack.arrowNight;
-    final color = widget.color ?? pack.accent;
-    final edge = Color.lerp(color, Colors.black, 0.32)!;
-    final pressed = _down && _enabled;
-    return Semantics(
-      button: true,
-      enabled: _enabled,
-      label: widget.label,
-      onTap: widget.onPressed,
-      excludeSemantics: true,
-      child: Opacity(
-        opacity: _enabled ? 1 : 0.45,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: _enabled ? (_) => _setDown(true) : null,
-          onTapUp: _enabled ? (_) => _setDown(false) : null,
-          onTapCancel: () => _setDown(false),
-          onTap: widget.onPressed,
-          child: SizedBox(
-            height: 62,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 80),
-                margin: EdgeInsets.only(top: pressed ? 4 : 0),
-                width: double.infinity,
-                height: 56,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(offset: Offset(0, pressed ? 1 : 5), color: edge),
-                  ],
-                ),
-                child: Text(
-                  widget.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: GameFonts.display,
-                    fontSize: 20,
-                    color: widget.foreground ?? pack.asphalt,
-                  ),
-                ),
-              ),
             ),
           ),
         ),
