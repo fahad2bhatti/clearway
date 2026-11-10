@@ -415,4 +415,82 @@ final class ClearwayStrings {
 
   String get settingsPreferences => _ur ? 'ترجیحات' : 'Preferences';
   String get settingsAbout => _ur ? 'ہمارے بارے میں' : 'About';
+
+  // ---- Onboarding (welcome, terms, username, tour, splash)
+  String get obLoading =>
+      _ur ? 'یارڈ تیار ہو رہا ہے...' : 'Loading the yard...';
+  String get obWelcomeKicker => _ur ? 'خوش آمدید' : 'Welcome to';
+  String get obWelcomeBody => _ur
+      ? 'بسوں کو چھوئیں، راستہ صاف کریں۔\nیارڈ کے باس بن جائیں۔'
+      : 'Tap the buses. Clear the road.\nBecome the boss of the yard.';
+  String get obLetsRoll => _ur ? 'چلیں شروع کریں' : "Let's roll";
+  String get obTermsKicker => _ur ? 'ایک ضروری بات' : 'One quick thing';
+  String get obTermsTitle => _ur ? 'کھیل کے اصول' : 'Rules of the road';
+  String get obRule1Title => _ur ? 'ایمانداری سے کھیلیں' : 'Play fair';
+  String get obRule1Body => _ur
+      ? 'دھوکہ، بوٹس یا ہیک نہیں۔ اپنے ڈرائیور نام کا انتخاب شائستگی سے کریں۔'
+      : 'No cheats, bots or hacks. Be kind with your driver name.';
+  String get obRule2Title => _ur ? 'آپ کا ڈیٹا' : 'Your data';
+  String get obRule2Body => _ur
+      ? 'آپ کی پیش رفت اور سکے آپ کے آلے پر محفوظ رہتے ہیں۔'
+      : 'Progress and coins are stored on your device.';
+  String get obRule3Title => _ur ? 'اشتہارات اور شاپ' : 'Ads & shop';
+  String get obRule3Body => _ur
+      ? 'انعامی اشتہارات اختیاری ہیں۔ سکوں اور اشاروں کی کوئی حقیقی مالی قدر نہیں۔'
+      : 'Rewarded ads are optional. Coins and hints have no real-money value.';
+  String get obRule4Title => _ur ? 'اختیار آپ کے پاس ہے' : 'You are in control';
+  String get obRule4Body => _ur
+      ? 'آپ ترتیبات سے کسی بھی وقت اپنا اکاؤنٹ حذف کر سکتے ہیں۔'
+      : 'You can delete your account any time from Settings.';
+  String get obRule5Title => _ur ? 'اپ ڈیٹس' : 'Updates';
+  String get obRule5Body => _ur
+      ? 'ہم ان اصولوں کو بہتر بنا سکتے ہیں۔ بڑی تبدیلیاں ایپ میں دکھائی جائیں گی۔'
+      : 'We may improve these rules. Big changes are shown in the app.';
+  String get obReadTerms => _ur ? 'مکمل شرائط پڑھیں' : 'Read full Terms';
+  String get obUsernameKicker => _ur ? 'آخری مرحلہ' : 'Last step';
+  String get obUsernameTitle =>
+      _ur ? 'اپنا ڈرائیور نام چنیں' : 'Pick your driver name';
+  String get obUsernameOk =>
+      _ur ? 'بہت خوب! یہ نام اچھا ہے۔' : 'Nice! This name looks good.';
+  String get obSuggestions => _ur ? 'تجاویز' : 'Suggestions';
+  String get obStartDriving => _ur ? 'ڈرائیونگ شروع کریں' : 'Start driving';
+  String get obTourKicker => _ur ? 'مختصر ٹور' : 'Quick tour';
+  String get obTourOfferTitle =>
+      _ur ? 'مختصر ٹور دیکھنا چاہتے ہیں؟' : 'Want a quick tour?';
+  String get obTourOfferBody => _ur
+      ? '۳۰ سیکنڈ میں پہلے لیول سے پہلے سب کچھ سیکھیں۔'
+      : '30 seconds. Learn everything before\nyour first level.';
+  String get obOffer1Title => _ur ? 'چھو کر نکالیں' : 'Tap to clear';
+  String get obOffer1Body =>
+      _ur ? 'بسوں کو یارڈ سے باہر بھیجیں' : 'Send buses out of the yard';
+  String get obOffer2Title => _ur ? 'دبا کر نشانہ لگائیں' : 'Hold to aim';
+  String get obOffer2Body =>
+      _ur ? 'لیزر نکلنے کا راستہ دکھاتا ہے' : 'A laser shows the exit path';
+  String get obOffer3Title => _ur ? 'اشارے اور سکے' : 'Hints & coins';
+  String get obOffer3Body =>
+      _ur ? 'پھنس گئے؟ سکوں سے اشارہ لیں' : 'Stuck? Spend coins on a hint';
+  String get obOffer4Title => _ur ? 'روزانہ رش' : 'Daily Rush';
+  String get obOffer4Body =>
+      _ur ? '۱۰۰ بسیں، ہر دن نئی' : '100 buses, new every day';
+  String get obShowAround => _ur ? 'مجھے دکھائیں' : 'Show me around';
+  String get obSkipTour =>
+      _ur ? 'چھوڑیں، میں خود سیکھ لوں گا' : 'Skip, I will figure it out';
+  String get obTour1Title =>
+      _ur ? 'بس کو چھوئیں اور باہر بھیجیں' : 'Tap a bus to send it out';
+  String get obTour1Body => _ur
+      ? 'کوئی بھی بس چھوئیں۔ اگر آگے راستہ صاف ہو تو وہ نکل جاتی ہے۔'
+      : 'Pick any bus and tap it. If the road ahead is clear, it drives away.';
+  String get obTour2Title =>
+      _ur ? 'دبا کر راستہ دیکھیں' : 'Hold to see the path';
+  String get obTour2Body => _ur
+      ? 'بس کو دبائے رکھیں۔ لیزر دکھاتا ہے کہ وہ کہاں سے نکلے گی۔'
+      : 'Press and hold a bus. A laser shows exactly where it will exit.';
+  String get obTour3Title =>
+      _ur ? 'اشارے اور روزانہ انعام' : 'Hints & daily rewards';
+  String get obTour3Body => _ur
+      ? 'پھنس گئے؟ سکوں سے اشارہ لیں۔ ہر روز واپس آئیں اور مفت سکے پائیں۔'
+      : 'Stuck? Spend coins on a hint. Come back every day for free coins.';
+  String get obSkip => _ur ? 'چھوڑیں' : 'Skip';
+  String get obNext => _ur ? 'آگے' : 'Next';
+  String get obStartPlaying => _ur ? 'کھیلنا شروع کریں' : 'Start playing';
 }

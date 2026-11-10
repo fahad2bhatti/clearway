@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
@@ -9,15 +10,11 @@ class TourStep {
   const TourStep({
     required this.title,
     required this.body,
-    required this.icon,
     required this.accent,
   });
 
   final String title;
   final String body;
-
-  /// Kept for callers; the illustration itself is drawn by [ArrowGridArt].
-  final IconData icon;
 
   /// Colour of the highlighted tile in this step's illustration.
   final Color accent;
@@ -41,6 +38,8 @@ class TourStepScreen extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onSkip;
 
+  ClearwayStrings get _s => ClearwayStrings(save.language);
+
   @override
   Widget build(BuildContext context) {
     final isLast = index == total - 1;
@@ -49,76 +48,86 @@ class TourStepScreen extends StatelessWidget {
 
     return OnboardingPage(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '${index + 1}'.padLeft(2, '0'),
-                      style: counter,
-                    ),
-                    TextSpan(
-                      text: ' / $totalLabel',
-                      style: display(22, color: OnboardingTheme.muted),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: onSkip,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 12,
+      child: OnboardingScrollBody(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${index + 1}'.padLeft(2, '0'),
+                        style: counter,
+                      ),
+                      TextSpan(
+                        text: ' / $totalLabel',
+                        style: display(22, color: OnboardingTheme.muted),
+                      ),
+                    ],
                   ),
-                  decoration: BoxDecoration(
-                    color: OnboardingTheme.surface,
+                ),
+                const Spacer(),
+                Material(
+                  color: OnboardingTheme.surface,
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: OnboardingTheme.line),
+                    side: const BorderSide(color: OnboardingTheme.line),
                   ),
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(
-                      color: OnboardingTheme.muted,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      OnboardingFeedback.tap(save);
+                      onSkip();
+                    },
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: Center(
+                          widthFactor: 1,
+                          child: Text(
+                            _s.obSkip,
+                            style: const TextStyle(
+                              color: OnboardingTheme.muted,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(child: _heroCard()),
-          const SizedBox(height: 24),
-          Text(step.title, style: OnboardingTheme.display(40)),
-          const SizedBox(height: 10),
-          Text(
-            step.body,
-            style: const TextStyle(
-              color: OnboardingTheme.muted,
-              fontSize: 16,
-              height: 1.4,
-              fontWeight: FontWeight.w600,
+              ],
             ),
-          ),
-          const SizedBox(height: 24),
-          OnboardingProgress(index: index, total: total),
-          const SizedBox(height: 20),
-          OnboardingButton(
-            label: isLast ? 'Start playing' : 'Next',
-            onTap: () {
-              OnboardingFeedback.tap(save);
-              onNext();
-            },
-          ),
-        ],
+            const SizedBox(height: 16),
+            Expanded(child: _heroCard()),
+            const SizedBox(height: 24),
+            Text(step.title, style: OnboardingTheme.display(40)),
+            const SizedBox(height: 10),
+            Text(
+              step.body,
+              style: const TextStyle(
+                color: OnboardingTheme.muted,
+                fontSize: 16,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            OnboardingProgress(index: index, total: total),
+            const SizedBox(height: 20),
+            OnboardingButton(
+              label: isLast ? _s.obStartPlaying : _s.obNext,
+              onTap: () {
+                OnboardingFeedback.tap(save);
+                onNext();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

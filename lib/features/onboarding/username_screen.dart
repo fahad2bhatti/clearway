@@ -24,7 +24,6 @@ class UsernameScreen extends StatefulWidget {
 
 class _UsernameScreenState extends State<UsernameScreen> {
   late final TextEditingController _controller;
-  String? _error;
   bool _busy = false;
 
   ClearwayStrings get strings => ClearwayStrings(widget.save.language);
@@ -35,7 +34,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.save.username);
-    _controller.addListener(() => setState(() => _error = null));
+    _controller.addListener(() => setState(() {}));
   }
 
   @override
@@ -44,32 +43,18 @@ class _UsernameScreenState extends State<UsernameScreen> {
     super.dispose();
   }
 
-  String? _validate() {
-    final result = UsernameRules.validate(_controller.text);
-    return switch (result) {
-      null => null,
-      UsernameError.tooShort => strings.usernameTooShort,
-      UsernameError.tooLong => strings.usernameTooLong,
-      UsernameError.invalidCharacters => strings.usernameInvalid,
-    };
-  }
+  String _messageFor(UsernameError error) => switch (error) {
+    UsernameError.tooShort => strings.usernameTooShort,
+    UsernameError.tooLong => strings.usernameTooLong,
+    UsernameError.invalidCharacters => strings.usernameInvalid,
+  };
 
-  Future<void> _submit() async {
-    final error = _validate();
-    if (error != null) {
-      setState(() => _error = error);
-      return;
-    }
-    if (_busy) return;
+  void _submit() {
+    final name = _controller.text.trim();
+    if (_busy || UsernameRules.validate(name) != null) return;
     setState(() => _busy = true);
-    try {
-      final name = _controller.text.trim();
-      if (UsernameRules.validate(name) != null) return;
-      OnboardingFeedback.success(widget.save);
-      if (mounted) widget.onFinished(name);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    OnboardingFeedback.success(widget.save);
+    widget.onFinished(name);
   }
 
   OutlineInputBorder _border(Color color, [double width = 1]) =>
@@ -81,9 +66,11 @@ class _UsernameScreenState extends State<UsernameScreen> {
   @override
   Widget build(BuildContext context) {
     final length = _controller.text.length;
-    final isValid = _validate() == null && length >= 3;
+    final rule = UsernameRules.validate(_controller.text);
+    final isValid = rule == null;
+    final hardError =
+        length > 0 && rule != null && rule != UsernameError.tooShort;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final hasError = _error != null;
 
     return OnboardingPage(
       padding: EdgeInsets.fromLTRB(24, 24, 24, bottomInset > 0 ? 12 : 28),
@@ -95,10 +82,10 @@ class _UsernameScreenState extends State<UsernameScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const OnboardingKicker('Last step'),
+                  OnboardingKicker(strings.obUsernameKicker),
                   const SizedBox(height: 8),
                   Text(
-                    'Pick your driver name',
+                    strings.obUsernameTitle,
                     style: OnboardingTheme.display(44),
                   ),
                   const SizedBox(height: 28),
@@ -116,7 +103,9 @@ class _UsernameScreenState extends State<UsernameScreen> {
                       if (isValid && !_busy) _submit();
                     },
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[a-zA-Z0-9_]'),
+                      ),
                     ],
                     decoration: InputDecoration(
                       filled: true,
@@ -136,37 +125,41 @@ class _UsernameScreenState extends State<UsernameScreen> {
                       ),
                       border: _border(OnboardingTheme.line),
                       enabledBorder: _border(
-                        hasError ? OnboardingTheme.hot : OnboardingTheme.line,
+                        hardError ? OnboardingTheme.hot : OnboardingTheme.line,
                       ),
                       focusedBorder: _border(
-                        hasError ? OnboardingTheme.hot : OnboardingTheme.accent,
+                        hardError
+                            ? OnboardingTheme.hot
+                            : OnboardingTheme.accent,
                         1.5,
                       ),
                     ),
                   ),
-                  if (hasError) ...[
+                  if (length > 0 && rule != null) ...[
                     const SizedBox(height: 10),
                     Text(
-                      _error!,
-                      style: const TextStyle(
-                        color: OnboardingTheme.hot,
+                      _messageFor(rule),
+                      style: TextStyle(
+                        color: hardError
+                            ? OnboardingTheme.hot
+                            : OnboardingTheme.muted,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ] else if (isValid) ...[
                     const SizedBox(height: 10),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.check_circle_rounded,
                           color: OnboardingTheme.teal,
                           size: 18,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         Text(
-                          'Nice! This name looks good.',
-                          style: TextStyle(
+                          strings.obUsernameOk,
+                          style: const TextStyle(
                             color: OnboardingTheme.teal,
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
@@ -176,37 +169,45 @@ class _UsernameScreenState extends State<UsernameScreen> {
                     ),
                   ],
                   const SizedBox(height: 28),
-                  const Text('SUGGESTIONS', style: OnboardingTheme.label),
+                  OnboardingLabel(strings.obSuggestions),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: _suggestions.map((name) {
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () {
-                          _controller.text = name;
-                          _controller.selection = TextSelection.collapsed(
-                            offset: name.length,
-                          );
-                          setState(() {});
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: OnboardingTheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: OnboardingTheme.line),
-                          ),
-                          child: Text(
-                            name,
-                            style: const TextStyle(
-                              color: OnboardingTheme.cream,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                      return Material(
+                        color: OnboardingTheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: const BorderSide(color: OnboardingTheme.line),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            OnboardingFeedback.tap(widget.save);
+                            _controller.text = name;
+                            _controller.selection = TextSelection.collapsed(
+                              offset: name.length,
+                            );
+                            setState(() {});
+                          },
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 48),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Center(
+                                widthFactor: 1,
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    color: OnboardingTheme.cream,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -227,14 +228,9 @@ class _UsernameScreenState extends State<UsernameScreen> {
             ),
           ),
           OnboardingButton(
-            label: 'Start driving',
+            label: strings.obStartDriving,
             busy: _busy,
-            onTap: isValid && !_busy
-                ? () {
-                    OnboardingFeedback.tap(widget.save);
-                    _submit();
-                  }
-                : null,
+            onTap: isValid && !_busy ? _submit : null,
           ),
         ],
       ),

@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../app/app_identity.dart';
+import '../../core/clearway_strings.dart';
+import '../../data/local_save.dart';
 import 'onboarding_theme.dart';
 import 'onboarding_widgets.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key, required this.onFinished});
+  const SplashScreen({super.key, required this.save, required this.onFinished});
 
+  final LocalSave save;
   final VoidCallback onFinished;
 
   @override
@@ -21,6 +24,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _logoScale;
   late final Animation<double> _fade;
   late final Animation<double> _bar;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -52,19 +56,21 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-    Timer(const Duration(milliseconds: 2400), () {
+    _timer = Timer(const Duration(milliseconds: 2400), () {
       if (mounted) widget.onFinished();
     });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = ClearwayStrings(widget.save.language);
     return OnboardingPage(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 48),
       child: AnimatedBuilder(
@@ -94,13 +100,7 @@ class _SplashScreenState extends State<SplashScreen>
                         style: OnboardingTheme.display(60, letterSpacing: 6),
                       ),
                       const SizedBox(height: 10),
-                      Text(
-                        AppIdentity.tagline.toUpperCase(),
-                        style: OnboardingTheme.label.copyWith(
-                          fontSize: 12,
-                          letterSpacing: 3,
-                        ),
-                      ),
+                      OnboardingLabel(strings.tagline, size: 12, spacing: 3),
                     ],
                   ),
                 ),
@@ -120,10 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      'LOADING THE YARD...',
-                      style: OnboardingTheme.label,
-                    ),
+                    OnboardingLabel(strings.obLoading),
                   ],
                 ),
               ),

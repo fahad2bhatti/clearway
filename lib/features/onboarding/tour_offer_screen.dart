@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/clearway_strings.dart';
 import '../../data/local_save.dart';
 import 'onboarding_feedback.dart';
 import 'onboarding_theme.dart';
@@ -17,6 +18,8 @@ class TourOfferScreen extends StatelessWidget {
   final VoidCallback onStartTour;
   final VoidCallback onSkip;
 
+  ClearwayStrings get _s => ClearwayStrings(save.language);
+
   @override
   Widget build(BuildContext context) {
     return OnboardingPage(
@@ -24,13 +27,13 @@ class TourOfferScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const OnboardingKicker('30 seconds'),
+          OnboardingKicker(_s.obTourKicker),
           const SizedBox(height: 8),
-          Text('Want a quick tour?', style: OnboardingTheme.display(48)),
+          Text(_s.obTourOfferTitle, style: OnboardingTheme.display(48)),
           const SizedBox(height: 12),
-          const Text(
-            '30 seconds. Learn everything before\nyour first level.',
-            style: TextStyle(
+          Text(
+            _s.obTourOfferBody,
+            style: const TextStyle(
               color: OnboardingTheme.muted,
               fontSize: 15,
               height: 1.4,
@@ -42,17 +45,17 @@ class TourOfferScreen extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _row(1, 'Tap to clear', 'Send buses out of the yard'),
-                  _row(2, 'Hold to aim', 'A laser shows the exit path'),
-                  _row(3, 'Hints & coins', 'Stuck? Spend coins on a hint'),
-                  _row(4, 'Daily Rush', '100 buses, new every day'),
+                  _row(1, _s.obOffer1Title, _s.obOffer1Body),
+                  _row(2, _s.obOffer2Title, _s.obOffer2Body),
+                  _row(3, _s.obOffer3Title, _s.obOffer3Body),
+                  _row(4, _s.obOffer4Title, _s.obOffer4Body),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
           OnboardingButton(
-            label: 'Show me around',
+            label: _s.obShowAround,
             onTap: () {
               OnboardingFeedback.tap(save);
               onStartTour();
@@ -61,11 +64,14 @@ class TourOfferScreen extends StatelessWidget {
           const SizedBox(height: 4),
           Center(
             child: TextButton(
-              onPressed: onSkip,
+              onPressed: () {
+                OnboardingFeedback.tap(save);
+                onSkip();
+              },
               style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-              child: const Text(
-                'Skip, I will figure it out',
-                style: TextStyle(
+              child: Text(
+                _s.obSkipTour,
+                style: const TextStyle(
                   color: OnboardingTheme.muted,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
