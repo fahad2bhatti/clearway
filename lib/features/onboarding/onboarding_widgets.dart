@@ -24,6 +24,31 @@ class OnboardingPage extends StatelessWidget {
   );
 }
 
+/// Behaves like a plain Column body (children may use Expanded). When the
+/// screen is shorter than [minHeight] (small phones, large system fonts) the
+/// content keeps that height and scrolls instead of overflowing.
+class OnboardingScrollBody extends StatelessWidget {
+  const OnboardingScrollBody({
+    super.key,
+    required this.child,
+    this.minHeight = 560,
+  });
+
+  final Widget child;
+  final double minHeight;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final needed = MediaQuery.textScalerOf(context).scale(minHeight);
+      if (constraints.maxHeight >= needed) return child;
+      return SingleChildScrollView(
+        child: SizedBox(height: needed, child: child),
+      );
+    },
+  );
+}
+
 /// Small spaced-out caption. Letter spacing breaks joined Urdu letters, so it
 /// is dropped when the app is right-to-left.
 class OnboardingLabel extends StatelessWidget {

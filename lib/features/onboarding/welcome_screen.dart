@@ -25,56 +25,58 @@ class WelcomeScreen extends StatelessWidget {
       listenable: save,
       builder: (context, _) => OnboardingPage(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: _LanguageToggle(save: save),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: OnboardingTheme.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: OnboardingTheme.line),
-                ),
-                child: ArrowGridArt(
-                  fill: true,
-                  step: 0,
-                  tile: OnboardingTheme.line,
-                  glyph: OnboardingTheme.muted.withValues(alpha: 0.7),
-                  hero: OnboardingTheme.accent,
-                  heroGlyph: OnboardingTheme.onAccent,
+        child: OnboardingScrollBody(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: _LanguageToggle(save: save),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: OnboardingTheme.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: OnboardingTheme.line),
+                  ),
+                  child: ArrowGridArt(
+                    fill: true,
+                    step: 0,
+                    tile: OnboardingTheme.line,
+                    glyph: OnboardingTheme.muted.withValues(alpha: 0.7),
+                    hero: OnboardingTheme.accent,
+                    heroGlyph: OnboardingTheme.onAccent,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 28),
-            OnboardingKicker(_s.obWelcomeKicker),
-            const SizedBox(height: 6),
-            Text('Clearway', style: OnboardingTheme.display(72)),
-            const SizedBox(height: 10),
-            Text(
-              _s.obWelcomeBody,
-              style: const TextStyle(
-                color: OnboardingTheme.muted,
-                fontSize: 16,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 28),
+              OnboardingKicker(_s.obWelcomeKicker),
+              const SizedBox(height: 6),
+              Text('Clearway', style: OnboardingTheme.display(72)),
+              const SizedBox(height: 10),
+              Text(
+                _s.obWelcomeBody,
+                style: const TextStyle(
+                  color: OnboardingTheme.muted,
+                  fontSize: 16,
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 28),
-            OnboardingButton(
-              label: _s.obLetsRoll,
-              onTap: () {
-                OnboardingFeedback.tap(save);
-                onContinue();
-              },
-            ),
-          ],
+              const SizedBox(height: 28),
+              OnboardingButton(
+                label: _s.obLetsRoll,
+                onTap: () {
+                  OnboardingFeedback.tap(save);
+                  onContinue();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
