@@ -68,28 +68,33 @@ class TourStepScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  OnboardingFeedback.tap(save);
-                  onSkip();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: OnboardingTheme.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: OnboardingTheme.line),
-                  ),
-                  child: Text(
-                    _s.obSkip,
-                    style: const TextStyle(
-                      color: OnboardingTheme.muted,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+              Material(
+                color: OnboardingTheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: OnboardingTheme.line),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () {
+                    OnboardingFeedback.tap(save);
+                    onSkip();
+                  },
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: Center(
+                        widthFactor: 1,
+                        child: Text(
+                          _s.obSkip,
+                          style: const TextStyle(
+                            color: OnboardingTheme.muted,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),

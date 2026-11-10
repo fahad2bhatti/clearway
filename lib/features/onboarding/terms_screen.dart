@@ -36,6 +36,11 @@ class _TermsScreenState extends State<TermsScreen> {
 
   bool _accepting = false;
 
+  void _toggleAgreed() {
+    OnboardingFeedback.tap(widget.save);
+    setState(() => _agreed = !_agreed);
+  }
+
   Future<void> _accept() async {
     setState(() => _accepting = true);
     OnboardingFeedback.tap(widget.save);
@@ -94,50 +99,53 @@ class _TermsScreenState extends State<TermsScreen> {
           const SizedBox(height: 16),
           Semantics(
             checked: _agreed,
+            label: strings.termsGateCheckbox,
+            onTap: _toggleAgreed,
+            excludeSemantics: true,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () {
-                OnboardingFeedback.tap(widget.save);
-                setState(() => _agreed = !_agreed);
-              },
-              child: Row(
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: _agreed
-                          ? OnboardingTheme.accent
-                          : OnboardingTheme.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
+              onTap: _toggleAgreed,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
                         color: _agreed
                             ? OnboardingTheme.accent
-                            : OnboardingTheme.line,
-                        width: 1.5,
+                            : OnboardingTheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _agreed
+                              ? OnboardingTheme.accent
+                              : OnboardingTheme.line,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: _agreed
+                          ? const Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: OnboardingTheme.onAccent,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        strings.termsGateCheckbox,
+                        style: const TextStyle(
+                          color: OnboardingTheme.cream,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    child: _agreed
-                        ? const Icon(
-                            Icons.check_rounded,
-                            size: 18,
-                            color: OnboardingTheme.onAccent,
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      strings.termsGateCheckbox,
-                      style: const TextStyle(
-                        color: OnboardingTheme.cream,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

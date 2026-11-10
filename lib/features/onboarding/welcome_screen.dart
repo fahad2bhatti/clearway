@@ -119,21 +119,28 @@ class _LanguageToggle extends StatelessWidget {
   }
 
   Widget _chip(String label, bool active, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: active ? OnboardingTheme.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? OnboardingTheme.onAccent : OnboardingTheme.muted,
-            fontWeight: FontWeight.w800,
-            fontSize: 13,
+    return Semantics(
+      button: true,
+      selected: active,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 44),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: active ? OnboardingTheme.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? OnboardingTheme.onAccent : OnboardingTheme.muted,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
           ),
         ),
       ),

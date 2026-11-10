@@ -175,32 +175,39 @@ class _UsernameScreenState extends State<UsernameScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: _suggestions.map((name) {
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () {
-                          OnboardingFeedback.tap(widget.save);
-                          _controller.text = name;
-                          _controller.selection = TextSelection.collapsed(
-                            offset: name.length,
-                          );
-                          setState(() {});
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: OnboardingTheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: OnboardingTheme.line),
-                          ),
-                          child: Text(
-                            name,
-                            style: const TextStyle(
-                              color: OnboardingTheme.cream,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                      return Material(
+                        color: OnboardingTheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: const BorderSide(color: OnboardingTheme.line),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            OnboardingFeedback.tap(widget.save);
+                            _controller.text = name;
+                            _controller.selection = TextSelection.collapsed(
+                              offset: name.length,
+                            );
+                            setState(() {});
+                          },
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 48),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Center(
+                                widthFactor: 1,
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    color: OnboardingTheme.cream,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
