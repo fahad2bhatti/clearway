@@ -323,8 +323,8 @@ final class LocalSave extends ChangeNotifier {
         'claimedMilestones': claimedMilestones.toList()..sort(),
         'achievementProgress': achievementProgress,
         'claimedAchievements': claimedAchievements.toList()..sort(),
-        'ratingPromptMilestonesShown':
-            ratingPromptMilestonesShown.toList()..sort(),
+        'ratingPromptMilestonesShown': ratingPromptMilestonesShown.toList()
+          ..sort(),
         'dailyMissions': _encodeDailyMissions(dailyMissions),
         'tutorialDone': tutorialDone,
         'chaptersSeen': (chaptersSeen.toList()..sort()),
@@ -344,16 +344,14 @@ final class LocalSave extends ChangeNotifier {
 
   Future<void> mergeCloudProgress(
     int highestLevel,
-    Map<int, int> cloudStars,
-    {
+    Map<int, int> cloudStars, {
     Set<String> cloudArrowSkins = const {'classic'},
     String cloudSelectedArrowSkin = 'classic',
     Set<String> cloudClaimedMilestones = const {},
     Map<String, int> cloudAchievementProgress = const {},
     Set<String> cloudClaimedAchievements = const {},
     DailyMissionState? cloudDailyMissions,
-    }
-  ) async {
+  }) async {
     final mergedLevel = highestLevel > level ? highestLevel : level;
     var changed = mergedLevel != level;
     level = mergedLevel.clamp(1, LevelCatalog.totalLevels);
@@ -372,12 +370,14 @@ final class LocalSave extends ChangeNotifier {
       }
     }
     for (final skinId in cloudArrowSkins) {
-      if (ArrowSkinCatalog.contains(skinId) &&
-          ownedArrowSkins.add(skinId)) {
+      if (ArrowSkinCatalog.contains(skinId) && ownedArrowSkins.add(skinId)) {
         changed = true;
       }
     }
-    if (ownedArrowSkins.contains(cloudSelectedArrowSkin) &&
+    // Cloud only fills in the choice on a fresh install; a skin the player
+    // equipped locally must survive the sync that runs after every round.
+    if (selectedArrowSkin == 'classic' &&
+        ownedArrowSkins.contains(cloudSelectedArrowSkin) &&
         selectedArrowSkin != cloudSelectedArrowSkin) {
       selectedArrowSkin = cloudSelectedArrowSkin;
       changed = true;
@@ -415,9 +415,14 @@ final class LocalSave extends ChangeNotifier {
         for (final mission in cloudDailyMissions.missions) {
           final remoteValue = cloudDailyMissions.progress[mission.id] ?? 0;
           final localValue = mergedProgress[mission.id] ?? 0;
-          if (remoteValue > localValue) mergedProgress[mission.id] = remoteValue;
+          if (remoteValue > localValue) {
+            mergedProgress[mission.id] = remoteValue;
+          }
         }
-        final mergedClaimed = {...localMissions.claimed, ...cloudDailyMissions.claimed};
+        final mergedClaimed = {
+          ...localMissions.claimed,
+          ...cloudDailyMissions.claimed,
+        };
         if (mergedProgress.length != localMissions.progress.length ||
             mergedClaimed.length != localMissions.claimed.length ||
             mergedProgress.entries.any(
@@ -564,7 +569,9 @@ final class LocalSave extends ChangeNotifier {
     if (rawProgress is Map<String, dynamic>) {
       for (final mission in missions) {
         final value = (rawProgress[mission.id] as num?)?.toInt();
-        if (value != null) progress[mission.id] = value.clamp(0, mission.target);
+        if (value != null) {
+          progress[mission.id] = value.clamp(0, mission.target);
+        }
       }
     }
     final claimed = (raw['claimed'] as List<dynamic>? ?? [])

@@ -194,11 +194,11 @@ final class YardGame extends FlameGame with TapCallbacks {
         _fill..color = themePack.coral.withValues(alpha: .48),
       );
     }
-    for (var index = 0; index < vehicles.length; index++) {
-      _drawVehicle(canvas, vehicles[index], index);
+    for (final vehicle in vehicles) {
+      _drawVehicle(canvas, vehicle);
     }
     for (final exiting in _exiting.values) {
-      _drawVehicle(canvas, exiting.vehicle, 0, exitProgress: exiting.progress);
+      _drawVehicle(canvas, exiting.vehicle, exitProgress: exiting.progress);
     }
     _drawBeam(canvas);
   }
@@ -325,15 +325,23 @@ final class YardGame extends FlameGame with TapCallbacks {
     canvas.drawPath(_silhouette!, surface);
   }
 
+  // Colours follow a vehicle's place in the level, not in the shrinking
+  // list, so the remaining arrows keep their colour when one leaves.
+  late final Map<String, int> _colorIndexById = {
+    for (var i = 0; i < level.vehicles.length; i++) level.vehicles[i].id: i,
+  };
+
+  int _colorIndexOf(Vehicle vehicle) => _colorIndexById[vehicle.id] ?? 0;
+
   void _drawVehicle(
     ui.Canvas canvas,
-    Vehicle vehicle,
-    int index, {
+    Vehicle vehicle, {
     double exitProgress = 0,
   }) {
     final flash = blockerVehicleId == vehicle.id && _feedbackRemaining > 0;
     final bumped = _bumpedVehicleId == vehicle.id && _feedbackRemaining > 0;
-    final color = flash ? themePack.coral : skin.colorFor(index);
+    final colorIndex = _colorIndexOf(vehicle);
+    final color = flash ? themePack.coral : skin.colorFor(colorIndex);
 
     final _VehicleShape? shape;
     if (exitProgress > 0) {
@@ -375,7 +383,7 @@ final class YardGame extends FlameGame with TapCallbacks {
     );
     canvas.drawPath(shape.arrow, _fill..color = color);
     if (colorblindMode) {
-      _drawPattern(canvas, shape.path, shape, index % 5, exitProgress > 0);
+      _drawPattern(canvas, shape.path, shape, colorIndex % 5, exitProgress > 0);
     }
     canvas.restore();
 
