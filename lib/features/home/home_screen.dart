@@ -1520,9 +1520,7 @@ class _GiftChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: OnboardingTheme.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: HomeScreen._pink.withValues(alpha: 0.5),
-          ),
+          border: Border.all(color: HomeScreen._pink.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
