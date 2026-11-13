@@ -749,15 +749,19 @@ class _GameScreenState extends State<GameScreen> {
             child: Text(strings.keepPlaying),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              await AdService.maybeShowPauseInterstitial();
+              if (!mounted) return;
               setState(_loadLevel);
             },
             child: Text(strings.restartLevel),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              await AdService.maybeShowPauseInterstitial();
+              if (!mounted) return;
               _clearActiveBoard();
               widget.save.save();
               widget.onHome(_level.number);
@@ -1264,10 +1268,7 @@ class _ResultDialog extends StatelessWidget {
             ),
             child: Text(
               primaryLabel,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
           ),
         ),
