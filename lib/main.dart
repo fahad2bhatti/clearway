@@ -1,3 +1,5 @@
+import 'features/onboarding/age_step.dart';
+
 import 'dart:async';
 import 'dart:ui' show PlatformDispatcher;
 
@@ -249,13 +251,17 @@ class _ClearwayAppState extends State<ClearwayApp> with WidgetsBindingObserver {
       textDirection: _save.language == 'ur'
           ? TextDirection.rtl
           : TextDirection.ltr,
-      child: child ?? const SizedBox.shrink(),
+      child: AgeGuard(
+        save: _save,
+        active: _saveLoaded && _save.onboardingComplete,
+        child: child ?? const SizedBox.shrink(),
+      ),
     ),
     theme: OnboardingTheme.materialTheme,
     home: !_saveLoaded
         ? const Scaffold(body: SizedBox.shrink())
         : !_save.onboardingComplete
-         ? OnboardingFlow(save: _save)
+        ? OnboardingFlow(save: _save)
         : _playing
         ? GameScreen(
             startingLevel: _level,

@@ -6,13 +6,24 @@ import '../../data/local_save.dart';
 import 'splash_screen.dart';
 import 'welcome_screen.dart';
 import 'terms_screen.dart';
+import 'age_step.dart';
 import 'username_screen.dart';
 import 'tour_offer_screen.dart';
 import 'tour_step_screen.dart';
 import '../../core/clearway_strings.dart';
 import 'onboarding_theme.dart';
 
-enum _Step { splash, welcome, terms, username, tourOffer, tour0, tour1, tour2 }
+enum _Step {
+  splash,
+  welcome,
+  terms,
+  age,
+  username,
+  tourOffer,
+  tour0,
+  tour1,
+  tour2,
+}
 
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key, required this.save});
@@ -74,6 +85,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   _Step? get _previous => switch (_step) {
     _Step.terms => _Step.welcome,
+    _Step.age => _Step.terms,
     _Step.username => _Step.terms,
     _Step.tourOffer => _Step.username,
     _Step.tour0 => _Step.tourOffer,
@@ -106,7 +118,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       ),
       _Step.terms => TermsScreen(
         save: widget.save,
-        onContinue: () => _go(_Step.username),
+        onContinue: () => _go(_Step.age),
+      ),
+      _Step.age => AgeGateStep(
+        save: widget.save,
+        onPassed: () => _go(_Step.username),
       ),
       _Step.username => UsernameScreen(
         save: widget.save,
