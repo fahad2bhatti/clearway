@@ -191,6 +191,49 @@ class AdService {
     await done.future;
   }
 
+  /// Pause menu (Home / Restart) ke liye interstitial.
+  /// Cooldown level-ad ke saath shared hai. Ad ready na ho to foran return.
+  static const pauseInterstitialCooldown = Duration(minutes: 2);
+
+  static Future<void> maybeShowPauseInterstitial() async {
+    if (adsRemoved) return;
+    final last = _lastInterstitial;
+    if (last != null &&
+        DateTime.now().difference(last) < pauseInterstitialCooldown) {
+      return;
+    }
+    final ad = _interstitial;
+    if (ad == null) {
+      _loadInterstitial();
+      return;
+    }
+    _interstitial = null;
+    _lastInterstitial = DateTime.now();
+    final done = Completer<void>();
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _loadInterstitial();
+        if (!done.isCompleted) done.complete();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('Pause interstitial show failed: ${error.message}');
+        ad.dispose();
+        _loadInterstitial();
+        if (!done.isCompleted) done.complete();
+      },
+    );
+    try {
+      await ad.show();
+    } catch (error) {
+      debugPrint('Pause interstitial show error: $error');
+      ad.dispose();
+      _loadInterstitial();
+      if (!done.isCompleted) done.complete();
+    }
+    await done.future;
+  }
+
   /// Rewarded ad dikhata hai. Sirf tab true deta hai jab user ne ad poora
   /// dekh kar reward kamaya.
   static Future<bool> showRewarded() async {
